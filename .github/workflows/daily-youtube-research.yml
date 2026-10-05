@@ -102,6 +102,37 @@ jobs:
           )
           print(f"Saved research for {stamp}")
 
+      - name: Prepare compact AI analysis data
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          src = json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
+          out = {"generated_at": src["generated_at"], "recent_72h_sample": {}}
+          for q, d in src["recent_72h_sample"].get("per_query", {}).items():
+              out["recent_72h_sample"][q] = []
+              for v in d.get("videos", []):
+                  out["recent_72h_sample"][q].append({
+                      "video_id": v.get("video_id"),
+                      "title": v.get("title"),
+                      "channel_title": v.get("channel_title"),
+                      "published_at": v.get("published_at"),
+                      "views": v.get("views"),
+                      "likes": v.get("likes"),
+                      "comments_count": v.get("comments"),
+                      "url": v.get("url"),
+                      "query_rank": v.get("query_rank"),
+                      "comments_obtained_count": v.get("comments_obtained_count"),
+                      "comments": [
+                          {"text": x.get("text"), "likes": x.get("likes"), "reply_count": x.get("reply_count")}
+                          for x in v.get("comments", [])
+                      ]
+                  })
+          Path("data/recent-summary.json").write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
+
       - name: Commit research data
         shell: bash
         run: |
