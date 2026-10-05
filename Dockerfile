@@ -8,6 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY server.py .
 
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8000
+ENV PORT=10000
 
 CMD ["python", "server.py"]
