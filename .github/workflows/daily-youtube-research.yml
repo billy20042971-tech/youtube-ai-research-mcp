@@ -1,0 +1,110 @@
+name: Daily YouTube Research via MCP
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * *" # 09:00 Asia/Taipei
+
+permissions:
+  contents: write
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run YouTube Research MCP
+        shell: bash
+        env:
+          MCP_URL: https://youtube-ai-research-mcp.onrender.com/mcp
+        run: |
+          set -euo pipefail
+
+          curl -sS --fail-with-body \
+            -D init.headers \
+            -o init.body \
+            -X POST "$MCP_URL" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"daily-youtube-research","version":"1.0"}}}'
+
+          SESSION_ID="$(awk 'BEGIN{IGNORECASE=1} /^Mcp-Session-Id:/ {sub(/^[^:]*:[[:space:]]*/, "", $0); gsub(/\r/, "", $0); print $0; exit}' init.headers)"
+          test -n "$SESSION_ID"
+
+          curl -sS --fail-with-body \
+            -o initialized.body \
+            -X POST "$MCP_URL" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Mcp-Session-Id: $SESSION_ID" \
+            --data '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+
+          call_tool() {
+            local outfile="$1"
+            local arguments="$2"
+            curl -sS --fail-with-body \
+              -o "$outfile" \
+              -X POST "$MCP_URL" \
+              -H "Content-Type: application/json" \
+              -H "Accept: application/json, text/event-stream" \
+              -H "Mcp-Session-Id: $SESSION_ID" \
+              --data "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"youtube_research_sample\",\"arguments\":$arguments}}"
+          }
+
+          call_tool fixed.body '{"queries":["AI賺錢","AI副業"],"videos_per_query":20,"comments_per_video":20}'
+          call_tool recent.body '{"queries":["AI賺錢","AI副業"],"videos_per_query":20,"comments_per_video":20,"published_after":"2026-10-02T01:00:00Z"}'
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          def parse_sse(path):
+              text = Path(path).read_text(encoding="utf-8-sig")
+              payloads = [line[6:].strip() for line in text.splitlines() if line.startswith("data: ")]
+              if not payloads:
+                  raise RuntimeError(f"No SSE data found in {path}")
+              outer = json.loads(payloads[-1])
+              if "error" in outer:
+                  raise RuntimeError(json.dumps(outer["error"], ensure_ascii=False))
+              result = outer.get("result", {})
+              structured = result.get("structuredContent")
+              if structured is not None:
+                  return structured
+              for item in result.get("content", []):
+                  if item.get("type") == "text":
+                      return json.loads(item["text"])
+              raise RuntimeError(f"No structured result in {path}")
+
+          now = datetime.now(timezone.utc)
+          data = {
+              "generated_at": now.isoformat(),
+              "source": "YouTube Research MCP",
+              "mcp_endpoint": "https://youtube-ai-research-mcp.onrender.com/mcp",
+              "fixed_sample": parse_sse("fixed.body"),
+              "recent_72h_sample": parse_sse("recent.body"),
+          }
+          out = Path("data")
+          out.mkdir(exist_ok=True)
+          stamp = now.strftime("%Y-%m-%d")
+          (out / f"youtube-research-{stamp}.json").write_text(
+              json.dumps(data, ensure_ascii=False, indent=2),
+              encoding="utf-8"
+          )
+          (out / "latest.json").write_text(
+              json.dumps(data, ensure_ascii=False, indent=2),
+              encoding="utf-8"
+          )
+          print(f"Saved research for {stamp}")
+
+      - name: Commit research data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "youtube-research-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git commit -m "chore: daily YouTube MCP research" || echo "No data changes to commit"
+          git push
