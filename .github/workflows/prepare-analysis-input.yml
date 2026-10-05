@@ -1,0 +1,27 @@
+name: Prepare YouTube Analysis Input
+
+on:
+  push:
+    paths:
+      - "data/latest.json"
+      - "scripts/prepare_analysis_input.py"
+      - ".github/workflows/prepare-analysis-input.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare compact analysis input
+        run: python scripts/prepare_analysis_input.py
+      - name: Commit analysis input
+        run: |
+          git config user.name "youtube-research-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/analysis-input.json
+          git commit -m "chore: prepare compact YouTube analysis input" || echo "No changes"
+          git push
