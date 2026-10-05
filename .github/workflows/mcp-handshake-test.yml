@@ -1,0 +1,108 @@
+name: MCP Handshake Test
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Initialize MCP session
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://youtube-ai-research-mcp.onrender.com/mcp"
+
+          curl -sS --fail-with-body \
+            -D init.headers \
+            -o init.body \
+            -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"github-actions-mcp-test","version":"1.0"}}}'
+
+          echo "=== INITIALIZE BODY ==="
+          cat init.body
+
+          SESSION_ID="$(awk 'BEGIN{IGNORECASE=1} /^Mcp-Session-Id:/ {sub(/^[^:]*:[[:space:]]*/, "", $0); gsub(/\r/, "", $0); print $0; exit}' init.headers)"
+
+          if [ -z "$SESSION_ID" ]; then
+            echo "ERROR: MCP-Session-Id was not returned."
+            echo "=== HEADERS ==="
+            cat init.headers
+            exit 1
+          fi
+
+          echo "MCP session established: $SESSION_ID"
+          echo "$SESSION_ID" > session_id.txt
+
+      - name: Send initialized notification
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://youtube-ai-research-mcp.onrender.com/mcp"
+          SESSION_ID="$(cat session_id.txt)"
+
+          curl -sS --fail-with-body \
+            -o initialized.body \
+            -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Mcp-Session-Id: $SESSION_ID" \
+            --data '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+
+          echo "initialized notification accepted."
+
+      - name: List MCP tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://youtube-ai-research-mcp.onrender.com/mcp"
+          SESSION_ID="$(cat session_id.txt)"
+
+          curl -sS --fail-with-body \
+            -o tools.body \
+            -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Mcp-Session-Id: $SESSION_ID" \
+            --data '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+
+          echo "=== TOOLS/LIST ==="
+          cat tools.body
+
+          for tool in youtube_search_videos youtube_top_comments youtube_research_sample; do
+            if ! grep -q "$tool" tools.body; then
+              echo "ERROR: expected tool not found: $tool"
+              exit 1
+            fi
+          done
+
+          echo "All expected MCP tools are present."
+
+      - name: Call YouTube research tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://youtube-ai-research-mcp.onrender.com/mcp"
+          SESSION_ID="$(cat session_id.txt)"
+
+          curl -sS --fail-with-body \
+            -o tool.body \
+            -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Mcp-Session-Id: $SESSION_ID" \
+            --data '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"youtube_search_videos","arguments":{"query":"AI賺錢","max_results":1,"order":"viewCount"}}}'
+
+          echo "=== TOOL CALL RESULT ==="
+          cat tool.body
+
+          if grep -q '"error"' tool.body; then
+            echo "ERROR: MCP tool call returned an error."
+            exit 1
+          fi
+
+          echo "YouTube MCP tool call completed successfully."
