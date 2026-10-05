@@ -6,7 +6,7 @@ on:
       - ".github/workflows/daily-youtube-research.yml"
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *" # temporary live test; restore to 09:00 after verification
+    - cron: "0 1 * * *" # 09:00 Asia/Taipei (GitHub Actions uses UTC)
 
 permissions:
   contents: write
