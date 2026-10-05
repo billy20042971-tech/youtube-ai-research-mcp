@@ -61,3 +61,5 @@ Path("data/analysis-input.json").write_text(
     encoding="utf-8"
 )
 print("analysis-input.json created")
+
+# trigger compact analysis preparation
