@@ -7,7 +7,7 @@ on:
       - ".github/workflows/daily-youtube-research.yml"
   workflow_dispatch:
   schedule:
-        - cron: "14 3 * * *" # TEMP TEST: 11:14 Asia/Taipei today
+        - cron: "0 1 * * *" # 09:00 Asia/Taipei daily
 
 permissions:
   contents: write
@@ -111,10 +111,22 @@ jobs:
           from pathlib import Path
 
           src = json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
+          recent = src["recent_72h_sample"]
+          enriched_by_id = {
+              v["video_id"]: v
+              for v in recent.get("videos", [])
+              if v.get("video_id")
+          }
+
           out = {"generated_at": src["generated_at"], "recent_72h_sample": {}}
-          for q, d in src["recent_72h_sample"].get("per_query", {}).items():
+          for q, d in recent.get("per_query", {}).items():
               out["recent_72h_sample"][q] = []
               for v in d.get("videos", []):
+                  enriched = enriched_by_id.get(v.get("video_id"), {})
+                  comments = enriched.get("comments", [])
+                  if not isinstance(comments, list):
+                      comments = []
+
                   out["recent_72h_sample"][q].append({
                       "video_id": v.get("video_id"),
                       "title": v.get("title"),
@@ -125,13 +137,21 @@ jobs:
                       "comments_count": v.get("comments"),
                       "url": v.get("url"),
                       "query_rank": v.get("query_rank"),
-                      "comments_obtained_count": v.get("comments_obtained_count"),
+                      "comments_obtained_count": enriched.get("comments_obtained_count", 0),
                       "comments": [
-                          {"text": x.get("text"), "likes": x.get("likes"), "reply_count": x.get("reply_count")}
-                          for x in v.get("comments", [])
+                          {
+                              "text": x.get("text"),
+                              "likes": x.get("likes"),
+                              "reply_count": x.get("reply_count")
+                          }
+                          for x in comments
                       ]
                   })
-          Path("data/recent-summary.json").write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+
+          Path("data/recent-summary.json").write_text(
+              json.dumps(out, ensure_ascii=False, indent=2),
+              encoding="utf-8"
+          )
           PY
 
       - name: Commit research data
