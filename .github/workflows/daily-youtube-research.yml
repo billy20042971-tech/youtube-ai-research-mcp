@@ -55,7 +55,13 @@ jobs:
           }
 
           call_tool fixed.body '{"queries":["AI賺錢","AI副業"],"videos_per_query":20,"comments_per_video":20}'
-          call_tool recent.body '{"queries":["AI賺錢","AI副業"],"videos_per_query":20,"comments_per_video":20,"published_after":"2026-10-02T01:00:00Z"}'
+          PUBLISHED_AFTER="$(python - <<'PY'
+from datetime import datetime, timezone, timedelta
+print((datetime.now(timezone.utc) - timedelta(hours=72)).strftime("%Y-%m-%dT%H:%M:%SZ"))
+PY
+)"
+          echo "Using dynamic 72h cutoff: $PUBLISHED_AFTER"
+          call_tool recent.body "{\"queries\":[\"AI賺錢\",\"AI副業\"],\"videos_per_query\":20,\"comments_per_video\":20,\"published_after\":\"$PUBLISHED_AFTER\"}"
 
           python - <<'PY'
           import json
@@ -151,12 +157,34 @@ jobs:
           )
           PY
 
+      - name: Build Word and PowerPoint reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet python-docx python-pptx matplotlib
+          python scripts/build_daily_reports.py
+          test -s reports/latest-manifest.json
+          test -s "$(python - <<'PY'
+import json
+from pathlib import Path
+m=json.loads(Path("reports/latest-manifest.json").read_text())
+print(m["word"])
+PY
+)"
+          test -s "$(python - <<'PY'
+import json
+from pathlib import Path
+m=json.loads(Path("reports/latest-manifest.json").read_text())
+print(m["pptx"])
+PY
+)"
+
       - name: Commit research data
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "youtube-research-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/
-          git commit -m "chore: daily YouTube MCP research" || echo "No data changes to commit"
+          git add data/ reports/
+          git commit -m "chore: daily YouTube MCP research and reports" || echo "No data or report changes to commit"
           git push
