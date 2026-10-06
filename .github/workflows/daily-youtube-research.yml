@@ -4,7 +4,7 @@ name: Daily YouTube Research via MCP
 on:
   workflow_dispatch:
   schedule:
-    - cron: "45 3 * * *" # TEMP TEST: 11:45 Asia/Taipei today
+    - cron: "0 1 * * *" # 09:00 Asia/Taipei daily
 
 permissions:
   contents: write
