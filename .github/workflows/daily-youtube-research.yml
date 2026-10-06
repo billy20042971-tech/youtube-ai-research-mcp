@@ -2,12 +2,9 @@ name: Daily YouTube Research via MCP
 # Manual live test trigger: push event executes this workflow immediately.
 
 on:
-  push:
-    paths:
-      - ".github/workflows/daily-youtube-research.yml"
   workflow_dispatch:
   schedule:
-        - cron: "0 1 * * *" # 09:00 Asia/Taipei daily
+    - cron: "45 3 * * *" # TEMP TEST: 11:45 Asia/Taipei today
 
 permissions:
   contents: write
