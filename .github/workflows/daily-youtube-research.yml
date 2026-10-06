@@ -1,4 +1,5 @@
 name: Daily YouTube Research via MCP
+# Manual live test trigger: push event executes this workflow immediately.
 
 on:
   push:
