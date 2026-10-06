@@ -7,7 +7,7 @@ on:
       - ".github/workflows/daily-youtube-research.yml"
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *" # TEMP LIVE TEST: verify GitHub scheduled trigger
+    - cron: "0 1 * * *" # 09:00 Asia/Taipei (GitHub Actions uses UTC)
 
 permissions:
   contents: write
