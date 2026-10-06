@@ -7,7 +7,7 @@ on:
       - ".github/workflows/daily-youtube-research.yml"
   workflow_dispatch:
   schedule:
-    - cron: "8 2 * * *" # TEMP TEST: 10:08 Asia/Taipei on 2026-10-06
+        - cron: "14 3 * * *" # TEMP TEST: 11:14 Asia/Taipei today
 
 permissions:
   contents: write
