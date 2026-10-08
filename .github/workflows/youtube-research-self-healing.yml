@@ -24,26 +24,22 @@ jobs:
     steps:
       - name: Check production state and recover if needed
         env:
-          GH_TOKEN: \${{ github.token }}
-          REPO: \${{ github.repository }}
-          EVENT_NAME: \${{ github.event_name }}
-          TRIGGER_CONCLUSION: \${{ github.event.workflow_run.conclusion }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         shell: bash
         run: |
           set -euo pipefail
           export TODAY_UTC="$(date -u +%Y-%m-%d)"
 
           if [ "$EVENT_NAME" = "workflow_run" ] && [ "$TRIGGER_CONCLUSION" = "success" ]; then
-            echo "SELF_HEALING: production run succeeded; nothing to recover."
+            echo "SELF_HEALING: triggering production run succeeded; nothing to recover."
             exit 0
           fi
 
           STATE_URL="https://api.github.com/repos/$REPO/contents/data/execution-state.json?ref=main"
-          if curl --fail-with-body -sS \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2026-03-10" \
-            "$STATE_URL" -o state.json; then
+          if curl --fail-with-body -sS             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$STATE_URL" -o state.json; then
             if python - <<'PY'
           import base64, json, os, sys
           raw=json.load(open("state.json",encoding="utf-8"))
@@ -72,11 +68,7 @@ jobs:
           fi
 
           API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?per_page=50"
-          curl --fail-with-body -sS \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2026-03-10" \
-            "$API" -o runs.json
+          curl --fail-with-body -sS             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$API" -o runs.json
 
           NEED_RECOVERY="$(python - <<'PY'
           import json, os
@@ -87,15 +79,14 @@ jobs:
               and r.get("status") in {"queued","in_progress"}
               for r in runs
           )
-          recovery_dispatches=sum(
+          dispatches=sum(
               1 for r in runs
               if r.get("created_at","").startswith(today)
               and r.get("event")=="workflow_dispatch"
-              and "recovery" in r.get("display_title","").lower()
           )
           if active:
               print("no")
-          elif recovery_dispatches >= 5:
+          elif dispatches >= 5:
               print("no")
           else:
               print("yes")
@@ -108,11 +99,6 @@ jobs:
           fi
 
           echo "SELF_HEALING: dispatching a fresh verified production recovery run."
-          curl --fail-with-body -sS -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2026-03-10" \
-            "https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/dispatches" \
-            -d '{"ref":"main","inputs":{"recovery_attempt":"true"}}'
+          curl --fail-with-body -sS -X POST             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/dispatches"             -d '{"ref":"main","inputs":{"recovery_attempt":"true"}}'
 
           echo "SELF_HEALING: recovery dispatched successfully."
