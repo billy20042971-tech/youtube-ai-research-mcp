@@ -21,8 +21,6 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - name: Checkout failed production revision
         uses: actions/checkout@v4
@@ -52,28 +50,36 @@ jobs:
           else
             gh run list --repo "$REPO" --workflow "Daily YouTube Research via MCP" --limit 5 --json databaseId,status,conclusion,headSha,createdAt,updatedAt > repair-run.json
           fi
-          printf '%s\n' "Failure evidence collected." 
+          printf '%s\n' "Failure evidence collected."
           wc -c repair-failure.log repair-run.json 2>/dev/null || true
 
+      - name: Verify OpenAI repair credential
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            gh issue create               --repo "$REPO"               --title "AI self-healing blocked: OPENAI_API_KEY not configured"               --body "The production YouTube AI research workflow failed, but the autonomous Codex repair engine is not activated because the repository secret OPENAI_API_KEY is not available to this run. Failure evidence was collected in this repair run."
+            exit 1
+          fi
+          echo "OPENAI_API_KEY is available to the repair runner."
+
       - name: Install Codex CLI
-        if: ${{ env.OPENAI_API_KEY != '' }}
         run: |
           npm install -g @openai/codex@0.130.0
           codex --version
 
       - name: Run Codex repair agent
-        if: ${{ env.OPENAI_API_KEY != '' }}
         env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          codex exec \
-            --model gpt-5.6 \
-            --sandbox workspace-write \
-            --ask-for-approval never \
-            --output-last-message codex-final.txt \
-            "You are the repository's autonomous failure-repair engineer.
+          codex exec             --model gpt-5.6             --sandbox workspace-write             --ask-for-approval never             --output-last-message codex-final.txt             "You are the repository's autonomous failure-repair engineer.
 
 Read AGENTS.md first. Then inspect repair-failure.log and repair-run.json when present, the current workflow files, scripts, server, and recent git history.
 
@@ -91,18 +97,15 @@ If validation passes, commit the changes on the current ai-repair/* branch with 
 "
 
       - name: Deterministic repair gate
-        if: ${{ env.OPENAI_API_KEY != '' }}
         shell: bash
         run: |
           set -euo pipefail
 
-          # Never allow secrets to enter the diff.
           if git diff origin/main...HEAD --binary | grep -Eiq 'OPENAI_API_KEY|YOUTUBE_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}'; then
-            echo "SECURITY GATE FAILED: possible credential in staged diff."
+            echo "SECURITY GATE FAILED: possible credential in repair diff."
             exit 1
           fi
 
-          # Only repair-relevant paths may be changed.
           allowed='^(AGENTS\.md|server\.py|Dockerfile|render\.yaml|requirements\.txt|scripts/.*|\.github/workflows/daily-youtube-research\.yml|\.github/workflows/youtube-research-self-healing\.yml|\.github/workflows/ai-self-healing-code-repair\.yml)$'
           bad_paths="$(git diff origin/main...HEAD --name-only | grep -Ev "$allowed" || true)"
           if [ -n "$bad_paths" ]; then
@@ -118,7 +121,6 @@ If validation passes, commit the changes on the current ai-repair/* branch with 
           echo "REPAIR_GATE=PASS"
 
       - name: Open repair PR
-        if: ${{ env.OPENAI_API_KEY != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -126,22 +128,4 @@ If validation passes, commit the changes on the current ai-repair/* branch with 
         run: |
           set -euo pipefail
           git push --set-upstream origin "ai-repair/${GITHUB_RUN_ID}"
-          gh pr create \
-            --repo "$REPO" \
-            --base main \
-            --head "ai-repair/${GITHUB_RUN_ID}" \
-            --title "AI self-healing repair: production pipeline" \
-            --body-file codex-final.txt
-
-      - name: Fallback issue when no OpenAI repair credential is configured
-        if: ${{ env.OPENAI_API_KEY == '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh issue create \
-            --repo "$REPO" \
-            --title "AI self-healing blocked: OPENAI_API_KEY not configured" \
-            --body "The production YouTube AI research workflow failed, but the autonomous Codex repair engine is not activated because the repository secret OPENAI_API_KEY is not configured. Failure evidence was collected in this repair run."
+          gh pr create             --repo "$REPO"             --base main             --head "ai-repair/${GITHUB_RUN_ID}"             --title "AI self-healing repair: production pipeline"             --body-file codex-final.txt
