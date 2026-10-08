@@ -98,14 +98,14 @@ If validation passes, commit the changes on the current ai-repair/* branch with 
           set -euo pipefail
 
           # Never allow secrets to enter the diff.
-          if git diff --cached --binary | grep -Eiq 'OPENAI_API_KEY|YOUTUBE_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}'; then
+          if git diff origin/main...HEAD --binary | grep -Eiq 'OPENAI_API_KEY|YOUTUBE_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}'; then
             echo "SECURITY GATE FAILED: possible credential in staged diff."
             exit 1
           fi
 
           # Only repair-relevant paths may be changed.
           allowed='^(AGENTS\.md|server\.py|Dockerfile|render\.yaml|requirements\.txt|scripts/.*|\.github/workflows/daily-youtube-research\.yml|\.github/workflows/youtube-research-self-healing\.yml|\.github/workflows/ai-self-healing-code-repair\.yml)$'
-          bad_paths="$(git diff --cached --name-only | grep -Ev "$allowed" || true)"
+          bad_paths="$(git diff origin/main...HEAD --name-only | grep -Ev "$allowed" || true)"
           if [ -n "$bad_paths" ]; then
             echo "SECURITY GATE FAILED: unrelated files changed:"
             printf '%s\n' "$bad_paths"
@@ -113,7 +113,7 @@ If validation passes, commit the changes on the current ai-repair/* branch with 
           fi
 
           python -m compileall -q server.py scripts
-          git diff --cached --check
+          git diff origin/main...HEAD --check
           test -s codex-final.txt
           git status --short
           echo "REPAIR_GATE=PASS"
