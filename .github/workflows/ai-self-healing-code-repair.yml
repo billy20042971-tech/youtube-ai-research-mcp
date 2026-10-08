@@ -62,7 +62,7 @@ jobs:
           codex --version
 
       - name: Run Codex repair agent
-        if: ${{ secrets.OPENAI_API_KEY != '' }}
+        if: ${{ env.OPENAI_API_KEY != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
