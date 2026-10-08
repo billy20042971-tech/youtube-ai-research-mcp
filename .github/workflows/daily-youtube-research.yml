@@ -1,5 +1,5 @@
 name: Daily YouTube Research via MCP
-# Pipeline v1.4: report generator normalizes enriched MCP comment lists.
+# Pipeline v1.5: report generator normalizes enriched MCP comment lists.
 
 on:
   workflow_dispatch:
@@ -243,12 +243,19 @@ jobs:
           python - <<'PY' || fail "Report verification failed" "Inspect reports/latest-manifest.json and generated files."
           import json
           from pathlib import Path
+          from datetime import datetime, timezone, timedelta
           m=json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8"))
-          for key in ("word","pptx"):
+          for key in ("word","pptx","chart"):
               p=Path(m[key])
               if not p.is_file() or p.stat().st_size==0:
                   raise RuntimeError(f"Missing or empty report: {p}")
-          print("Word/PPTX manifest verified.")
+          generated_at=m.get("generated_at")
+          if not generated_at:
+              raise RuntimeError("Report manifest generated_at is missing")
+          dt=datetime.fromisoformat(generated_at.replace("Z","+00:00"))
+          if dt < datetime.now(timezone.utc) - timedelta(minutes=15):
+              raise RuntimeError(f"Report manifest is stale: {generated_at}")
+          print("Word/PPTX/PNG manifest verified and fresh.")
           PY
 
           echo "=== 8. Pipeline complete ==="
