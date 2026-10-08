@@ -100,6 +100,10 @@ jobs:
               write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}"
             fi
 
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              return "$rc"
+            fi
+
             git config user.name "youtube-research-bot"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add data/ reports/ || true
