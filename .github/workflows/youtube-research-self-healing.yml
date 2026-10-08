@@ -1,0 +1,115 @@
+name: YouTube Research Self-Healing
+
+on:
+  schedule:
+    - cron: "40-59/10 0 * * *"
+    - cron: "0-40/10 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: youtube-ai-research-self-healing
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check today's production run and recover if needed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TODAY_UTC="$(date -u +%Y-%m-%d)"
+          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?per_page=50"
+          curl --fail-with-body -sS -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$API" -o runs.json
+
+          python - <<'PY'
+          import json, os, sys
+          from datetime import datetime, timezone
+
+          today=os.environ["TODAY_UTC"]
+          runs=json.load(open("runs.json", encoding="utf-8")).get("workflow_runs", [])
+
+          schedule_success=False
+          active=False
+          recovery_dispatches=0
+          latest=[]
+
+          for r in runs:
+              created=r.get("created_at","")
+              if not created.startswith(today):
+                  continue
+              event=r.get("event")
+              status=r.get("status")
+              conclusion=r.get("conclusion")
+              latest.append((created,event,status,conclusion,r.get("id")))
+
+              if event == "schedule" and conclusion == "success":
+                  schedule_success=True
+              if event in {"schedule","workflow_dispatch"} and status in {"queued","in_progress"}:
+                  active=True
+              if event == "workflow_dispatch":
+                  recovery_dispatches += 1
+
+          print("Today's relevant runs:")
+          for x in latest[:10]:
+              print(x)
+
+          if schedule_success:
+              print("SELF_HEALING: today's scheduled production run already succeeded.")
+              sys.exit(0)
+
+          if active:
+              print("SELF_HEALING: a production/recovery run is still active; do not duplicate it.")
+              sys.exit(0)
+
+          if recovery_dispatches >= 5:
+              print("SELF_HEALING: recovery limit reached (5 dispatches today).")
+              sys.exit(0)
+
+          print(f"SELF_HEALING: no successful schedule run; dispatching recovery attempt {recovery_dispatches + 1}.")
+          PY
+
+          # Only dispatch when the Python gate explicitly says recovery is needed.
+          NEED_RECOVERY="$(python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          today=os.environ["TODAY_UTC"]
+          runs=json.load(open("runs.json", encoding="utf-8")).get("workflow_runs", [])
+          schedule_success=any(
+              r.get("created_at","").startswith(today)
+              and r.get("event")=="schedule"
+              and r.get("conclusion")=="success"
+              for r in runs
+          )
+          active=any(
+              r.get("created_at","").startswith(today)
+              and r.get("event") in {"schedule","workflow_dispatch"}
+              and r.get("status") in {"queued","in_progress"}
+              for r in runs
+          )
+          dispatches=sum(
+              1 for r in runs
+              if r.get("created_at","").startswith(today)
+              and r.get("event")=="workflow_dispatch"
+          )
+          print("yes" if not schedule_success and not active and dispatches < 5 else "no")
+          PY
+          )"
+
+          if [ "$NEED_RECOVERY" != "yes" ]; then
+            exit 0
+          fi
+
+          curl --fail-with-body -sS -X POST             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/dispatches"             -d '{"ref":"main","inputs":{"recovery_attempt":"true"}}'
+
+          echo "SELF_HEALING: recovery workflow dispatched."
+          echo "The production workflow will retry the full verified pipeline."
