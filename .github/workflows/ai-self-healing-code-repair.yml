@@ -43,5 +43,4 @@ jobs:
           codex exec \
             --model gpt-5.6 \
             --sandbox read-only \
-            --ask-for-approval never \
-            "You are performing a READ-ONLY diagnostic of this repository. Inspect AGENTS.md if present, the GitHub workflow files, and the main application/scripts. Do not modify, create, delete, commit, or push any files. Do not use network access or secrets. Report: (1) repository purpose, (2) current YouTube research pipeline architecture, (3) likely failure points relevant to self-healing, (4) concrete safe improvements for the next repair layer. Your task is analysis only."
+            "You are performing a READ-ONLY diagnostic of this repository. Inspect AGENTS.md if present, the GitHub workflow files, and the main application/scripts. Do not modify, create, delete, commit, or push any files. Do not use network access except the Codex model service required for this run, and do not expose or read repository secrets. Report: (1) repository purpose, (2) current YouTube research pipeline architecture, (3) likely failure points relevant to self-healing, (4) concrete safe improvements for the next repair layer. Your task is analysis only."
