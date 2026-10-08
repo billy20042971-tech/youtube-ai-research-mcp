@@ -85,8 +85,24 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add data/ reports/ || true
             git commit -m "chore: record daily YouTube research execution state" || true
-            git push || true
-            return "$rc"
+
+            # Another workflow/run may have advanced main while this job was running.
+            # Rebase onto the latest remote before publishing the execution state.
+            for attempt in 1 2 3; do
+              git fetch origin main
+              if ! git rebase origin/main; then
+                git rebase --abort || true
+                sleep $((attempt * 2))
+                continue
+              fi
+              if git push origin HEAD:main; then
+                return "$rc"
+              fi
+              sleep $((attempt * 2))
+            done
+
+            echo "::error::Failed to publish execution state after 3 retries."
+            return 1
           }
           trap finalize EXIT
 
