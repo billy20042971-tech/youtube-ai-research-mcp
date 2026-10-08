@@ -33,3 +33,15 @@ jobs:
         run: |
           npm install -g @openai/codex@0.130.0
           codex --version
+
+      - name: Run Codex read-only analysis
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex exec \
+            --model gpt-5.6 \
+            --sandbox read-only \
+            --ask-for-approval never \
+            "You are performing a READ-ONLY diagnostic of this repository. Inspect AGENTS.md if present, the GitHub workflow files, and the main application/scripts. Do not modify, create, delete, commit, or push any files. Do not use network access or secrets. Report: (1) repository purpose, (2) current YouTube research pipeline architecture, (3) likely failure points relevant to self-healing, (4) concrete safe improvements for the next repair layer. Your task is analysis only."
