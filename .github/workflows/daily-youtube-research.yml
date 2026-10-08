@@ -7,7 +7,7 @@ on:
     paths:
       - ".github/workflows/daily-youtube-research.yml"
   schedule:
-    - cron: "55 0 * * *"
+    - cron: "30 0 * * *"
 
 permissions:
   contents: write
