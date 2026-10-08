@@ -1,59 +1,83 @@
 name: Daily YouTube Research via MCP
-# Manual live test trigger: push event executes this workflow immediately.
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 1 * * *" # 09:00 Asia/Taipei daily
+    - cron: "55 0 * * *"
 
 permissions:
   contents: write
 
+concurrency:
+  group: youtube-ai-research-daily
+  cancel-in-progress: false
+
 jobs:
   research:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@v4
 
+      - name: Initialize execution state
+        id: state_init
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data reports
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          now = datetime.now(timezone.utc)
+          state = {
+              "execution_id": f"gh-{os.environ.get('GITHUB_RUN_ID','unknown')}-attempt-{os.environ.get('GITHUB_RUN_ATTEMPT','1')}",
+              "workflow": "Daily YouTube Research via MCP",
+              "status": "RUNNING",
+              "scheduled_at": now.isoformat(),
+              "started_at": now.isoformat(),
+              "completed_at": None,
+              "github_run_id": os.environ.get("GITHUB_RUN_ID"),
+              "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+              "trigger": os.environ.get("GITHUB_EVENT_NAME"),
+              "mcp": "NOT_STARTED",
+              "data": "NOT_STARTED",
+              "reports": "NOT_STARTED",
+              "verification": "NOT_STARTED",
+              "failure_reason": None,
+              "recovery_action": None
+          }
+          Path("data/execution-state.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
+
       - name: Run YouTube Research MCP
+        id: mcp
         shell: bash
         env:
           MCP_URL: https://youtube-ai-research-mcp.onrender.com/mcp
         run: |
           set -euo pipefail
-
-          curl -sS --fail-with-body \
-            -D init.headers \
-            -o init.body \
-            -X POST "$MCP_URL" \
+          curl --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 120 -sS --fail-with-body \
+            -D init.headers -o init.body -X POST "$MCP_URL" \
             -H "Content-Type: application/json" \
             -H "Accept: application/json, text/event-stream" \
-            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"daily-youtube-research","version":"1.0"}}}'
-
+            --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"daily-youtube-research","version":"1.1"}}}'
           SESSION_ID="$(awk 'BEGIN{IGNORECASE=1} /^Mcp-Session-Id:/ {sub(/^[^:]*:[[:space:]]*/, "", $0); gsub(/\r/, "", $0); print $0; exit}' init.headers)"
           test -n "$SESSION_ID"
-
-          curl -sS --fail-with-body \
-            -o initialized.body \
-            -X POST "$MCP_URL" \
-            -H "Content-Type: application/json" \
-            -H "Accept: application/json, text/event-stream" \
-            -H "Mcp-Session-Id: $SESSION_ID" \
-            --data '{"jsonrpc":"2.0","method":"notifications/initialized"}'
-
+          curl --retry 3 --retry-delay 2 --connect-timeout 15 --max-time 60 -sS --fail-with-body \
+            -o initialized.body -X POST "$MCP_URL" \
+            -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+            -H "Mcp-Session-Id: $SESSION_ID" --data '{"jsonrpc":"2.0","method":"notifications/initialized"}'
           call_tool() {
-            local outfile="$1"
-            local arguments="$2"
-            curl -sS --fail-with-body \
-              -o "$outfile" \
-              -X POST "$MCP_URL" \
-              -H "Content-Type: application/json" \
-              -H "Accept: application/json, text/event-stream" \
+            local outfile="$1"; local arguments="$2"
+            curl --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 240 -sS --fail-with-body \
+              -o "$outfile" -X POST "$MCP_URL" \
+              -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
               -H "Mcp-Session-Id: $SESSION_ID" \
               --data "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"youtube_research_sample\",\"arguments\":$arguments}}"
           }
-
           call_tool fixed.body '{"queries":["AI賺錢","AI副業"],"videos_per_query":20,"comments_per_video":20}'
           PUBLISHED_AFTER="$(python - <<'PY'
 from datetime import datetime, timezone, timedelta
@@ -63,128 +87,146 @@ PY
           echo "Using dynamic 72h cutoff: $PUBLISHED_AFTER"
           call_tool recent.body "{\"queries\":[\"AI賺錢\",\"AI副業\"],\"videos_per_query\":20,\"comments_per_video\":20,\"published_after\":\"$PUBLISHED_AFTER\"}"
 
+      - name: Parse and verify research data
+        id: data
+        shell: bash
+        run: |
+          set -euo pipefail
           python - <<'PY'
           import json
           from pathlib import Path
-          from datetime import datetime, timezone
-
+          from datetime import datetime, timezone, timedelta
           def parse_sse(path):
               text = Path(path).read_text(encoding="utf-8-sig")
               payloads = [line[6:].strip() for line in text.splitlines() if line.startswith("data: ")]
-              if not payloads:
-                  raise RuntimeError(f"No SSE data found in {path}")
+              if not payloads: raise RuntimeError(f"No SSE data found in {path}")
               outer = json.loads(payloads[-1])
-              if "error" in outer:
-                  raise RuntimeError(json.dumps(outer["error"], ensure_ascii=False))
+              if "error" in outer: raise RuntimeError(json.dumps(outer["error"], ensure_ascii=False))
               result = outer.get("result", {})
               structured = result.get("structuredContent")
-              if structured is not None:
-                  return structured
+              if structured is not None: return structured
               for item in result.get("content", []):
-                  if item.get("type") == "text":
-                      return json.loads(item["text"])
+                  if item.get("type") == "text": return json.loads(item["text"])
               raise RuntimeError(f"No structured result in {path}")
-
           now = datetime.now(timezone.utc)
+          cutoff = now - timedelta(hours=72)
+          fixed = parse_sse("fixed.body")
+          recent = parse_sse("recent.body")
+          videos = recent.get("videos", [])
+          if not isinstance(videos, list) or not videos: raise RuntimeError("72h sample contains no videos")
+          fresh, stale = [], []
+          for v in videos:
+              published = v.get("published_at")
+              if not published: stale.append(v); continue
+              try:
+                  dt = datetime.fromisoformat(published.replace("Z", "+00:00"))
+                  (fresh if dt >= cutoff else stale).append(v)
+              except Exception: stale.append(v)
+          if not fresh: raise RuntimeError("72h sample has zero videos inside the verified 72h window")
           data = {
               "generated_at": now.isoformat(),
               "source": "YouTube Research MCP",
               "mcp_endpoint": "https://youtube-ai-research-mcp.onrender.com/mcp",
-              "fixed_sample": parse_sse("fixed.body"),
-              "recent_72h_sample": parse_sse("recent.body"),
+              "published_after": cutoff.strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "fixed_sample": fixed,
+              "recent_72h_sample": recent,
+              "verification": {"fresh_videos": len(fresh), "stale_or_invalid_videos": len(stale), "verified_72h": True}
           }
-          out = Path("data")
-          out.mkdir(exist_ok=True)
+          out = Path("data"); out.mkdir(exist_ok=True)
           stamp = now.strftime("%Y-%m-%d")
-          (out / f"youtube-research-{stamp}.json").write_text(
-              json.dumps(data, ensure_ascii=False, indent=2),
-              encoding="utf-8"
-          )
-          (out / "latest.json").write_text(
-              json.dumps(data, ensure_ascii=False, indent=2),
-              encoding="utf-8"
-          )
-          print(f"Saved research for {stamp}")
+          (out / f"youtube-research-{stamp}.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+          (out / "latest.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+          print(f"Verified and saved research for {stamp}; fresh={len(fresh)} stale={len(stale)}")
+          PY
 
       - name: Prepare compact AI analysis data
+        id: compact
         shell: bash
         run: |
+          set -euo pipefail
           python - <<'PY'
           import json
           from pathlib import Path
-
           src = json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
           recent = src["recent_72h_sample"]
-          enriched_by_id = {
-              v["video_id"]: v
-              for v in recent.get("videos", [])
-              if v.get("video_id")
-          }
-
+          enriched_by_id = {v["video_id"]: v for v in recent.get("videos", []) if v.get("video_id")}
           out = {"generated_at": src["generated_at"], "recent_72h_sample": {}}
           for q, d in recent.get("per_query", {}).items():
               out["recent_72h_sample"][q] = []
               for v in d.get("videos", []):
                   enriched = enriched_by_id.get(v.get("video_id"), {})
                   comments = enriched.get("comments", [])
-                  if not isinstance(comments, list):
-                      comments = []
-
+                  if not isinstance(comments, list): comments = []
                   out["recent_72h_sample"][q].append({
-                      "video_id": v.get("video_id"),
-                      "title": v.get("title"),
-                      "channel_title": v.get("channel_title"),
-                      "published_at": v.get("published_at"),
-                      "views": v.get("views"),
-                      "likes": v.get("likes"),
-                      "comments_count": v.get("comments"),
-                      "url": v.get("url"),
-                      "query_rank": v.get("query_rank"),
+                      "video_id": v.get("video_id"), "title": v.get("title"), "channel_title": v.get("channel_title"),
+                      "published_at": v.get("published_at"), "views": v.get("views"), "likes": v.get("likes"),
+                      "comments_count": v.get("comments"), "url": v.get("url"), "query_rank": v.get("query_rank"),
                       "comments_obtained_count": enriched.get("comments_obtained_count", 0),
-                      "comments": [
-                          {
-                              "text": x.get("text"),
-                              "likes": x.get("likes"),
-                              "reply_count": x.get("reply_count")
-                          }
-                          for x in comments
-                      ]
+                      "comments": [{"text": x.get("text"), "likes": x.get("likes"), "reply_count": x.get("reply_count")} for x in comments]
                   })
-
-          Path("data/recent-summary.json").write_text(
-              json.dumps(out, ensure_ascii=False, indent=2),
-              encoding="utf-8"
-          )
+          Path("data/recent-summary.json").write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
           PY
 
       - name: Build Word and PowerPoint reports
+        id: reports
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check --quiet python-docx python-pptx matplotlib
           python scripts/build_daily_reports.py
           test -s reports/latest-manifest.json
-          test -s "$(python - <<'PY'
-import json
-from pathlib import Path
-m=json.loads(Path("reports/latest-manifest.json").read_text())
-print(m["word"])
-PY
-)"
-          test -s "$(python - <<'PY'
-import json
-from pathlib import Path
-m=json.loads(Path("reports/latest-manifest.json").read_text())
-print(m["pptx"])
-PY
-)"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m = json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8"))
+          for key in ("word", "pptx"):
+              p = Path(m[key])
+              if not p.is_file() or p.stat().st_size == 0: raise SystemExit(f"Missing or empty report: {p}")
+          print("Report manifest and Word/PPTX verified.")
+          PY
 
-      - name: Commit research data
+      - name: Finalize execution state and commit evidence
+        if: always()
         shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+          MCP_OUTCOME: ${{ steps.mcp.outcome }}
+          DATA_OUTCOME: ${{ steps.data.outcome }}
+          REPORTS_OUTCOME: ${{ steps.reports.outcome }}
         run: |
-          set -euo pipefail
+          set +e
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          p = Path("data/execution-state.json")
+          state = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+          job = os.environ.get("JOB_STATUS", "unknown")
+          mcp = os.environ.get("MCP_OUTCOME", "unknown")
+          data = os.environ.get("DATA_OUTCOME", "unknown")
+          reports = os.environ.get("REPORTS_OUTCOME", "unknown")
+          state["completed_at"] = datetime.now(timezone.utc).isoformat()
+          state["status"] = "SUCCESS" if job == "success" else "FAILED"
+          state["mcp"] = mcp.upper(); state["data"] = data.upper(); state["reports"] = reports.upper()
+          state["verification"] = "PASS" if job == "success" else "FAIL"
+          if job != "success":
+              failed = []
+              if mcp != "success": failed.append("MCP")
+              if data != "success": failed.append("DATA_VERIFICATION")
+              if reports != "success": failed.append("REPORTS")
+              state["failure_reason"] = " / ".join(failed) if failed else "GitHub job failed"
+              state["recovery_action"] = "Inspect this run, retry failed execution, and never publish stale data as today's result."
+          latest = Path("data/latest.json")
+          if latest.exists():
+              try:
+                  d = json.loads(latest.read_text(encoding="utf-8"))
+                  state["data_generated_at"] = d.get("generated_at")
+                  state["data_verification"] = d.get("verification", {})
+              except Exception: pass
+          p.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
           git config user.name "youtube-research-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ reports/
-          git commit -m "chore: daily YouTube MCP research and reports" || echo "No data or report changes to commit"
-          git push
+          git add data/ reports/ || true
+          git commit -m "chore: daily YouTube research execution state" || true
+          git push || true
