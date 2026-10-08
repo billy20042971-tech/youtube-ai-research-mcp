@@ -2,6 +2,9 @@ name: Daily YouTube Research via MCP
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/daily-youtube-research.yml"
   schedule:
     - cron: "55 0 * * *"
 
@@ -14,7 +17,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Runtime smoke test
         run: |
           set -euo pipefail
