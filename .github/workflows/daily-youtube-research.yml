@@ -59,7 +59,7 @@ jobs:
             local reason="${2:-}"
             local recovery="${3:-}"
             RECOVERY_ATTEMPT="$RECOVERY_ATTEMPT" python - "$EXECUTION_ID" "$STARTED_AT" "$status" "$reason" "$recovery" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_EVENT_NAME" "$MCP_URL" <<'PY'
-          import json, sys
+          import json, os, sys
           from datetime import datetime, timezone
           from pathlib import Path
           execution_id, started_at, status, reason, recovery, run_id, attempt, event, mcp_url = sys.argv[1:]
