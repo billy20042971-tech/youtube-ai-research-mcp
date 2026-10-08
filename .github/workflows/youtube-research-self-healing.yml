@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: "40-59/10 0 * * *"
     - cron: "0-40/10 1 * * *"
+  workflow_run:
+    workflows: ["Daily YouTube Research via MCP"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -19,80 +22,63 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check today's production run and recover if needed
+      - name: Check production state and recover if needed
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         shell: bash
         run: |
           set -euo pipefail
-
           export TODAY_UTC="$(date -u +%Y-%m-%d)"
-          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?per_page=50"
-          curl --fail-with-body -sS -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$API" -o runs.json
 
-          python - <<'PY'
-          import json, os, sys
+          # A workflow_run event fires after every production completion.
+          # Only recover when the completed production run was unsuccessful.
+          if [ "$EVENT_NAME" = "workflow_run" ] && [ "$TRIGGER_CONCLUSION" = "success" ]; then
+            echo "SELF_HEALING: triggering production run succeeded; nothing to recover."
+            exit 0
+          fi
+
+          STATE_URL="https://api.github.com/repos/$REPO/contents/data/execution-state.json?ref=main"
+          if curl --fail-with-body -sS             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$STATE_URL" -o state.json; then
+            python - <<'PY'
+          import base64, json, os, sys
           from datetime import datetime, timezone
 
+          raw=json.load(open("state.json",encoding="utf-8"))
+          state=json.loads(base64.b64decode(raw["content"]).decode("utf-8"))
           today=os.environ["TODAY_UTC"]
-          runs=json.load(open("runs.json", encoding="utf-8")).get("workflow_runs", [])
 
-          schedule_success=False
-          active=False
-          recovery_dispatches=0
-          latest=[]
-
-          for r in runs:
-              created=r.get("created_at","")
-              if not created.startswith(today):
-                  continue
-              event=r.get("event")
-              status=r.get("status")
-              conclusion=r.get("conclusion")
-              latest.append((created,event,status,conclusion,r.get("id")))
-
-              if event == "schedule" and conclusion == "success":
-                  schedule_success=True
-              if event in {"schedule","workflow_dispatch"} and status in {"queued","in_progress"}:
-                  active=True
-              if event == "workflow_dispatch":
-                  recovery_dispatches += 1
-
-          print("Today's relevant runs:")
-          for x in latest[:10]:
-              print(x)
-
-          if schedule_success:
-              print("SELF_HEALING: today's scheduled production run already succeeded.")
+          success=(
+              state.get("status")=="SUCCESS"
+              and state.get("completed_at","").startswith(today)
+              and state.get("data")=="PASS"
+              and state.get("reports")=="PASS"
+              and state.get("verification")=="PASS"
+              and state.get("data_verification",{}).get("verified_72h") is True
+              and state.get("data_verification",{}).get("fresh_videos",0)>0
+              and state.get("data_verification",{}).get("stale_or_invalid_videos",0)==0
+          )
+          if success:
+              print("SELF_HEALING: today's verified production data already exists.")
               sys.exit(0)
-
-          if active:
-              print("SELF_HEALING: a production/recovery run is still active; do not duplicate it.")
-              sys.exit(0)
-
-          if recovery_dispatches >= 5:
-              print("SELF_HEALING: recovery limit reached (5 dispatches today).")
-              sys.exit(0)
-
-          print(f"SELF_HEALING: no successful schedule run; dispatching recovery attempt {recovery_dispatches + 1}.")
+          print("SELF_HEALING: today's verified production data is not complete.")
           PY
+          else
+            echo "SELF_HEALING: execution-state.json unavailable; recovery is required."
+          fi
 
-          # Only dispatch when the Python gate explicitly says recovery is needed.
+          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?per_page=50"
+          curl --fail-with-body -sS             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$API" -o runs.json
+
           NEED_RECOVERY="$(python - <<'PY'
           import json, os
-          from datetime import datetime, timezone
           today=os.environ["TODAY_UTC"]
-          runs=json.load(open("runs.json", encoding="utf-8")).get("workflow_runs", [])
-          schedule_success=any(
-              r.get("created_at","").startswith(today)
-              and r.get("event")=="schedule"
-              and r.get("conclusion")=="success"
-              for r in runs
-          )
+          runs=json.load(open("runs.json",encoding="utf-8")).get("workflow_runs",[])
+
           active=any(
               r.get("created_at","").startswith(today)
-              and r.get("event") in {"schedule","workflow_dispatch"}
               and r.get("status") in {"queued","in_progress"}
               for r in runs
           )
@@ -101,15 +87,25 @@ jobs:
               if r.get("created_at","").startswith(today)
               and r.get("event")=="workflow_dispatch"
           )
-          print("yes" if not schedule_success and not active and dispatches < 5 else "no")
+
+          # If the production workflow is still running, wait for it.
+          if active:
+              print("no")
+          # Five recovery dispatches is enough to handle transient platform/API failures
+          # without creating an infinite loop when the code itself is broken.
+          elif dispatches >= 5:
+              print("no")
+          else:
+              print("yes")
           PY
           )"
 
           if [ "$NEED_RECOVERY" != "yes" ]; then
+            echo "SELF_HEALING: no dispatch needed right now."
             exit 0
           fi
 
+          echo "SELF_HEALING: dispatching a fresh verified production recovery run."
           curl --fail-with-body -sS -X POST             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/dispatches"             -d '{"ref":"main","inputs":{"recovery_attempt":"true"}}'
 
-          echo "SELF_HEALING: recovery workflow dispatched."
-          echo "The production workflow will retry the full verified pipeline."
+          echo "SELF_HEALING: recovery dispatched successfully."
