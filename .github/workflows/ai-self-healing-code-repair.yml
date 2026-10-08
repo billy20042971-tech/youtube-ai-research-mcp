@@ -91,7 +91,7 @@ If validation passes, commit the changes on the current ai-repair/* branch with 
 "
 
       - name: Deterministic repair gate
-        if: ${{ secrets.OPENAI_API_KEY != '' }}
+        if: ${{ env.OPENAI_API_KEY != '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -118,7 +118,7 @@ If validation passes, commit the changes on the current ai-repair/* branch with 
           echo "REPAIR_GATE=PASS"
 
       - name: Open repair PR
-        if: ${{ secrets.OPENAI_API_KEY != '' }}
+        if: ${{ env.OPENAI_API_KEY != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
