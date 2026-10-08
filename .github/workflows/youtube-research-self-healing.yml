@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          TODAY_UTC="$(date -u +%Y-%m-%d)"
+          export TODAY_UTC="$(date -u +%Y-%m-%d)"
           API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?per_page=50"
           curl --fail-with-body -sS -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$API" -o runs.json
 
