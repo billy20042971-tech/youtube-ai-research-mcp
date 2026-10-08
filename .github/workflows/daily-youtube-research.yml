@@ -100,6 +100,10 @@ jobs:
               write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}"
             fi
 
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              return "$rc"
+            fi
+
             git config user.name "youtube-research-bot"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add data/ reports/ || true
@@ -209,8 +213,15 @@ jobs:
                   (fresh if dt>=cutoff else stale).append(v)
               except Exception:
                   stale.append(v)
-          if not fresh:
-              raise RuntimeError("72h verification failed: zero fresh videos")
+          verified_72h = bool(fresh) and not stale
+          if not (
+              verified_72h is True
+              and len(fresh) > 0
+              and len(stale) == 0
+          ):
+              raise RuntimeError(
+                  f"72h verification failed: fresh={len(fresh)}, stale_or_invalid={len(stale)}"
+              )
           data={
               "generated_at":now.isoformat(),
               "source":"YouTube Research MCP",
@@ -218,7 +229,7 @@ jobs:
               "published_after":cutoff.strftime("%Y-%m-%dT%H:%M:%SZ"),
               "fixed_sample":fixed,
               "recent_72h_sample":recent,
-              "verification":{"fresh_videos":len(fresh),"stale_or_invalid_videos":len(stale),"verified_72h":True}
+              "verification":{"fresh_videos":len(fresh),"stale_or_invalid_videos":len(stale),"verified_72h":verified_72h}
           }
           out=Path("data"); out.mkdir(exist_ok=True)
           stamp=now.strftime("%Y-%m-%d")
