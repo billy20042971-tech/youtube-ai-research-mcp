@@ -42,7 +42,7 @@ jobs:
 
           STATE_URL="https://api.github.com/repos/$REPO/contents/data/execution-state.json?ref=main"
           if curl --fail-with-body -sS             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$STATE_URL" -o state.json; then
-            python - <<'PY'
+            if python - <<'PY'
           import base64, json, os, sys
           from datetime import datetime, timezone
 
@@ -65,6 +65,9 @@ jobs:
               sys.exit(0)
           print("SELF_HEALING: today's verified production data is not complete.")
           PY
+            then
+              exit 0
+            fi
           else
             echo "SELF_HEALING: execution-state.json unavailable; recovery is required."
           fi
