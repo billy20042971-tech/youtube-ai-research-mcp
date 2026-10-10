@@ -79,13 +79,13 @@ plt.rcParams["axes.unicode_minus"] = False
 top = videos[:10]
 def chart_label(title):
     # Keep chart labels readable; retain full titles and URLs in the Word report.
-    text = re.sub(r"\\s+", " ", str(title or "")).strip()
+    text = re.sub(r"\s+", " ", str(title or "")).strip()
     if not text:
         return "(無標題)"
     lines = wrap(text, width=18, break_long_words=True, break_on_hyphens=False)
     if len(lines) > 2:
         lines = [lines[0], lines[1][:15] + "…"]
-    return "\\n".join(lines)
+    return "\n".join(lines)
 
 labels = [chart_label(v.get("title", "")) for v in top][::-1]
 values = [safe_int(v.get("views")) for v in top][::-1]
