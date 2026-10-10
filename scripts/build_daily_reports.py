@@ -58,21 +58,60 @@ date = now.strftime("%Y-%m-%d")
 out = Path("reports") / date
 out.mkdir(parents=True, exist_ok=True)
 
-# Visuals
-try:
-    import matplotlib.pyplot as plt
-    top = videos[:10]
-    labels = [str(v.get("title", ""))[:22] for v in top][::-1]
-    values = [safe_int(v.get("views")) for v in top][::-1]
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.barh(labels, values)
-    ax.set_title("YouTube AI Research Radar — Top 10 by Views")
-    ax.set_xlabel("Views")
-    fig.tight_layout()
-    fig.savefig(out / "top10_views.png", dpi=160)
-    plt.close(fig)
-except Exception as e:
-    (out / "chart_error.txt").write_text(str(e), encoding="utf-8")
+# Visuals: explicitly use a CJK font and wrap long labels for legibility.
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib import font_manager
+from textwrap import wrap
+
+available_fonts = {f.name for f in font_manager.fontManager.ttflist}
+cjk_candidates = ["Noto Sans CJK TC", "Noto Sans CJK HK", "Noto Sans CJK SC", "Noto Sans CJK JP"]
+chosen_font = next((name for name in cjk_candidates if name in available_fonts), None)
+if not chosen_font:
+    raise RuntimeError(
+        "No supported CJK font found. Install fonts-noto-cjk before generating charts; "
+        f"available candidates checked: {cjk_candidates}"
+    )
+plt.rcParams["font.family"] = chosen_font
+plt.rcParams["axes.unicode_minus"] = False
+
+top = videos[:10]
+def chart_label(title):
+    # Keep chart labels readable; retain full titles and URLs in the Word report.
+    text = re.sub(r"\\s+", " ", str(title or "")).strip()
+    if not text:
+        return "(無標題)"
+    lines = wrap(text, width=18, break_long_words=True, break_on_hyphens=False)
+    if len(lines) > 2:
+        lines = [lines[0], lines[1][:15] + "…"]
+    return "\\n".join(lines)
+
+labels = [chart_label(v.get("title", "")) for v in top][::-1]
+values = [safe_int(v.get("views")) for v in top][::-1]
+fig_height = max(7.0, 0.72 * len(labels) + 1.8)
+fig, ax = plt.subplots(figsize=(12, fig_height))
+ax.barh(labels, values, color="#2878B5")
+ax.set_title("YouTube AI 趨勢研究雷達｜觀看數前 10 名", fontsize=15, pad=16)
+ax.set_xlabel("觀看次數", fontsize=11)
+ax.tick_params(axis="y", labelsize=9)
+ax.tick_params(axis="x", labelsize=9)
+ax.grid(axis="x", linestyle=":", alpha=0.35)
+ax.set_axisbelow(True)
+fig.subplots_adjust(left=0.38, right=0.97, top=0.94, bottom=0.08)
+chart_path = out / "top10_views.png"
+fig.savefig(chart_path, dpi=180, bbox_inches="tight", facecolor="white")
+plt.close(fig)
+
+# Basic artifact sanity checks: image must be readable PNG and non-trivial size.
+from PIL import Image
+with Image.open(chart_path) as chart:
+    chart.verify()
+with Image.open(chart_path) as chart:
+    if chart.width < 1000 or chart.height < 600:
+        raise RuntimeError(f"Chart dimensions too small: {chart.size}")
+if chart_path.stat().st_size < 20_000:
+    raise RuntimeError(f"Chart file suspiciously small: {chart_path.stat().st_size} bytes")
 
 channels = Counter(v.get("channel_title", "") for v in videos if v.get("channel_title"))
 queries = Counter(v.get("query", "") for v in videos if v.get("query"))
