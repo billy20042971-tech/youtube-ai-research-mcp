@@ -12,6 +12,7 @@ on:
   push:
     paths:
       - ".github/workflows/daily-youtube-research.yml"
+      - "scripts/build_daily_reports.py"
   schedule:
     - cron: "0 0 * * *"
 
@@ -266,8 +267,8 @@ jobs:
           PY
 
           echo "=== 7. Build and verify Word/PPTX ==="
-          python -m pip install --disable-pip-version-check --quiet python-docx python-pptx matplotlib \
-            || fail "Report dependencies failed to install" "Retry GitHub runner dependency installation."
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk             || fail "CJK font installation failed" "Retry runner package installation; do not publish unreadable charts."
+          python -m pip install --disable-pip-version-check --quiet python-docx python-pptx matplotlib pillow             || fail "Report dependencies failed to install" "Retry GitHub runner dependency installation."
           python scripts/build_daily_reports.py \
             || fail "Report generation failed" "Inspect scripts/build_daily_reports.py and runner logs."
           python - <<'PY' || fail "Report verification failed" "Inspect reports/latest-manifest.json and generated files."
