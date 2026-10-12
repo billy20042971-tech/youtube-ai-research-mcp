@@ -1,4 +1,5 @@
 name: Daily YouTube Research via MCP
+run-name: Daily YouTube Research (recovery=${{ inputs.recovery_attempt || 'false' }})
 # Pipeline v1.5: report generator normalizes enriched MCP comment lists.
 
 on:
