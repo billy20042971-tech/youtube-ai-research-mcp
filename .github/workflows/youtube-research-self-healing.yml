@@ -2,8 +2,8 @@ name: YouTube Research Self-Healing
 
 on:
   schedule:
-    - cron: "40-59/10 0 * * *"
-    - cron: "0-40/10 1 * * *"
+    - cron: "40-59/10 22 * * *"  # 06:40-06:50 Asia/Taipei
+    - cron: "0-40/10 23 * * *"  # 07:00-07:40 Asia/Taipei
   workflow_run:
     workflows: ["Daily YouTube Research via MCP"]
     types: [completed]
