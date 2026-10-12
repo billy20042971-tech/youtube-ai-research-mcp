@@ -92,7 +92,7 @@ jobs:
                   return None
           todays=[r for r in runs if taipei_date(r.get("created_at",""))==today]
           active=any(r.get("status") in {"queued","in_progress"} for r in todays)
-          dispatches=sum(1 for r in todays if r.get("event")=="workflow_dispatch")
+          dispatches=sum(1 for r in todays if r.get("event")=="workflow_dispatch" and "recovery=true" in (r.get("display_title") or "").lower())
           if active:
               print("no")
           elif dispatches >= 5:
