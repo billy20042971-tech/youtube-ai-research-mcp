@@ -31,12 +31,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export TODAY_UTC="$(date -u +%Y-%m-%d)"
-
-          if [ "$EVENT_NAME" = "workflow_run" ] && [ "$TRIGGER_CONCLUSION" = "success" ]; then
-            echo "SELF_HEALING: triggering production run succeeded; nothing to recover."
-            exit 0
-          fi
+          export TODAY_TAIPEI="$(TZ=Asia/Taipei date +%Y-%m-%d)"
 
           STATE_URL="https://api.github.com/repos/$REPO/contents/data/execution-state.json?ref=main"
           if curl --fail-with-body -sS             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$STATE_URL" -o state.json; then
@@ -44,10 +39,24 @@ jobs:
           import base64, json, os, sys
           raw=json.load(open("state.json",encoding="utf-8"))
           state=json.loads(base64.b64decode(raw["content"]).decode("utf-8"))
-          today=os.environ["TODAY_UTC"]
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          today=os.environ["TODAY_TAIPEI"]
+          def taipei_date(value):
+              if not value: return None
+              try:
+                  dt=datetime.fromisoformat(value.replace("Z","+00:00"))
+                  if dt.tzinfo is None: dt=dt.replace(tzinfo=ZoneInfo("UTC"))
+                  return dt.astimezone(ZoneInfo("Asia/Taipei")).date().isoformat()
+              except Exception:
+                  return None
+          trigger=state.get("trigger")
+          eligible_trigger=(trigger=="schedule" or (trigger=="workflow_dispatch" and state.get("recovery_attempt") is True))
           success=(
-              state.get("status")=="SUCCESS"
-              and state.get("completed_at","").startswith(today)
+              eligible_trigger
+              and state.get("status")=="SUCCESS"
+              and taipei_date(state.get("completed_at"))==today
+              and taipei_date(state.get("data_generated_at"))==today
               and state.get("data")=="PASS"
               and state.get("reports")=="PASS"
               and state.get("verification")=="PASS"
@@ -72,18 +81,18 @@ jobs:
 
           NEED_RECOVERY="$(python - <<'PY'
           import json, os
-          today=os.environ["TODAY_UTC"]
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          today=os.environ["TODAY_TAIPEI"]
           runs=json.load(open("runs.json",encoding="utf-8")).get("workflow_runs",[])
-          active=any(
-              r.get("created_at","").startswith(today)
-              and r.get("status") in {"queued","in_progress"}
-              for r in runs
-          )
-          dispatches=sum(
-              1 for r in runs
-              if r.get("created_at","").startswith(today)
-              and r.get("event")=="workflow_dispatch"
-          )
+          def taipei_date(value):
+              try:
+                  return datetime.fromisoformat(value.replace("Z","+00:00")).astimezone(ZoneInfo("Asia/Taipei")).date().isoformat()
+              except Exception:
+                  return None
+          todays=[r for r in runs if taipei_date(r.get("created_at",""))==today]
+          active=any(r.get("status") in {"queued","in_progress"} for r in todays)
+          dispatches=sum(1 for r in todays if r.get("event")=="workflow_dispatch")
           if active:
               print("no")
           elif dispatches >= 5:
