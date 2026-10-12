@@ -9,10 +9,6 @@ on:
         required: false
         default: "false"
         type: string
-  push:
-    paths:
-      - ".github/workflows/daily-youtube-research.yml"
-      - "scripts/build_daily_reports.py"
   schedule:
     - cron: "0 0 * * *"
 
