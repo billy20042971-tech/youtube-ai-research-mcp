@@ -11,7 +11,7 @@ on:
         default: "false"
         type: string
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 22 * * *"  # 06:00 Asia/Taipei
 
 permissions:
   contents: write
