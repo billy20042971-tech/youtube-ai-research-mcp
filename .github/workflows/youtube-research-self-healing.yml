@@ -91,7 +91,7 @@ jobs:
 
           NEED_RECOVERY="$(python scripts/recovery_policy.py --runs runs.json --today "$TODAY_TAIPEI" --max-recoveries 5 | tail -n 1)"
 
-          if [ "$NEED_RECOVERY" != "yes" ]; then          if [ "$NEED_RECOVERY" != "yes" ]; then
+          if [ "$NEED_RECOVERY" != "yes" ]; then
             echo "SELF_HEALING: no dispatch needed right now."
             exit 0
           fi
