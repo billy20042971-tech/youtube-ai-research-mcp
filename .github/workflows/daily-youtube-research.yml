@@ -92,6 +92,23 @@ jobs:
 
           finalize() {
             local rc="$?"
+            local recovery_attempt="$RECOVERY_ATTEMPT"
+            local is_formal_run="false"
+
+            # Formal state is reserved for scheduled production and explicitly
+            # authorized recovery dispatches. Ordinary manual/push runs must
+            # never rewrite or publish shared production data/state.
+            if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+              is_formal_run="true"
+            elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$recovery_attempt" = "true" ]; then
+              is_formal_run="true"
+            fi
+
+            if [ "$is_formal_run" != "true" ]; then
+              echo "::notice::Non-formal run: keeping generated files isolated to this runner; production state will not be written or published."
+              return "$rc"
+            fi
+
             if [ "$rc" -eq 0 ]; then
               write_state "SUCCESS" "" ""
             else
