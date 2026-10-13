@@ -78,10 +78,17 @@ def main() -> int:
     execution_id = f"gh-{os.environ.get('GITHUB_RUN_ID', 'local')}-attempt-{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
     token = os.environ.get("NOTION_API_KEY", "").strip()
     page_id = os.environ.get("NOTION_PAGE_ID", "").strip()
-    state_path = Path("data/execution-state.json")
+    latest_path = Path("data/latest.json")
     manifest_path = Path("reports/latest-manifest.json")
-    state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
+    latest = json.loads(latest_path.read_text(encoding="utf-8")) if latest_path.exists() else {}
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    state = {
+        "github_run_id": os.environ.get("GITHUB_RUN_ID", ""),
+        "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", "1"),
+        "trigger": os.environ.get("GITHUB_EVENT_NAME", ""),
+        "status": "IN_PROGRESS",
+        "data_verification": latest.get("verification", {}),
+    }
 
     if not token or not page_id:
         write_audit({
