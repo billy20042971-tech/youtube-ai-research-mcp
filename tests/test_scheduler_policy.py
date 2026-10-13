@@ -19,7 +19,7 @@ def schedule_is_on_time(event, recovery_attempt, started_at, today):
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=ZoneInfo("UTC"))
     local = dt.astimezone(TAIPEI)
-    return local.date().isoformat() == today and (local.hour, local.minute) <= (7, 0)
+    return local.date().isoformat() == today and (local.hour, local.minute) <= (6, 15)
 
 
 class SchedulerPolicyTests(unittest.TestCase):
@@ -32,8 +32,8 @@ class SchedulerPolicyTests(unittest.TestCase):
 
     def test_schedule_deadline_and_taipei_date(self):
         self.assertTrue(schedule_is_on_time("schedule", False, "2026-10-12T22:00:00Z", "2026-10-13"))
-        self.assertTrue(schedule_is_on_time("schedule", False, "2026-10-12T23:00:00Z", "2026-10-13"))
-        self.assertFalse(schedule_is_on_time("schedule", False, "2026-10-13T02:47:12Z", "2026-10-13"))
+        self.assertTrue(schedule_is_on_time("schedule", False, "2026-10-12T22:15:00Z", "2026-10-13"))
+        self.assertFalse(schedule_is_on_time("schedule", False, "2026-10-12T22:16:00Z", "2026-10-13"))
         self.assertFalse(schedule_is_on_time("schedule", False, "2026-10-12T22:00:00Z", "2026-10-12"))
         self.assertFalse(schedule_is_on_time("push", False, "2026-10-12T22:00:00Z", "2026-10-13"))
 
@@ -49,7 +49,7 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn('[ "$recovery_attempt" = "true" ]', production)
         self.assertIn('if [ "$is_formal_run" != "true" ]', production)
         self.assertIn('schedule_on_time=', recovery)
-        self.assertIn('(scheduled.hour, scheduled.minute) <= (7, 0)', recovery)
+        self.assertIn('(scheduled.hour, scheduled.minute) <= (6, 15)', recovery)
         self.assertIn('recovery=(trigger=="workflow_dispatch" and state.get("recovery_attempt") is True)', recovery)
 
 
