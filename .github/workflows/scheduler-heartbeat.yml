@@ -89,7 +89,7 @@ jobs:
           }
           Path("data").mkdir(exist_ok=True)
           Path("data/scheduler-heartbeat.json").write_text(
-              json.dumps(record, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
+              json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
           )
           print(json.dumps(record, ensure_ascii=False))
           if not found:
