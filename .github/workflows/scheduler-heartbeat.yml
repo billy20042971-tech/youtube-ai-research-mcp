@@ -1,0 +1,74 @@
+name: Scheduler Heartbeat
+
+on:
+  schedule:
+    - cron: "5 22 * * *" # 06:05 Asia/Taipei; independent of the 06:00 research workflow
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scheduler-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Record durable scheduler heartbeat
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+          now = datetime.now(timezone.utc)
+          local = now.astimezone(ZoneInfo("Asia/Taipei"))
+          record = {
+              "heartbeat_id": f"heartbeat-{os.environ['GITHUB_RUN_ID']}-attempt-{os.environ['GITHUB_RUN_ATTEMPT']}",
+              "workflow": "Scheduler Heartbeat",
+              "trigger": os.environ["GITHUB_EVENT_NAME"],
+              "github_run_id": os.environ["GITHUB_RUN_ID"],
+              "github_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "started_at_utc": now.isoformat(),
+              "started_at_taipei": local.isoformat(),
+              "taipei_date": local.date().isoformat(),
+              "status": "SUCCESS"
+          }
+          with open("data/scheduler-heartbeat.json", "w", encoding="utf-8") as f:
+              json.dump(record, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+          print(json.dumps(record, ensure_ascii=False))
+          PY
+
+      - name: Publish heartbeat evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "youtube-research-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/scheduler-heartbeat.json
+          git commit -m "chore: record scheduler heartbeat" || exit 0
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              sleep $((attempt * 2))
+              continue
+            fi
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "::error::Failed to publish scheduler heartbeat after 3 retries."
+          exit 1
