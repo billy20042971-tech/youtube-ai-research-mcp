@@ -42,16 +42,26 @@ jobs:
           from datetime import datetime
           from zoneinfo import ZoneInfo
           today=os.environ["TODAY_TAIPEI"]
-          def taipei_date(value):
+          def taipei_dt(value):
               if not value: return None
               try:
                   dt=datetime.fromisoformat(value.replace("Z","+00:00"))
                   if dt.tzinfo is None: dt=dt.replace(tzinfo=ZoneInfo("UTC"))
-                  return dt.astimezone(ZoneInfo("Asia/Taipei")).date().isoformat()
+                  return dt.astimezone(ZoneInfo("Asia/Taipei"))
               except Exception:
                   return None
+          def taipei_date(value):
+              dt=taipei_dt(value)
+              return dt.date().isoformat() if dt else None
           trigger=state.get("trigger")
-          eligible_trigger=(trigger=="schedule" or (trigger=="workflow_dispatch" and state.get("recovery_attempt") is True))
+          recovery=(trigger=="workflow_dispatch" and state.get("recovery_attempt") is True)
+          scheduled=taipei_dt(state.get("started_at"))
+          # A successful but late schedule run must not mask a missed 06:00
+          # deadline. Recovery runs are explicitly marked and may complete later.
+          schedule_on_time=(trigger=="schedule" and scheduled is not None and
+                            scheduled.date().isoformat()==today and
+                            (scheduled.hour, scheduled.minute) <= (7, 0))
+          eligible_trigger=(schedule_on_time or recovery)
           success=(
               eligible_trigger
               and state.get("status")=="SUCCESS"
