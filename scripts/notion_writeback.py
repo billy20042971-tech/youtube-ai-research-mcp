@@ -31,7 +31,7 @@ def comment_text(execution_id: str, manifest: dict, state: dict) -> str:
         f"execution_id: {execution_id}\n"
         f"github_run_id: {state.get('github_run_id', '')}\n"
         f"trigger: {state.get('trigger', '')}\n"
-        f"pipeline_status: {state.get('status', 'IN_PROGRESS')}\n"
+        f"pipeline_status_at_writeback: {state.get('status', 'IN_PROGRESS')}\n"
         f"sample_count: {manifest.get('sample_count', 'unknown')}\n"
         f"verified_72h: {verification.get('verified_72h', 'see data/latest.json')}\n"
         f"reports: {manifest.get('word', '')} | {manifest.get('pptx', '')} | {manifest.get('chart', '')}\n"
@@ -56,9 +56,10 @@ def request_json(method: str, path: str, token: str, payload: dict | None = None
         with urllib.request.urlopen(req, timeout=25) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        # Do not print request headers or secrets.
-        details = exc.read().decode("utf-8", errors="replace")[:800]
-        raise RuntimeError(f"Notion API {method} {path} failed ({exc.code}): {details}") from None
+        # Keep response bodies out of logs; API errors can contain resource metadata.
+        raise RuntimeError(
+            f"Notion API request failed ({exc.code}); check integration access, page sharing, and permissions."
+        ) from None
 
 
 def text_from_comment(comment: dict) -> str:
