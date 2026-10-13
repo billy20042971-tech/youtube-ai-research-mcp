@@ -303,4 +303,10 @@ jobs:
           print("Word/PPTX/PNG manifest verified and fresh.")
           PY
 
-          echo "=== 8. Pipeline complete ==="
+          echo "=== 8. Notion writeback and readback audit ==="
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
+          python scripts/notion_writeback.py \
+            || fail "Notion writeback/readback verification failed" "Check NOTION_API_KEY, NOTION_PAGE_ID, page sharing, and Notion API permissions."
+
+          echo "=== 9. Pipeline complete ==="
