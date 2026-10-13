@@ -21,6 +21,8 @@ class NotionWritebackTests(unittest.TestCase):
             },
         )
         self.assertIn("execution_id: gh-123-attempt-2", text)
+        self.assertIn("pipeline_status_at_writeback: IN_PROGRESS", text)
+        self.assertNotIn("pipeline_status: IN_PROGRESS", text)
         self.assertIn("sample_count: 40", text)
         self.assertIn("reports/report.docx", text)
         self.assertIn("verified_72h: True", text)
