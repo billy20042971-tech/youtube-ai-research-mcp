@@ -95,8 +95,6 @@ jobs:
           if not found:
               print("::warning::No scheduled research run started by 06:15 Asia/Taipei.")
           PY
-        env:
-          TODAY_TAIPEI: ${{ steps.unused.outputs.today }}
 
       - name: Publish heartbeat evidence
         shell: bash
