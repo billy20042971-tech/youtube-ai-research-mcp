@@ -1,10 +1,11 @@
-name: Scheduler Heartbeat
+name: Scheduler Heartbeat and Missed-Deadline Check
 
 on:
   schedule:
-    - cron: "5 22 * * *" # 06:05 Asia/Taipei; independent of the 06:00 research workflow
+    - cron: "16 22 * * *" # 06:16 Asia/Taipei, after the 06:15 grace deadline
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -22,33 +23,80 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Record durable scheduler heartbeat
+      - name: Check today's scheduled research run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p data
+          TODAY_TAIPEI="$(TZ=Asia/Taipei date +%Y-%m-%d)"
+          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?per_page=50"
+          curl --fail-with-body -sS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$API" -o runs.json
+
           python - <<'PY'
           import json, os
-          from datetime import datetime, timezone
+          from datetime import datetime
+          from pathlib import Path
           from zoneinfo import ZoneInfo
-          now = datetime.now(timezone.utc)
-          local = now.astimezone(ZoneInfo("Asia/Taipei"))
+
+          today = os.environ.get("TODAY_TAIPEI") or __import__("subprocess").check_output(
+              ["bash", "-lc", "TZ=Asia/Taipei date +%Y-%m-%d"], text=True
+          ).strip()
+          tz = ZoneInfo("Asia/Taipei")
+          runs = json.loads(Path("runs.json").read_text(encoding="utf-8")).get("workflow_runs", [])
+
+          def local_dt(value):
+              try:
+                  dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                  if dt.tzinfo is None:
+                      return None
+                  return dt.astimezone(tz)
+              except (AttributeError, ValueError):
+                  return None
+
+          todays = []
+          for run in runs:
+              if run.get("event") != "schedule":
+                  continue
+              started = local_dt(run.get("run_started_at") or run.get("created_at") or "")
+              if started and started.date().isoformat() == today:
+                  todays.append((run, started))
+
+          eligible = [(run, started) for run, started in todays
+                      if (started.hour, started.minute) <= (6, 15)]
+          eligible.sort(key=lambda item: item[1])
+          found = bool(eligible)
+          chosen = eligible[-1][0] if eligible else None
+          now = datetime.now().astimezone(tz)
           record = {
               "heartbeat_id": f"heartbeat-{os.environ['GITHUB_RUN_ID']}-attempt-{os.environ['GITHUB_RUN_ATTEMPT']}",
-              "workflow": "Scheduler Heartbeat",
+              "workflow": "Scheduler Heartbeat and Missed-Deadline Check",
               "trigger": os.environ["GITHUB_EVENT_NAME"],
               "github_run_id": os.environ["GITHUB_RUN_ID"],
               "github_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
-              "started_at_utc": now.isoformat(),
-              "started_at_taipei": local.isoformat(),
-              "taipei_date": local.date().isoformat(),
-              "status": "SUCCESS"
+              "checked_at_taipei": now.isoformat(),
+              "taipei_date": today,
+              "research_scheduled_run_found": found,
+              "research_run_id": chosen.get("id") if chosen else None,
+              "research_run_url": chosen.get("html_url") if chosen else None,
+              "research_run_started_at": chosen.get("run_started_at") if chosen else None,
+              "status": "ON_TIME_RUN_FOUND" if found else "SCHEDULER_MISSED_DEADLINE"
           }
-          with open("data/scheduler-heartbeat.json", "w", encoding="utf-8") as f:
-              json.dump(record, f, ensure_ascii=False, indent=2)
-              f.write("\n")
+          Path("data").mkdir(exist_ok=True)
+          Path("data/scheduler-heartbeat.json").write_text(
+              json.dumps(record, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
+          )
           print(json.dumps(record, ensure_ascii=False))
+          if not found:
+              print("::warning::No scheduled research run started by 06:15 Asia/Taipei.")
           PY
+        env:
+          TODAY_TAIPEI: ${{ steps.unused.outputs.today }}
 
       - name: Publish heartbeat evidence
         shell: bash
@@ -57,7 +105,7 @@ jobs:
           git config user.name "youtube-research-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/scheduler-heartbeat.json
-          git commit -m "chore: record scheduler heartbeat" || exit 0
+          git commit -m "chore: record scheduler heartbeat and deadline check" || exit 0
           for attempt in 1 2 3; do
             git fetch origin main
             if ! git rebase origin/main; then
