@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           TODAY_TAIPEI="$(TZ=Asia/Taipei date +%Y-%m-%d)"
-          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?per_page=50"
+          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?event=schedule&per_page=50"
           curl --fail-with-body -sS \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
@@ -63,7 +63,7 @@ jobs:
           for run in runs:
               if run.get("event") != "schedule":
                   continue
-              started = local_dt(run.get("run_started_at") or run.get("created_at") or "")
+              started = local_dt(run.get("run_started_at") or "")
               if started and started.date().isoformat() == today:
                   todays.append((run, started))
 
