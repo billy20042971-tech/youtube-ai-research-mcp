@@ -98,7 +98,7 @@ class SchedulerPolicyTests(unittest.TestCase):
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
         tests_workflow = (ROOT / ".github/workflows/scheduler-policy-tests.yml").read_text(encoding="utf-8")
-        self.assertIn('cron: "5 22 * * *"', heartbeat)
+        self.assertIn('cron: "16 22 * * *"', heartbeat)
         self.assertIn('data/scheduler-heartbeat.json', heartbeat)
         self.assertIn('git push origin HEAD:main', heartbeat)
         self.assertIn('.github/workflows/scheduler-heartbeat.yml', tests_workflow)
