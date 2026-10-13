@@ -52,7 +52,7 @@ class SchedulerPolicyTests(unittest.TestCase):
             {"id": 1, "event": "workflow_dispatch", "display_title": "Daily YouTube Research (recovery=true)", "created_at": "2026-10-12T22:30:00Z", "status": "completed"},
             {"id": 2, "event": "workflow_dispatch", "display_title": "Daily YouTube Research (recovery=false)", "created_at": "2026-10-12T22:31:00Z", "status": "completed"},
             {"id": 3, "event": "schedule", "display_title": "Daily YouTube Research (recovery=false)", "created_at": "2026-10-12T22:00:00Z", "status": "completed"},
-            {"id": 4, "event": "workflow_dispatch", "display_title": "Daily YouTube Research (recovery=true)", "created_at": "2026-10-12T10:00:00Z", "status": "completed"},
+            {"id": 4, "event": "workflow_dispatch", "display_title": "Daily YouTube Research (recovery=true)", "created_at": "2026-10-12T15:00:00Z", "status": "completed"},
         ]
         result = recovery_policy.recovery_decision(runs, "2026-10-13", 5)
         self.assertEqual(result["decision"], "yes")
