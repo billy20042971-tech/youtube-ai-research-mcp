@@ -48,9 +48,18 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn('if [ "$GITHUB_EVENT_NAME" = "schedule" ]', production)
         self.assertIn('[ "$recovery_attempt" = "true" ]', production)
         self.assertIn('if [ "$is_formal_run" != "true" ]', production)
-        self.assertIn('schedule_on_time=', recovery)
-        self.assertIn('(scheduled.hour, scheduled.minute) <= (6, 15)', recovery)
+        self.assertIn("schedule_on_time=", recovery)
+        self.assertIn("(scheduled.hour, scheduled.minute) <= (6, 15)", recovery)
         self.assertIn('recovery=(trigger=="workflow_dispatch" and state.get("recovery_attempt") is True)', recovery)
+
+    def test_durable_heartbeat_workflow_contract(self):
+        root = Path(__file__).resolve().parents[1]
+        heartbeat = (root / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
+        tests_workflow = (root / ".github/workflows/scheduler-policy-tests.yml").read_text(encoding="utf-8")
+        self.assertIn('cron: "5 22 * * *"', heartbeat)  # 06:05 Asia/Taipei
+        self.assertIn('data/scheduler-heartbeat.json', heartbeat)
+        self.assertIn('git push origin HEAD:main', heartbeat)
+        self.assertIn('.github/workflows/scheduler-heartbeat.yml', tests_workflow)
 
 
 if __name__ == "__main__":
