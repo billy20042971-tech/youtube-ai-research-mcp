@@ -60,7 +60,7 @@ jobs:
           # deadline. Recovery runs are explicitly marked and may complete later.
           schedule_on_time=(trigger=="schedule" and scheduled is not None and
                             scheduled.date().isoformat()==today and
-                            (scheduled.hour, scheduled.minute) <= (7, 0))
+                            (scheduled.hour, scheduled.minute) <= (6, 15))
           eligible_trigger=(schedule_on_time or recovery)
           success=(
               eligible_trigger
