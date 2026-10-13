@@ -42,16 +42,26 @@ jobs:
           from datetime import datetime
           from zoneinfo import ZoneInfo
           today=os.environ["TODAY_TAIPEI"]
-          def taipei_date(value):
+          def taipei_dt(value):
               if not value: return None
               try:
                   dt=datetime.fromisoformat(value.replace("Z","+00:00"))
                   if dt.tzinfo is None: dt=dt.replace(tzinfo=ZoneInfo("UTC"))
-                  return dt.astimezone(ZoneInfo("Asia/Taipei")).date().isoformat()
+                  return dt.astimezone(ZoneInfo("Asia/Taipei"))
               except Exception:
                   return None
+          def taipei_date(value):
+              dt=taipei_dt(value)
+              return dt.date().isoformat() if dt else None
           trigger=state.get("trigger")
-          eligible_trigger=(trigger=="schedule" or (trigger=="workflow_dispatch" and state.get("recovery_attempt") is True))
+          recovery=(trigger=="workflow_dispatch" and state.get("recovery_attempt") is True)
+          scheduled=taipei_dt(state.get("started_at"))
+          # A successful but late schedule run must not mask a missed 06:00
+          # deadline. Recovery runs are explicitly marked and may complete later.
+          schedule_on_time=(trigger=="schedule" and scheduled is not None and
+                            scheduled.date().isoformat()==today and
+                            (scheduled.hour, scheduled.minute) <= (6, 15))
+          eligible_trigger=(schedule_on_time or recovery)
           success=(
               eligible_trigger
               and state.get("status")=="SUCCESS"
@@ -79,28 +89,7 @@ jobs:
           API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?per_page=50"
           curl --fail-with-body -sS             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$API" -o runs.json
 
-          NEED_RECOVERY="$(python - <<'PY'
-          import json, os
-          from datetime import datetime
-          from zoneinfo import ZoneInfo
-          today=os.environ["TODAY_TAIPEI"]
-          runs=json.load(open("runs.json",encoding="utf-8")).get("workflow_runs",[])
-          def taipei_date(value):
-              try:
-                  return datetime.fromisoformat(value.replace("Z","+00:00")).astimezone(ZoneInfo("Asia/Taipei")).date().isoformat()
-              except Exception:
-                  return None
-          todays=[r for r in runs if taipei_date(r.get("created_at",""))==today]
-          active=any(r.get("status") in {"queued","in_progress"} for r in todays)
-          dispatches=sum(1 for r in todays if r.get("event")=="workflow_dispatch" and "recovery=true" in (r.get("display_title") or "").lower())
-          if active:
-              print("no")
-          elif dispatches >= 5:
-              print("no")
-          else:
-              print("yes")
-          PY
-          )"
+          NEED_RECOVERY="$(python scripts/recovery_policy.py --runs runs.json --today "$TODAY_TAIPEI" --max-recoveries 5 | tail -n 1)"
 
           if [ "$NEED_RECOVERY" != "yes" ]; then
             echo "SELF_HEALING: no dispatch needed right now."

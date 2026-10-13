@@ -1,0 +1,27 @@
+name: Scheduler Policy Tests
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/daily-youtube-research.yml"
+      - ".github/workflows/youtube-research-self-healing.yml"
+      - ".github/workflows/scheduler-heartbeat.yml"
+      - "tests/test_scheduler_policy.py"
+      - ".github/workflows/scheduler-policy-tests.yml"
+  push:
+    branches:
+      - "fix/p1-scheduler-heartbeat-guard"
+
+permissions:
+  contents: read
+
+jobs:
+  scheduler-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run deterministic scheduler policy tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
