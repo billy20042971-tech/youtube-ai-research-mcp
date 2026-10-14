@@ -108,12 +108,25 @@ jobs:
           fi
 
           echo "SELF_HEALING: dispatching a fresh verified production recovery run."
-          DISPATCH_HTTP_STATUS="$(curl --fail-with-body -sS -o dispatch-response.txt -w '%{http_code}' -X POST \
+          # Capture HTTP errors without curl --fail-with-body so errexit cannot hide the status code.
+          set +e
+          DISPATCH_HTTP_STATUS="$(curl -sS -o dispatch-response.txt -w '%{http_code}' -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
             "https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/dispatches" \
             -d '{"ref":"main","inputs":{"recovery_attempt":"true"}}')"
-          echo "SELF_HEALING: recovery dispatch API returned HTTP $DISPATCH_HTTP_STATUS."
-          [ "$DISPATCH_HTTP_STATUS" = "204" ] || { echo "::error::Unexpected recovery dispatch status."; exit 1; }
+          CURL_EXIT_CODE=$?
+          set -e
+          echo "SELF_HEALING: recovery dispatch curl_exit_code=$CURL_EXIT_CODE http_status=${DISPATCH_HTTP_STATUS:-empty}."
+          if [ "$CURL_EXIT_CODE" -ne 0 ]; then
+            echo "::error::Recovery dispatch HTTP request failed at the transport/client layer."
+            if [ -s dispatch-response.txt ]; then cat dispatch-response.txt; fi
+            exit 1
+          fi
+          if [ "$DISPATCH_HTTP_STATUS" != "204" ]; then
+            echo "::error::Unexpected recovery dispatch HTTP status: $DISPATCH_HTTP_STATUS."
+            if [ -s dispatch-response.txt ]; then cat dispatch-response.txt; fi
+            exit 1
+          fi
           echo "SELF_HEALING: recovery dispatched successfully."
