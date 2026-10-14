@@ -8,6 +8,7 @@ on:
       - ".github/workflows/scheduler-heartbeat.yml"
       - "tests/test_scheduler_policy.py"
       - "scripts/notion_writeback.py"
+      - "scripts/recovery_policy.py"
       - ".github/workflows/scheduler-policy-tests.yml"
   push:
     branches:
