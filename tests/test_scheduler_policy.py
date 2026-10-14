@@ -94,6 +94,8 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn("(scheduled.hour, scheduled.minute) <= (6, 15)", recovery)
         self.assertIn('recovery=(trigger=="workflow_dispatch" and state.get("recovery_attempt") is True)', recovery)
         self.assertIn("scripts/recovery_policy.py", recovery)
+        self.assertIn("sys.exit(1)", recovery)
+        self.assertIn("verified production data is not complete.", recovery)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
