@@ -1,0 +1,14 @@
+{
+  "heartbeat_id": "heartbeat-38494469734-attempt-1",
+  "workflow": "Scheduler Heartbeat and Missed-Deadline Check",
+  "trigger": "schedule",
+  "github_run_id": "38494469734",
+  "github_run_attempt": "1",
+  "checked_at_taipei": "2026-10-14T09:12:53.474826+08:00",
+  "taipei_date": "2026-10-14",
+  "research_scheduled_run_found": false,
+  "research_run_id": null,
+  "research_run_url": null,
+  "research_run_started_at": null,
+  "status": "SCHEDULER_MISSED_DEADLINE"
+}
