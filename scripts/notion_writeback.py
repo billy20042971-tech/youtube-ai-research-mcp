@@ -2,7 +2,7 @@
 """Write and read back a per-run audit comment in Notion.
 
 Credentials are supplied only through environment variables. Never print the token.
-Missing credentials produce an explicit SKIPPED audit record rather than a false PASS.
+Missing credentials produce an explicit SKIPPED audit record and a non-zero exit so production cannot report a false PASS.
 """
 from __future__ import annotations
 
@@ -101,7 +101,7 @@ def main() -> int:
             "writeback_verified": False,
             "note": "Set GitHub Actions secrets NOTION_API_KEY and NOTION_PAGE_ID to enable automatic Notion writeback.",
         })
-        return 0
+        return 1
 
     text = comment_text(execution_id, manifest, state)
     created = request_json("POST", "/comments", token, {
