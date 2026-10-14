@@ -129,7 +129,8 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn("tools.body", handshake)
         self.assertIn("without consuming YouTube API quota", handshake)
         self.assertNotIn('"method":"tools/call"', handshake)
-        self.assertNotIn("youtube_search_videos", handshake.split("      - name: Verify MCP tool discovery without consuming YouTube API quota", 1)[-1])
+        self.assertNotIn("name: Call YouTube research tool", handshake)
+        self.assertNotIn("tool.body", handshake)
 
     def test_missing_notion_credentials_fail_closed_and_write_skipped_audit(self):
         script = ROOT / "scripts/notion_writeback.py"
