@@ -6,7 +6,9 @@ on:
       - ".github/workflows/daily-youtube-research.yml"
       - ".github/workflows/youtube-research-self-healing.yml"
       - ".github/workflows/scheduler-heartbeat.yml"
+      - "scripts/build_daily_reports.py"
       - "tests/test_scheduler_policy.py"
+      - "tests/test_chart_readability.py"
       - ".github/workflows/scheduler-policy-tests.yml"
   push:
     branches:
