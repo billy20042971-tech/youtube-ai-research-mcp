@@ -82,27 +82,28 @@ jobs:
 
           echo "All expected MCP tools are present."
 
-      - name: Call YouTube research tool
+      - name: Verify MCP tool discovery without consuming YouTube API quota
         shell: bash
         run: |
           set -euo pipefail
-          URL="https://youtube-ai-research-mcp.onrender.com/mcp"
-          SESSION_ID="$(cat session_id.txt)"
+          # MCP initialize + tools/list above validate protocol/session and tool discovery.
+          # Do not call youtube_search_videos here: YouTube Data API search.list consumes quota.
+          python - <<'PY'
+          import json
+          from pathlib import Path
 
-          curl -sS --fail-with-body \
-            -o tool.body \
-            -X POST "$URL" \
-            -H "Content-Type: application/json" \
-            -H "Accept: application/json, text/event-stream" \
-            -H "Mcp-Session-Id: $SESSION_ID" \
-            --data '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"youtube_search_videos","arguments":{"query":"AI賺錢","max_results":1,"order":"viewCount"}}}'
-
-          echo "=== TOOL CALL RESULT ==="
-          cat tool.body
-
-          if grep -q '"error"' tool.body; then
-            echo "ERROR: MCP tool call returned an error."
-            exit 1
-          fi
-
-          echo "YouTube MCP tool call completed successfully."
+          raw = Path("tools.body").read_text(encoding="utf-8")
+          payloads = [line[6:].strip() for line in raw.splitlines() if line.startswith("data: ")]
+          if payloads:
+              outer = json.loads(payloads[-1])
+              result = outer.get("result", {})
+          else:
+              result = json.loads(raw)
+          tools = result.get("tools", [])
+          names = {item.get("name") for item in tools if isinstance(item, dict)}
+          required = {"youtube_search_videos", "youtube_top_comments", "youtube_research_sample"}
+          missing = sorted(required - names)
+          if missing:
+              raise SystemExit(f"Missing expected MCP tools: {missing}")
+          print("MCP protocol, session, and tool discovery verified; no YouTube API tool was called.")
+          PY

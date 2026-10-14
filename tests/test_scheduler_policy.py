@@ -123,6 +123,15 @@ class SchedulerPolicyTests(unittest.TestCase):
 
 
 
+    def test_mcp_handshake_does_not_consume_youtube_api_quota(self):
+        handshake = (ROOT / ".github/workflows/mcp-handshake-test.yml").read_text(encoding="utf-8")
+        self.assertIn("tools/list", handshake)
+        self.assertIn("tools.body", handshake)
+        self.assertIn("without consuming YouTube API quota", handshake)
+        self.assertNotIn('"method":"tools/call"', handshake)
+        self.assertNotIn("name: Call YouTube research tool", handshake)
+        self.assertNotIn("tool.body", handshake)
+
     def test_missing_notion_credentials_fail_closed_and_write_skipped_audit(self):
         script = ROOT / "scripts/notion_writeback.py"
         with tempfile.TemporaryDirectory() as temp_dir:

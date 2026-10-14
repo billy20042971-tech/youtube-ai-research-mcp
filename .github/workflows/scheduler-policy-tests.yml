@@ -10,6 +10,7 @@ on:
       - "scripts/notion_writeback.py"
       - "scripts/recovery_policy.py"
       - ".github/workflows/scheduler-policy-tests.yml"
+      - ".github/workflows/mcp-handshake-test.yml"
   push:
     branches:
       - "fix/p1-scheduler-heartbeat-guard"
