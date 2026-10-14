@@ -97,14 +97,23 @@ jobs:
           API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?per_page=50"
           curl --fail-with-body -sS             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$API" -o runs.json
 
-          NEED_RECOVERY="$(python scripts/recovery_policy.py --runs runs.json --today "$TODAY_TAIPEI" --max-recoveries 5 | tail -n 1)"
+          POLICY_OUTPUT="$(python scripts/recovery_policy.py --runs runs.json --today "$TODAY_TAIPEI" --max-recoveries 5)"
+          # Preserve the structured decision in logs so a skipped recovery has an auditable reason.
+          echo "SELF_HEALING_POLICY: $(printf '%s\n' "$POLICY_OUTPUT" | head -n 1)"
+          NEED_RECOVERY="$(printf '%s\n' "$POLICY_OUTPUT" | tail -n 1)"
 
           if [ "$NEED_RECOVERY" != "yes" ]; then
-            echo "SELF_HEALING: no dispatch needed right now."
+            echo "SELF_HEALING: no dispatch needed right now; decision=$NEED_RECOVERY"
             exit 0
           fi
 
           echo "SELF_HEALING: dispatching a fresh verified production recovery run."
-          curl --fail-with-body -sS -X POST             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/dispatches"             -d '{"ref":"main","inputs":{"recovery_attempt":"true"}}'
-
+          DISPATCH_HTTP_STATUS="$(curl --fail-with-body -sS -o dispatch-response.txt -w '%{http_code}' -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/dispatches" \
+            -d '{"ref":"main","inputs":{"recovery_attempt":"true"}}')"
+          echo "SELF_HEALING: recovery dispatch API returned HTTP $DISPATCH_HTTP_STATUS."
+          [ "$DISPATCH_HTTP_STATUS" = "204" ] || { echo "::error::Unexpected recovery dispatch status."; exit 1; }
           echo "SELF_HEALING: recovery dispatched successfully."
