@@ -1,4 +1,9 @@
 import importlib.util
+import json
+import os
+import subprocess
+import sys
+import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
@@ -116,6 +121,32 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn('git push origin HEAD:main', heartbeat)
         self.assertIn('.github/workflows/scheduler-heartbeat.yml', tests_workflow)
 
+
+
+    def test_missing_notion_credentials_fail_closed_and_write_skipped_audit(self):
+        script = ROOT / "scripts/notion_writeback.py"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            env = os.environ.copy()
+            env.pop("NOTION_API_KEY", None)
+            env.pop("NOTION_PAGE_ID", None)
+            env["GITHUB_RUN_ID"] = "test-run"
+            env["GITHUB_RUN_ATTEMPT"] = "1"
+            result = subprocess.run(
+                [sys.executable, str(script)],
+                cwd=temp_dir,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            audit_path = Path(temp_dir) / "data/notion-writeback-audit.json"
+            self.assertTrue(audit_path.is_file())
+            audit = json.loads(audit_path.read_text(encoding="utf-8"))
+            self.assertEqual(audit["status"], "SKIPPED_MISSING_CREDENTIALS")
+            self.assertFalse(audit["writeback_verified"])
+            self.assertFalse(audit["token_configured"])
+            self.assertFalse(audit["page_id_configured")
 
 if __name__ == "__main__":
     unittest.main()
