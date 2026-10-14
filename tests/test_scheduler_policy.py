@@ -96,6 +96,9 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn("scripts/recovery_policy.py", recovery)
         self.assertIn("sys.exit(1)", recovery)
         self.assertIn("verified production data is not complete.", recovery)
+        self.assertIn("SELF_HEALING_POLICY:", recovery)
+        self.assertIn("dispatch-response.txt", recovery)
+        self.assertIn("Unexpected recovery dispatch status.", recovery)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
