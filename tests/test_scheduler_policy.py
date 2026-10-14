@@ -96,6 +96,7 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn("scripts/recovery_policy.py", recovery)
         self.assertIn("sys.exit(1)", recovery)
         self.assertIn("verified production data is not complete.", recovery)
+        self.assertIn("verified production state is incomplete; continuing to recovery policy.", recovery)
         self.assertIn("SELF_HEALING_POLICY:", recovery)
         self.assertIn("dispatch-response.txt", recovery)
         self.assertIn("Unexpected recovery dispatch HTTP status:", recovery)
