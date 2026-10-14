@@ -82,10 +82,10 @@ jobs:
           if success:
               print("SELF_HEALING: today's verified production data already exists.")
               sys.exit(0)
+          print("SELF_HEALING: today's verified production data is not complete.")
           # A non-zero exit is required so the shell continues into recovery.
           # Previously this branch returned 0 implicitly and was treated as success.
           sys.exit(1)
-          print("SELF_HEALING: today's verified production data is not complete.")
           PY
             then
               exit 0
