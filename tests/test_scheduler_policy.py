@@ -146,7 +146,7 @@ class SchedulerPolicyTests(unittest.TestCase):
             self.assertEqual(audit["status"], "SKIPPED_MISSING_CREDENTIALS")
             self.assertFalse(audit["writeback_verified"])
             self.assertFalse(audit["token_configured"])
-            self.assertFalse(audit["page_id_configured")
+            self.assertFalse(audit["page_id_configured"])
 
 if __name__ == "__main__":
     unittest.main()
