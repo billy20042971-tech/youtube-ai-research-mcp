@@ -98,7 +98,10 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn("verified production data is not complete.", recovery)
         self.assertIn("SELF_HEALING_POLICY:", recovery)
         self.assertIn("dispatch-response.txt", recovery)
-        self.assertIn("Unexpected recovery dispatch status.", recovery)
+        self.assertIn("Unexpected recovery dispatch HTTP status:", recovery)
+        self.assertIn("CURL_EXIT_CODE=$?", recovery)
+        self.assertIn("curl_exit_code=", recovery)
+        self.assertNotIn('DISPATCH_HTTP_STATUS="$(curl --fail-with-body', recovery)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
