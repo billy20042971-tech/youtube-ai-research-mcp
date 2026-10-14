@@ -89,6 +89,9 @@ jobs:
           PY
             then
               exit 0
+            else
+              # An incomplete state is an expected recovery condition, not a shell error.
+              echo "SELF_HEALING: verified production state is incomplete; continuing to recovery policy."
             fi
           else
             echo "SELF_HEALING: execution-state.json unavailable; recovery is required."
