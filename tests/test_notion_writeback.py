@@ -19,13 +19,27 @@ class NotionWritebackTests(unittest.TestCase):
                 "status": "IN_PROGRESS",
                 "data_verification": {"verified_72h": True},
             },
+            {
+                "generated_at": "2026-10-15T00:00:00Z",
+                "verification": {"verified_72h": True},
+                "recent_72h_sample": {
+                    "per_query": {"AI賺錢": {"videos": [
+                        {"video_id": "v1", "title": "AI 測試影片", "channel_title": "測試頻道",
+                         "views": 500, "url": "https://www.youtube.com/watch?v=v1"}
+                    ]}},
+                    "videos": [{"video_id": "v1", "title": "AI 測試影片", "channel_title": "測試頻道",
+                                "views": 500, "url": "https://www.youtube.com/watch?v=v1"}]
+                },
+            },
         )
-        self.assertIn("execution_id: gh-123-attempt-2", text)
-        self.assertIn("pipeline_status_at_writeback: IN_PROGRESS", text)
-        self.assertNotIn("pipeline_status: IN_PROGRESS", text)
-        self.assertIn("sample_count: 40", text)
+        self.assertIn("execution_id：gh-123-attempt-2", text)
+        self.assertIn("\n", text)
+        self.assertNotIn("\\n", text)
+        self.assertIn("每日 AI 趨勢雷達｜2026-10-15", text)
+        self.assertIn("AI 測試影片", text)
+        self.assertIn("500 次觀看", text)
         self.assertIn("reports/report.docx", text)
-        self.assertIn("verified_72h: True", text)
+        self.assertIn("https://www.youtube.com/watch?v=v1", text)
 
     def test_extracts_plain_text_from_notion_rich_text(self):
         comment = {
