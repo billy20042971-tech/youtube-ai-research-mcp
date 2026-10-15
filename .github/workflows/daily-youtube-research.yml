@@ -199,23 +199,12 @@ jobs:
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
 
-          def parse_sse(path):
-              text=Path(path).read_text(encoding="utf-8-sig")
-              payloads=[line[6:].strip() for line in text.splitlines() if line.startswith("data: ")]
-              if not payloads: raise RuntimeError(f"No SSE data found in {path}")
-              outer=json.loads(payloads[-1])
-              if "error" in outer: raise RuntimeError(json.dumps(outer["error"], ensure_ascii=False))
-              result=outer.get("result", {})
-              structured=result.get("structuredContent")
-              if structured is not None: return structured
-              for item in result.get("content", []):
-                  if item.get("type")=="text": return json.loads(item["text"])
-              raise RuntimeError(f"No structured result in {path}")
+          from scripts.mcp_sse import parse_mcp_response_file
 
           now=datetime.now(timezone.utc)
           cutoff=now-timedelta(hours=72)
-          fixed=parse_sse("fixed.body")
-          recent=parse_sse("recent.body")
+          fixed=parse_mcp_response_file("fixed.body")
+          recent=parse_mcp_response_file("recent.body")
           videos=recent.get("videos", [])
           if not isinstance(videos, list) or not videos:
               raise RuntimeError("72h sample contains no videos")
