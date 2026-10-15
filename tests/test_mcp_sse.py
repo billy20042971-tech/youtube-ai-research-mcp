@@ -30,7 +30,7 @@ class McpSseParserTests(unittest.TestCase):
         self.assertEqual(parse_mcp_response_text(raw), {"ok": True})
 
     def test_parses_json_encoded_text_content(self):
-        payload = {"jsonrpc": "2.0", "id": 3, "result": {"content": [{"type": "text", "text": "{\\"ok\\": true}"}]}}
+        payload = {"jsonrpc": "2.0", "id": 3, "result": {"content": [{"type": "text", "text": json.dumps({"ok": True})}]}}
         self.assertEqual(parse_mcp_response_text(json.dumps(payload)), {"ok": True})
 
     def test_rejects_malformed_payload_without_echoing_response(self):
