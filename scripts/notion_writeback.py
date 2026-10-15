@@ -74,7 +74,7 @@ def comment_text(execution_id: str, manifest: dict, state: dict, latest: dict) -
         f"圖表：{manifest.get('chart', '')}",
         "自動化驗收：本留言為每日摘要；寫回後須由 Notion API 讀回確認。",
     ])
-    return "\\n".join(lines)[:1900]
+    return "\n".join(lines)[:1900]
 
 def request_json(method: str, path: str, token: str, payload: dict | None = None) -> dict:
     body = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
