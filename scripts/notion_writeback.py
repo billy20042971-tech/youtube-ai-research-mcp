@@ -24,20 +24,57 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def comment_text(execution_id: str, manifest: dict, state: dict) -> str:
+def comment_text(execution_id: str, manifest: dict, state: dict, latest: dict) -> str:
+    """Build a compact daily research message, not just a technical audit."""
     verification = state.get("data_verification", {})
-    return (
-        f"YouTube AI Research pipeline audit\n"
-        f"execution_id: {execution_id}\n"
-        f"github_run_id: {state.get('github_run_id', '')}\n"
-        f"trigger: {state.get('trigger', '')}\n"
-        f"pipeline_status_at_writeback: {state.get('status', 'IN_PROGRESS')}\n"
-        f"sample_count: {manifest.get('sample_count', 'unknown')}\n"
-        f"verified_72h: {verification.get('verified_72h', 'see data/latest.json')}\n"
-        f"reports: {manifest.get('word', '')} | {manifest.get('pptx', '')} | {manifest.get('chart', '')}\n"
-        f"automated_writeback: execution comment created and read back by GitHub Actions."
-    )
+    recent = latest.get("recent_72h_sample", {})
+    videos_by_id = {}
+    for query, bucket in recent.get("per_query", {}).items():
+        for video in bucket.get("videos", []):
+            if isinstance(video, dict) and video.get("video_id"):
+                item = dict(video)
+                item.setdefault("query", query)
+                videos_by_id[item["video_id"]] = item
+    enriched = {
+        v.get("video_id"): v
+        for v in recent.get("videos", [])
+        if isinstance(v, dict) and v.get("video_id")
+    }
+    videos = []
+    for item in videos_by_id.values():
+        full = dict(item)
+        full.update({k: v for k, v in enriched.get(item["video_id"], {}).items() if v is not None})
+        videos.append(full)
+    videos.sort(key=lambda v: int(v.get("views") or 0), reverse=True)
 
+    generated = latest.get("generated_at") or manifest.get("generated_at") or "時間未提供"
+    report_date = generated[:10]
+    lines = [
+        f"📡 每日 AI 趨勢雷達｜{report_date}",
+        f"狀態：資料驗證 {'通過' if verification.get('verified_72h') is True else '待確認'}｜近72小時影片 {len(videos)} 筆",
+        "",
+        "【今日高訊號影片｜依觀看數排序】",
+    ]
+    for index, video in enumerate(videos[:5], 1):
+        title = str(video.get("title") or "（無標題）").replace("\\n", " ").strip()
+        channel = str(video.get("channel_title") or "未知頻道")
+        views = int(video.get("views") or 0)
+        url = str(video.get("url") or "")
+        lines.append(f"{index}. {title[:100]}｜{channel}｜{views:,} 次觀看")
+        if url:
+            lines.append(url)
+    lines.extend([
+        "",
+        "【本日判讀】觀看量僅作為初步訊號，需搭配發布時間、跨頻道重複出現、留言證據及 72 小時新鮮度判斷；不可只憑單一熱門影片宣稱趨勢。",
+        f"樣本數：{manifest.get('sample_count', len(videos))}｜execution_id：{execution_id}",
+        f"GitHub Run：{state.get('github_run_id', '')}｜觸發：{state.get('trigger', '')}",
+        "【完整產物】",
+        f"Word：{manifest.get('word', '')}",
+        f"簡報：{manifest.get('pptx', '')}",
+        f"圖表：{manifest.get('chart', '')}",
+        "自動化驗收：本留言為每日摘要；寫回後須由 Notion API 讀回確認。",
+    ])
+    return "\\n".join(lines)[:1900]
 
 def request_json(method: str, path: str, token: str, payload: dict | None = None) -> dict:
     body = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -103,7 +140,7 @@ def main() -> int:
         })
         return 1
 
-    text = comment_text(execution_id, manifest, state)
+    text = comment_text(execution_id, manifest, state, latest)
     created = request_json("POST", "/comments", token, {
         "parent": {"page_id": page_id},
         "rich_text": [{"type": "text", "text": {"content": text[:1900]}}],
