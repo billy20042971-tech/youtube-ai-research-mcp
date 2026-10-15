@@ -33,6 +33,8 @@ class NotionWritebackTests(unittest.TestCase):
             },
         )
         self.assertIn("execution_id：gh-123-attempt-2", text)
+        self.assertIn("\n", text)
+        self.assertNotIn("\\n", text)
         self.assertIn("每日 AI 趨勢雷達｜2026-10-15", text)
         self.assertIn("AI 測試影片", text)
         self.assertIn("500 次觀看", text)
