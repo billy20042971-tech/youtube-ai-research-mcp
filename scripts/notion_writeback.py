@@ -69,6 +69,67 @@ def text_from_comment(comment: dict) -> str:
     )
 
 
+def list_comments(page_id: str, token: str) -> list[dict]:
+    """Read every comment page so old execution markers are not missed."""
+    results: list[dict] = []
+    cursor: str | None = None
+    seen_cursors: set[str] = set()
+    while True:
+        params = {"block_id": page_id, "page_size": "100"}
+        if cursor:
+            params["start_cursor"] = cursor
+        query = urllib.parse.urlencode(params)
+        listing = request_json("GET", f"/comments?{query}", token)
+        page_results = listing.get("results", [])
+        if not isinstance(page_results, list):
+            raise RuntimeError("Notion comments response has an invalid results field.")
+        results.extend(item for item in page_results if isinstance(item, dict))
+        if not listing.get("has_more"):
+            return results
+        next_cursor = listing.get("next_cursor")
+        if not isinstance(next_cursor, str) or not next_cursor or next_cursor in seen_cursors:
+            raise RuntimeError("Notion comments pagination returned an invalid cursor.")
+        seen_cursors.add(next_cursor)
+        cursor = next_cursor
+
+
+def find_existing_comment(page_id: str, token: str, execution_id: str) -> dict | None:
+    """Find an existing write for this exact execution before creating another."""
+    return next(
+        (item for item in list_comments(page_id, token)
+         if execution_id in text_from_comment(item) and item.get("id")),
+        None,
+    )
+
+
+def ensure_comment(page_id: str, token: str, execution_id: str, text: str) -> str:
+    """Reuse a prior execution comment, otherwise create it once."""
+    existing = find_existing_comment(page_id, token, execution_id)
+    if existing:
+        return existing["id"]
+    created = request_json("POST", "/comments", token, {
+        "parent": {"page_id": page_id},
+        "rich_text": [{"type": "text", "text": {"content": text[:1900]}}],
+    })
+    comment_id = created.get("id")
+    if not comment_id:
+        raise RuntimeError("Notion comment creation response did not include an id.")
+    return comment_id
+
+
+def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str) -> bool:
+    """Verify the exact comment ID and execution marker, retrying reads only."""
+    for attempt in range(2):
+        found = next(
+            (item for item in list_comments(page_id, token)
+             if item.get("id") == comment_id and execution_id in text_from_comment(item)),
+            None,
+        )
+        if found:
+            return True
+    return False
+
+
 def write_audit(record: dict) -> None:
     AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
     AUDIT_PATH.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -104,31 +165,9 @@ def main() -> int:
         return 1
 
     text = comment_text(execution_id, manifest, state)
-    created = request_json("POST", "/comments", token, {
-        "parent": {"page_id": page_id},
-        "rich_text": [{"type": "text", "text": {"content": text[:1900]}}],
-    })
-    comment_id = created.get("id")
-    if not comment_id:
-        raise RuntimeError("Notion comment creation response did not include an id.")
-
-    query = urllib.parse.urlencode({"block_id": page_id, "page_size": "100"})
-    listing = request_json("GET", f"/comments?{query}", token)
-    found = next(
-        (item for item in listing.get("results", [])
-         if item.get("id") == comment_id and execution_id in text_from_comment(item)),
-        None,
-    )
-    if found is None:
-        # One additional read catches brief API propagation delay without duplicating the write.
-        listing = request_json("GET", f"/comments?{query}", token)
-        found = next(
-            (item for item in listing.get("results", [])
-             if item.get("id") == comment_id and execution_id in text_from_comment(item)),
-            None,
-        )
-    if found is None:
-        raise RuntimeError(f"Notion comment {comment_id} was created but could not be verified by readback.")
+    comment_id = ensure_comment(page_id, token, execution_id, text)
+    if not verify_comment(page_id, token, comment_id, execution_id):
+        raise RuntimeError(f"Notion comment {comment_id} exists or was created but could not be verified by readback.")
 
     write_audit({
         "execution_id": execution_id,
