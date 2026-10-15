@@ -7,8 +7,10 @@ on:
       - ".github/workflows/youtube-research-self-healing.yml"
       - ".github/workflows/scheduler-heartbeat.yml"
       - "tests/test_scheduler_policy.py"
+      - "tests/test_mcp_sse.py"
       - "scripts/notion_writeback.py"
       - "scripts/recovery_policy.py"
+      - "scripts/mcp_sse.py"
       - ".github/workflows/scheduler-policy-tests.yml"
       - ".github/workflows/mcp-handshake-test.yml"
   push:

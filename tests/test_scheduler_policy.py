@@ -105,9 +105,15 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn("SELF_HEALING_POLICY:", recovery)
         self.assertIn("dispatch-response.txt", recovery)
         self.assertIn("Unexpected recovery dispatch HTTP status:", recovery)
+        self.assertIn('if [ "$DISPATCH_HTTP_STATUS" = "200" ]', recovery)
+        self.assertIn("workflow_run_id", recovery)
+        self.assertIn("verifiable workflow_run_id", recovery)
         self.assertIn("CURL_EXIT_CODE=$?", recovery)
         self.assertIn("curl_exit_code=", recovery)
         self.assertNotIn('DISPATCH_HTTP_STATUS="$(curl --fail-with-body', recovery)
+        parser = (ROOT / "scripts/mcp_sse.py").read_text(encoding="utf-8")
+        self.assertIn("multiple data lines", parser)
+        self.assertIn("parse_mcp_response_file", production)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")

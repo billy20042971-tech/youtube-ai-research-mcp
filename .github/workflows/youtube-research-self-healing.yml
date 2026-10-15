@@ -127,7 +127,32 @@ jobs:
             if [ -s dispatch-response.txt ]; then cat dispatch-response.txt; fi
             exit 1
           fi
-          if [ "$DISPATCH_HTTP_STATUS" != "204" ]; then
+          if [ "$DISPATCH_HTTP_STATUS" = "200" ]; then
+            # This GitHub Actions API gateway may return 200 with a JSON run
+            # record instead of the documented 204 empty response. Accept 200
+            # only when the response proves a run was actually created.
+            if python - "$REPO" <<'PY'
+          import json, sys
+          from pathlib import Path
+          repo = sys.argv[1]
+          try:
+              body = json.loads(Path("dispatch-response.txt").read_text(encoding="utf-8"))
+              run_id = body.get("workflow_run_id")
+              run_url = body.get("run_url", "")
+              expected = f"https://api.github.com/repos/{repo}/actions/runs/"
+              valid = isinstance(run_id, int) and run_url.startswith(expected) and run_url[len(expected):].isdigit()
+          except Exception:
+              valid = False
+          sys.exit(0 if valid else 1)
+          PY
+            then
+              echo "SELF_HEALING: recovery dispatch confirmed by returned workflow_run_id."
+            else
+              echo "::error::HTTP 200 did not include a verifiable workflow_run_id."
+              if [ -s dispatch-response.txt ]; then cat dispatch-response.txt; fi
+              exit 1
+            fi
+          elif [ "$DISPATCH_HTTP_STATUS" != "204" ]; then
             echo "::error::Unexpected recovery dispatch HTTP status: $DISPATCH_HTTP_STATUS."
             if [ -s dispatch-response.txt ]; then cat dispatch-response.txt; fi
             exit 1
