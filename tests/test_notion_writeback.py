@@ -82,7 +82,7 @@ class NotionWritebackTests(unittest.TestCase):
                 {"id": "created-id"},
             ],
         ) as request:
-            comment_id = ensure_comment("page", "token", execution_id, "new content")
+            comment_id = ensure_comment("page", "token", execution_id, f"execution_id: {execution_id}\\nnew content")
 
         self.assertEqual(comment_id, "created-id")
         self.assertEqual([c.args[0] for c in request.call_args_list], ["GET", "POST"])
