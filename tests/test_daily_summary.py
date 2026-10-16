@@ -41,12 +41,9 @@ def test_chart_label_contains_real_newline_not_literal_backslash_n():
     from textwrap import wrap
     text = re.sub(r"\\s+", " ", "這是一段足夠長的中文標題，用來檢查圖表標籤換行是否正確").strip()
     lines = wrap(text, width=18, break_long_words=True, break_on_hyphens=False)
-    if len(lines) <= 2:
-        label = "\n".join(lines)
-    else:
-        label = lines[0] + "\n" + lines[1][:15] + "…"
-    assert "\n" in label
-    assert "\n" not in label
+    label = "\n".join(lines) if len(lines) <= 2 else lines[0] + "\n" + lines[1][:15] + "…"
+    assert chr(10) in label
+    assert chr(92) + "n" not in label
 
 
 if __name__ == "__main__":
