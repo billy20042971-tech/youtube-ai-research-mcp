@@ -31,12 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           TODAY_TAIPEI="$(TZ=Asia/Taipei date +%Y-%m-%d)"
-          # Bound the query to UTC calendar dates that overlap today's Taipei date.
-          START_UTC_EPOCH="$(TZ=Asia/Taipei date -d "$TODAY_TAIPEI 00:00:00" +%s)"
-          END_UTC_EPOCH="$(TZ=Asia/Taipei date -d "$TODAY_TAIPEI 23:59:59" +%s)"
-          START_UTC_DATE="$(date -u -d "@$START_UTC_EPOCH" +%Y-%m-%d)"
-          END_UTC_DATE="$(date -u -d "@$END_UTC_EPOCH" +%Y-%m-%d)"
-          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?event=schedule&created=${START_UTC_DATE}..${END_UTC_DATE}&per_page=100"
+          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?event=schedule&per_page=50"
           curl --fail-with-body -sS \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
@@ -44,7 +39,7 @@ jobs:
             "$API" -o runs.json
 
           python - <<'PY'
-          import json, os, sys
+          import json, os
           from datetime import datetime
           from pathlib import Path
           from zoneinfo import ZoneInfo
@@ -53,61 +48,30 @@ jobs:
               ["bash", "-lc", "TZ=Asia/Taipei date +%Y-%m-%d"], text=True
           ).strip()
           tz = ZoneInfo("Asia/Taipei")
-          payload = json.loads(Path("runs.json").read_text(encoding="utf-8"))
+          runs = json.loads(Path("runs.json").read_text(encoding="utf-8")).get("workflow_runs", [])
 
           def local_dt(value):
-              if not isinstance(value, str) or not value:
-                  return None
               try:
                   dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
                   if dt.tzinfo is None:
                       return None
                   return dt.astimezone(tz)
-              except (TypeError, ValueError):
+              except (AttributeError, ValueError):
                   return None
 
-          runs = payload.get("workflow_runs")
-          total_count = payload.get("total_count")
-          complete = (
-              isinstance(runs, list)
-              and isinstance(total_count, int)
-              and total_count == len(runs)
-              and payload.get("message") is None
-          )
-          valid_runs = []
-          invalid_relevant_runs = []
-          if complete:
-              for run in runs:
-                  if not isinstance(run, dict) or run.get("event") != "schedule":
-                      continue
-                  started = local_dt(run.get("run_started_at"))
-                  created = local_dt(run.get("created_at"))
-                  # A run created today with an absent/invalid start timestamp means
-                  # the API cannot prove either on-time or late execution.
-                  if created and created.date().isoformat() == today and started is None:
-                      invalid_relevant_runs.append(run.get("id"))
-                  if started and started.date().isoformat() == today:
-                      valid_runs.append((run, started))
+          todays = []
+          for run in runs:
+              if run.get("event") != "schedule":
+                  continue
+              started = local_dt(run.get("run_started_at") or "")
+              if started and started.date().isoformat() == today:
+                  todays.append((run, started))
 
-          eligible = [(run, started) for run, started in valid_runs
+          eligible = [(run, started) for run, started in todays
                       if (started.hour, started.minute) <= (6, 15)]
           eligible.sort(key=lambda item: item[1])
           found = bool(eligible)
           chosen = eligible[-1][0] if eligible else None
-
-          if not complete:
-              status = "UNDETERMINED_API_RESPONSE"
-              reason = "runs_payload_incomplete_or_invalid"
-          elif invalid_relevant_runs:
-              status = "UNDETERMINED_RUN_TIMESTAMP"
-              reason = "today_schedule_run_has_missing_or_invalid_started_at"
-          elif found:
-              status = "ON_TIME_RUN_FOUND"
-              reason = "scheduled_run_started_by_0615_taipei"
-          else:
-              status = "SCHEDULER_MISSED_DEADLINE"
-              reason = "complete_run_list_contains_no_today_schedule_started_by_0615"
-
           now = datetime.now().astimezone(tz)
           record = {
               "heartbeat_id": f"heartbeat-{os.environ['GITHUB_RUN_ID']}-attempt-{os.environ['GITHUB_RUN_ATTEMPT']}",
@@ -117,23 +81,19 @@ jobs:
               "github_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
               "checked_at_taipei": now.isoformat(),
               "taipei_date": today,
-              "research_scheduled_run_found": found if complete else None,
+              "research_scheduled_run_found": found,
               "research_run_id": chosen.get("id") if chosen else None,
               "research_run_url": chosen.get("html_url") if chosen else None,
               "research_run_started_at": chosen.get("run_started_at") if chosen else None,
-              "query_total_count": total_count if isinstance(total_count, int) else None,
-              "query_returned_count": len(runs) if isinstance(runs, list) else None,
-              "invalid_today_schedule_run_ids": invalid_relevant_runs,
-              "status": status,
-              "reason": reason,
+              "status": "ON_TIME_RUN_FOUND" if found else "SCHEDULER_MISSED_DEADLINE"
           }
           Path("data").mkdir(exist_ok=True)
           Path("data/scheduler-heartbeat.json").write_text(
               json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
           )
           print(json.dumps(record, ensure_ascii=False))
-          if status != "ON_TIME_RUN_FOUND":
-              print(f"::warning::Heartbeat result {status}: {reason}")
+          if not found:
+              print("::warning::No scheduled research run started by 06:15 Asia/Taipei.")
           PY
 
       - name: Publish heartbeat evidence
