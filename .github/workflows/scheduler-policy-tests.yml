@@ -7,6 +7,7 @@ on:
       - ".github/workflows/youtube-research-self-healing.yml"
       - ".github/workflows/scheduler-heartbeat.yml"
       - "tests/test_scheduler_policy.py"
+      - "tests/test_heartbeat_evidence.py"
       - "tests/test_mcp_sse.py"
       - "scripts/notion_writeback.py"
       - "scripts/recovery_policy.py"
@@ -18,6 +19,7 @@ on:
       - ".github/workflows/mcp-handshake-test.yml"
   push:
     branches:
+      - "fix/p1-heartbeat-evidence-validation-2026-10-16"
       - "fix/p1-scheduler-heartbeat-guard"
 
 permissions:
