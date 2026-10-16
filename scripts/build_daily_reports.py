@@ -8,12 +8,12 @@ from textwrap import wrap
 try:
     from scripts.daily_summary import build_summary
     from scripts.daily_summary_evidence import evidence_metadata
-    from scripts.daily_history import update_history
+    from scripts.daily_history import persist_history, update_history
 except ModuleNotFoundError:
     # Support direct execution as: python scripts/build_daily_reports.py
     from daily_summary import build_summary
     from daily_summary_evidence import evidence_metadata
-    from daily_history import update_history
+    from daily_history import persist_history, update_history
 
 
 def safe_int(value):
@@ -62,7 +62,9 @@ out.mkdir(parents=True, exist_ok=True)
 summary = build_summary(videos, generated_at=src.get("generated_at"))
 evidence = evidence_metadata(videos, src.get("generated_at"))
 evidence["duplicate_count"] = max(0, raw_video_count - len(videos))
-history = update_history(videos, summary, evidence, generated_at=src.get("generated_at"))
+history, pending_history, history_path = update_history(
+    videos, summary, evidence, generated_at=src.get("generated_at"), persist=False
+)
 
 import matplotlib
 matplotlib.use("Agg")
@@ -247,4 +249,5 @@ manifest = {
     "automation_status": "generated",
 }
 Path("reports/latest-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+persist_history(history_path, pending_history)
 print(json.dumps(manifest, ensure_ascii=False, indent=2))
