@@ -8,7 +8,10 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from scripts.daily_summary import classify_topic
+try:
+    from scripts.daily_summary import classify_topic
+except ModuleNotFoundError:
+    from daily_summary import classify_topic
 
 
 def _parse_date(value):
