@@ -6,6 +6,7 @@ appearance is a tracking signal, not proof of a market trend.
 import json
 from collections import Counter
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 try:
@@ -29,7 +30,7 @@ def update_history(videos, summary, evidence, generated_at=None,
                    persist=True):
     """Append or replace today's snapshot and compare topics with prior runs."""
     generated = _parse_date(generated_at) or datetime.now(timezone.utc)
-    snapshot_date = generated.date().isoformat()
+    snapshot_date = generated.astimezone(ZoneInfo("Asia/Taipei")).date().isoformat()
     valid = [v for v in videos if isinstance(v, dict) and v.get("video_id")]
     topic_counts = Counter(classify_topic(video) for video in valid)
     snapshot = {
