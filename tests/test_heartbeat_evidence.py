@@ -24,7 +24,7 @@ def heartbeat_decision(payload, today):
         return {"status": "UNDETERMINED_API_RESPONSE", "reason": "payload_not_object"}
     runs = payload.get("workflow_runs")
     total = payload.get("total_count")
-    if not isinstance(runs, list) or not isinstance(total, int) or total < len(runs):
+    if not isinstance(runs, list) or not isinstance(total, int) or total != len(runs):
         return {"status": "UNDETERMINED_API_RESPONSE", "reason": "runs_payload_incomplete_or_invalid"}
 
     invalid = []
@@ -77,6 +77,11 @@ class HeartbeatEvidenceTests(unittest.TestCase):
 
     def test_api_count_inconsistent_with_returned_runs_is_undetermined(self):
         result = heartbeat_decision({"total_count": 0, "workflow_runs": [{"id": 1}]}, "2026-10-16")
+        self.assertEqual(result["status"], "UNDETERMINED_API_RESPONSE")
+
+    def test_truncated_run_list_is_undetermined(self):
+        # A full first page is not proven when the API reports more results than returned.
+        result = heartbeat_decision({"total_count": 2, "workflow_runs": [{"id": 1}]}, "2026-10-16")
         self.assertEqual(result["status"], "UNDETERMINED_API_RESPONSE")
 
     def test_today_run_with_bad_timestamp_is_undetermined(self):
