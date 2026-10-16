@@ -5,13 +5,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReportFormattingTests(unittest.TestCase):
-    def test_chart_and_pptx_newline_literals_are_actual_newlines(self):
+    def test_chart_and_pptx_use_single_escape_for_line_breaks(self):
         source = (ROOT / "scripts/build_daily_reports.py").read_text(encoding="utf-8")
-        self.assertIn('"\\\\n".join(lines)', source)
-        self.assertIn('"\\\\n".join(', source)
-        self.assertNotIn('"\\\\\\\\n".join(lines)', source)
-        self.assertNotIn('"\\\\\\\\n".join(', source)
-        self.assertNotIn(' + "\\\\\\\\n" + ', source)
+        slash = chr(92)
+        good_join = '"' + slash + 'n".join('
+        bad_join = '"' + slash * 2 + 'n".join('
+        self.assertIn(good_join, source)
+        self.assertNotIn(bad_join, source)
+        self.assertIn('summary["headline"] + "' + slash + 'n" + "' + slash + 'n".join(', source)
+        self.assertIn('"' + slash + 'n".join("• " + x', source)
 
 
 if __name__ == "__main__":
