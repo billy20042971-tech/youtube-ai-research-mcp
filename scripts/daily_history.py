@@ -47,9 +47,13 @@ def update_history(videos, summary, evidence, generated_at=None,
     if path.exists():
         try:
             prior_data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(prior_data, dict):
+                raise ValueError("history root must be an object")
             snapshots = prior_data.get("snapshots", [])
             if not isinstance(snapshots, list):
                 raise ValueError("snapshots must be a list")
+            if any(not isinstance(snapshot, dict) for snapshot in snapshots):
+                raise ValueError("every snapshot must be an object")
         except (json.JSONDecodeError, OSError, AttributeError, ValueError) as exc:
             raise RuntimeError(f"Cannot safely read daily history at {path}: {exc}") from exc
     else:
@@ -83,9 +87,10 @@ def update_history(videos, summary, evidence, generated_at=None,
             ),
         })
 
+    retention_snapshots = max(1, int(max_snapshots))
     snapshots = sorted(prior_snapshots + [snapshot], key=lambda s: str(s.get("snapshot_date", "")))
-    snapshots = snapshots[-max(1, int(max_snapshots)):]
-    payload = {"schema_version": 1, "retention_days": max_snapshots, "snapshots": snapshots}
+    snapshots = snapshots[-retention_snapshots:]
+    payload = {"schema_version": 1, "retention_snapshots": retention_snapshots, "snapshots": snapshots}
     result = {
         "status": "history_available" if history_available else "baseline",
         "snapshot_date": snapshot_date,
