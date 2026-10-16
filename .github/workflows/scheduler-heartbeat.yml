@@ -31,7 +31,12 @@ jobs:
         run: |
           set -euo pipefail
           TODAY_TAIPEI="$(TZ=Asia/Taipei date +%Y-%m-%d)"
-          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?event=schedule&per_page=100"
+          # Bound the query to UTC calendar dates that overlap today's Taipei date.
+          START_UTC_EPOCH="$(TZ=Asia/Taipei date -d "$TODAY_TAIPEI 00:00:00" +%s)"
+          END_UTC_EPOCH="$(TZ=Asia/Taipei date -d "$TODAY_TAIPEI 23:59:59" +%s)"
+          START_UTC_DATE="$(date -u -d "@$START_UTC_EPOCH" +%Y-%m-%d)"
+          END_UTC_DATE="$(date -u -d "@$END_UTC_EPOCH" +%Y-%m-%d)"
+          API="https://api.github.com/repos/$REPO/actions/workflows/daily-youtube-research.yml/runs?event=schedule&created=${START_UTC_DATE}..${END_UTC_DATE}&per_page=100"
           curl --fail-with-body -sS \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
@@ -66,7 +71,7 @@ jobs:
           complete = (
               isinstance(runs, list)
               and isinstance(total_count, int)
-              and total_count >= len(runs)
+              and total_count == len(runs)
               and payload.get("message") is None
           )
           valid_runs = []
