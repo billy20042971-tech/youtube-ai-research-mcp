@@ -5,8 +5,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from textwrap import wrap
 
-from scripts.daily_summary import build_summary
-from scripts.daily_summary_evidence import evidence_metadata
+try:
+    from scripts.daily_summary import build_summary
+    from scripts.daily_summary_evidence import evidence_metadata
+except ModuleNotFoundError:
+    # Support direct execution as: python scripts/build_daily_reports.py
+    from daily_summary import build_summary
+    from daily_summary_evidence import evidence_metadata
 
 
 def safe_int(value):
