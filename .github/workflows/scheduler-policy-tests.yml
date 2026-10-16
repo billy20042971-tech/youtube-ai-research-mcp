@@ -87,19 +87,19 @@ jobs:
           manifest = json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8"))
           evidence = manifest["evidence_summary"]
           assert evidence["sample_count"] == 3, evidence
-          assert evidence["duplicate_count"] == 1, evidence
+          assert evidence["duplicate_count"] == 2, evidence
           assert evidence["stale_count"] == 1, evidence
           assert evidence["freshness_unknown_count"] == 1, evidence
           for key in ("word", "pptx", "chart"):
               assert Path(manifest[key]).is_file() and Path(manifest[key]).stat().st_size > 0, key
           word_text = "\\n".join(p.text for p in Document(manifest["word"]).paragraphs)
-          assert "跨查詢重複 1 部" in word_text
+          assert "跨查詢重複 2 部" in word_text
           assert "超過72h 1 部" in word_text
           assert "日期不可判定 1 部" in word_text
           assert "來源獨立性" in word_text
           pptx = Presentation(manifest["pptx"])
           slide_text = "\\n".join(shape.text for shape in pptx.slides[1].shapes if hasattr(shape, "text"))
-          assert "重複 1" in slide_text
+          assert "重複 2" in slide_text
           assert "超過72h 1" in slide_text
           assert "日期不可判定 1" in slide_text
           assert "來源獨立性未驗證" in slide_text
