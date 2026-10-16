@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from textwrap import wrap
 
-from scripts.daily_summary import build_summary
+from scripts.daily_summary import build_summary, report_date_taipei
 
 
 def safe_int(value):
@@ -47,7 +47,7 @@ for video in videos:
         deduped[video["video_id"]] = video
 videos = sorted(deduped.values(), key=lambda v: safe_int(v.get("views")), reverse=True)
 now = datetime.now(timezone.utc)
-date = now.strftime("%Y-%m-%d")
+date = report_date_taipei(now)
 out = Path("reports") / date
 out.mkdir(parents=True, exist_ok=True)
 summary = build_summary(videos, generated_at=src.get("generated_at"))
