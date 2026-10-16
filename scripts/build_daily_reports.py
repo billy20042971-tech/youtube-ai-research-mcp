@@ -42,7 +42,7 @@ for query, data in recent.get("per_query", {}).items():
             video["comments_count"] = len(comments)
         videos.append(video)
 
-raw_video_count = len(videos)
+raw_video_count = sum(1 for video in videos if video.get("video_id"))
 deduped = {}
 for video in videos:
     if video.get("video_id"):
