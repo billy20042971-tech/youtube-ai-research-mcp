@@ -19,6 +19,7 @@ on:
       - "tests/test_daily_summary_evidence.py"
       - "tests/test_daily_history.py"
       - "tests/test_daily_report_evidence_integration.py"
+      - "tests/test_chart_readability.py"
       - "tests/test_daily_report_format.py"
       - ".github/workflows/scheduler-policy-tests.yml"
       - ".github/workflows/mcp-handshake-test.yml"
