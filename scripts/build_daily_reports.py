@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from collections import Counter
 import re
+from scripts.daily_summary_evidence import evidence_metadata
 
 def safe_int(v):
     try:
@@ -113,6 +114,7 @@ with Image.open(chart_path) as chart:
 if chart_path.stat().st_size < 20_000:
     raise RuntimeError(f"Chart file suspiciously small: {chart_path.stat().st_size} bytes")
 
+evidence = evidence_metadata(videos, src.get("generated_at"))
 channels = Counter(v.get("channel_title", "") for v in videos if v.get("channel_title"))
 queries = Counter(v.get("query", "") for v in videos if v.get("query"))
 
@@ -131,6 +133,11 @@ doc.add_paragraph(
     "本報告由每日 MCP 固定採樣自動產生。排名主要反映觀看量，正式趨勢判定仍需結合發布時間、"
     "跨頻道、留言、持續性與交叉驗證。"
 )
+doc.add_paragraph(f"證據狀態：{evidence['trend_status']}｜樣本 {evidence['sample_count']} 部｜重複 {evidence['duplicate_count']} 部｜超過72h {evidence['stale_count']} 部｜日期不可判定 {evidence['freshness_unknown_count']} 部。")
+for signal in evidence["signals"]:
+    doc.add_paragraph(f"證據卡：{signal['title']}｜發布：{signal['published_at']}｜新鮮度：{signal['freshness']}｜來源獨立性：{signal['source_independence']}｜工作關聯：{'、'.join(signal['work_relevance'])}｜建議：{signal['action']}｜{signal['url']}")
+for limitation in evidence["limitations"]:
+    doc.add_paragraph("限制：" + limitation)
 doc.add_heading("2. 今日高訊號影片", level=1)
 for i, v in enumerate(videos[:10], 1):
     doc.add_paragraph(
@@ -218,6 +225,7 @@ manifest = {
     "generated_at": now.isoformat(),
     "source": "YouTube Research MCP",
     "sample_count": len(videos),
+    "evidence_summary": evidence,
     "word": str(out / f"YouTube_AI趨勢研究雷達_{date}_完整報告.docx"),
     "pptx": str(out / f"YouTube_AI趨勢研究雷達_{date}_簡報.pptx"),
     "chart": str(out / "top10_views.png"),
