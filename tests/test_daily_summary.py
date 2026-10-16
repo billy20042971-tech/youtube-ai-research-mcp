@@ -36,5 +36,13 @@ class DailySummaryTests(unittest.TestCase):
         self.assertEqual(classify_topic({"title": "未知主題"}), "其他／尚未分類")
 
 
+    def test_report_date_uses_taipei_calendar_day_at_utc_schedule_boundary(self):
+        from datetime import datetime, timezone
+        from scripts.daily_summary import report_date_taipei
+
+        scheduled_utc = datetime(2026, 10, 16, 22, 0, tzinfo=timezone.utc)
+        self.assertEqual(report_date_taipei(scheduled_utc), "2026-10-17")
+        self.assertEqual(report_date_taipei("2026-10-16T22:00:00Z"), "2026-10-17")
+
 if __name__ == "__main__":
     unittest.main()
