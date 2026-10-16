@@ -76,20 +76,36 @@ plt.rcParams["axes.unicode_minus"] = False
 top = videos[:10]
 def chart_label(title):
     text = re.sub(r"\s+", " ", str(title or "")).strip() or "(無標題)"
-    lines = wrap(text, width=18, break_long_words=True, break_on_hyphens=False)
+    lines = wrap(text, width=15, break_long_words=True, break_on_hyphens=False)
     if len(lines) <= 2:
         return "\n".join(lines)
-    return lines[0] + "\n" + lines[1][:15] + "…"
+    return lines[0] + "\n" + lines[1][:13] + "…"
 
 labels = [chart_label(v.get("title")) for v in top][::-1]
 values = [safe_int(v.get("views")) for v in top][::-1]
-fig, ax = plt.subplots(figsize=(12, max(7.0, 0.72 * len(labels) + 1.8)))
-ax.barh(labels, values)
+fig_height = max(7.0, 0.82 * len(labels) + 1.8)
+fig, ax = plt.subplots(figsize=(14, fig_height))
+bars = ax.barh(labels, values)
 ax.set_title("YouTube AI 研究雷達｜觀看數前 10 名（僅為曝光訊號）", fontsize=15, pad=16)
 ax.set_xlabel("觀看次數")
+ax.tick_params(axis="y", labelsize=9)
+ax.tick_params(axis="x", labelsize=9)
 ax.grid(axis="x", linestyle=":", alpha=0.35)
 ax.set_axisbelow(True)
-fig.subplots_adjust(left=0.38, right=0.97, top=0.94, bottom=0.08)
+max_value = max(values, default=0)
+ax.set_xlim(0, max_value * 1.18 if max_value else 1)
+for bar, value in zip(bars, values):
+    ax.annotate(
+        f"{value:,}",
+        xy=(bar.get_width(), bar.get_y() + bar.get_height() / 2),
+        xytext=(5, 0),
+        textcoords="offset points",
+        ha="left",
+        va="center",
+        fontsize=8,
+        clip_on=False,
+    )
+fig.subplots_adjust(left=0.43, right=0.96, top=0.94, bottom=0.08)
 chart_path = out / "top10_views.png"
 fig.savefig(chart_path, dpi=180, bbox_inches="tight", facecolor="white")
 plt.close(fig)
