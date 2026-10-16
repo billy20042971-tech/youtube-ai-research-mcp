@@ -48,6 +48,7 @@ for q, d in recent.get("per_query", {}).items():
             x["comments_count"] = len(comments)
         videos.append(x)
 
+raw_video_count = len(videos)
 seen = {}
 for v in videos:
     seen[v.get("video_id")] = v
@@ -115,6 +116,8 @@ if chart_path.stat().st_size < 20_000:
     raise RuntimeError(f"Chart file suspiciously small: {chart_path.stat().st_size} bytes")
 
 evidence = evidence_metadata(videos, src.get("generated_at"))
+# Preserve duplicate evidence from the raw per-query sample before report-level deduplication.
+evidence["duplicate_count"] = max(0, raw_video_count - len(videos))
 channels = Counter(v.get("channel_title", "") for v in videos if v.get("channel_title"))
 queries = Counter(v.get("query", "") for v in videos if v.get("query"))
 
