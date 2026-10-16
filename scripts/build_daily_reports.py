@@ -5,7 +5,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from textwrap import wrap
 
-from scripts.daily_summary import build_summary, report_date_taipei
+try:
+    from scripts.daily_summary import build_summary, report_date_taipei
+    from scripts.daily_summary_evidence import evidence_metadata
+except ModuleNotFoundError:
+    # Support direct execution as: python scripts/build_daily_reports.py
+    from daily_summary import build_summary, report_date_taipei
+    from daily_summary_evidence import evidence_metadata
 
 
 def safe_int(value):
@@ -41,6 +47,7 @@ for query, data in recent.get("per_query", {}).items():
             video["comments_count"] = len(comments)
         videos.append(video)
 
+raw_video_count = sum(1 for video in videos if video.get("video_id"))
 deduped = {}
 for video in videos:
     if video.get("video_id"):
@@ -51,6 +58,8 @@ date = report_date_taipei(now)
 out = Path("reports") / date
 out.mkdir(parents=True, exist_ok=True)
 summary = build_summary(videos, generated_at=src.get("generated_at"))
+evidence = evidence_metadata(videos, src.get("generated_at"))
+evidence["duplicate_count"] = max(0, raw_video_count - len(videos))
 
 import matplotlib
 matplotlib.use("Agg")
@@ -118,6 +127,19 @@ doc.add_paragraph("行動建議：目前資料只支持「持續觀察」；不�
 doc.add_heading("證據限制", level=2)
 for limitation in summary["limitations"]:
     doc.add_paragraph("• " + limitation)
+doc.add_paragraph(
+    f"證據狀態：{evidence['trend_status']}｜去重樣本 {evidence['sample_count']} 部｜"
+    f"跨查詢重複 {evidence['duplicate_count']} 部｜超過72h {evidence['stale_count']} 部｜"
+    f"日期不可判定 {evidence['freshness_unknown_count']} 部。"
+)
+for signal in evidence["signals"]:
+    doc.add_paragraph(
+        f"證據卡：{signal['title']}｜發布：{signal['published_at']}｜新鮮度：{signal['freshness']}｜"
+        f"來源獨立性：{signal['source_independence']}｜工作關聯：{'、'.join(signal['work_relevance'])}｜"
+        f"建議：{signal['action']}｜{signal['url']}"
+    )
+for limitation in evidence["limitations"]:
+    doc.add_paragraph("證據限制：" + limitation)
 if summary["deep_dive"]:
     doc.add_heading("最多 1 部候選深讀影片", level=2)
     doc.add_paragraph(
@@ -168,7 +190,10 @@ slide("YouTube AI 趨勢研究雷達", f"{date}｜近 72 小時去重樣本 {len
 slide("一分鐘決策摘要", summary["headline"] + "\n" + "\n".join(
     f"{i}. {s['topic']}｜{s['confidence']}｜{s['video_count']} 部／{s['channel_count']} 頻道"
     for i, s in enumerate(summary["signals"], 1)
-))
+) + "\n" +
+    f"證據：{evidence['trend_status']}｜去重樣本 {evidence['sample_count']}｜重複 {evidence['duplicate_count']}｜"
+    f"超過72h {evidence['stale_count']}｜日期不可判定 {evidence['freshness_unknown_count']}\n" +
+    "來源獨立性未驗證；工作關聯為關鍵字初篩。")
 slide("證據限制", "\n".join("• " + x for x in summary["limitations"]))
 slide("下一步", "目前採取：持續觀察。觀看數不是需求、收入、效果或可靠性的證明。\n有可驗證證據後，再決定是否安排實驗。")
 slide("高觀看影片候選", "\n".join(
@@ -186,6 +211,7 @@ manifest = {
     "sample_count": len(videos),
     "summary_signal_count": len(summary["signals"]),
     "summary_status": "evidence_limited" if videos else "insufficient_sample",
+    "evidence_summary": evidence,
     "word": str(word_path),
     "pptx": str(pptx_path),
     "chart": str(chart_path),
