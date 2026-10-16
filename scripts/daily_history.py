@@ -25,7 +25,8 @@ def _parse_date(value):
 
 
 def update_history(videos, summary, evidence, generated_at=None,
-                   history_path="data/daily-summary-history.json", max_snapshots=90):
+                   history_path="data/daily-summary-history.json", max_snapshots=90,
+                   persist=True):
     """Append or replace today's snapshot and compare topics with prior runs."""
     generated = _parse_date(generated_at) or datetime.now(timezone.utc)
     snapshot_date = generated.date().isoformat()
@@ -83,14 +84,8 @@ def update_history(videos, summary, evidence, generated_at=None,
 
     snapshots = sorted(prior_snapshots + [snapshot], key=lambda s: str(s.get("snapshot_date", "")))
     snapshots = snapshots[-max(1, int(max_snapshots)):]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps({"schema_version": 1, "retention_days": max_snapshots, "snapshots": snapshots},
-                   ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-    return {
+    payload = {"schema_version": 1, "retention_days": max_snapshots, "snapshots": snapshots}
+    result = {
         "status": "history_available" if history_available else "baseline",
         "snapshot_date": snapshot_date,
         "previous_snapshot_date": previous.get("snapshot_date") if previous else None,
@@ -104,3 +99,14 @@ def update_history(videos, summary, evidence, generated_at=None,
             "同日重跑會更新當日快照；最多保留最近 90 次記錄。",
         ],
     }
+    if persist:
+        persist_history(path, payload)
+        return result
+    return result, payload, str(path)
+
+
+def persist_history(history_path, payload):
+    """Persist the prepared history only after report artifacts are verified."""
+    path = Path(history_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
