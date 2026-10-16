@@ -46,7 +46,7 @@ def test_chart_label_contains_real_newline_not_literal_backslash_n():
     else:
         label = lines[0] + "\\n" + lines[1][:15] + "…"
     assert "\\n" in label
-    assert "\\\\n" not in label
+    assert "\\n" not in label
 
 
 if __name__ == "__main__":
