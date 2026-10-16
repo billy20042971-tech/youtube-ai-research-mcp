@@ -4,6 +4,7 @@ This is a deterministic triage aid, not a claim that views prove a market trend.
 """
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 
 TOPIC_RULES = [
@@ -95,6 +96,22 @@ def build_summary(videos, generated_at=None, previous_video_ids=None):
             "timestamp": None,
         },
     }
+
+
+def report_date_taipei(value=None):
+    """Return the calendar date in Taiwan time for a timezone-aware or UTC timestamp."""
+    if value is None:
+        value = datetime.now(timezone.utc)
+    elif isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            raise ValueError("Invalid report timestamp")
+    if not isinstance(value, datetime):
+        raise TypeError("Report timestamp must be a datetime, ISO timestamp, or None")
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(ZoneInfo("Asia/Taipei")).date().isoformat()
 
 
 def _int(value):
