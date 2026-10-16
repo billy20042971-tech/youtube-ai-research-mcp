@@ -198,7 +198,7 @@ from pptx.util import Inches as PInches
 prs = Presentation()
 slides = [
     ("YouTube AI趨勢研究雷達", f"{date}｜MCP 自動採樣"),
-    ("一分鐘摘要", f"近72h去重樣本：{len(videos)}\n固定查詢：" + ", ".join(queries.keys())),
+    ("一分鐘摘要", f"近72h去重樣本：{len(videos)}\n證據狀態：{evidence['trend_status']}\n超過72h：{evidence['stale_count']}｜日期不可判定：{evidence['freshness_unknown_count']}\n來源獨立性未驗證；工作關聯為關鍵字初篩\n固定查詢：" + ", ".join(queries.keys())),
     ("高訊號影片", "\n".join(
         f"{i}. {v.get('title', '')[:55]}｜{safe_int(v.get('views')):,}"
         for i, v in enumerate(videos[:7], 1)
