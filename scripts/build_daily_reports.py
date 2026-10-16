@@ -82,9 +82,9 @@ top = videos[:10]
 def chart_label(title):
     text = re.sub(r"\s+", " ", str(title or "")).strip() or "(無標題)"
     lines = wrap(text, width=15, break_long_words=True, break_on_hyphens=False)
-    if len(lines) <= 2:
-        return "\n".join(lines)
-    return lines[0] + "\n" + lines[1][:13] + "…"
+    if len(lines) > 2:
+        lines = [lines[0], lines[1][:13] + "…"]
+    return "\n".join(lines)
 
 labels = [chart_label(v.get("title")) for v in top][::-1]
 values = [safe_int(v.get("views")) for v in top][::-1]
