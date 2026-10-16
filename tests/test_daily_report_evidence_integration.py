@@ -14,7 +14,7 @@ class DailyReportEvidenceIntegrationTests(unittest.TestCase):
 
     def test_duplicate_count_is_measured_before_deduplication(self):
         source = Path("scripts/build_daily_reports.py").read_text(encoding="utf-8")
-        self.assertIn("raw_video_count = len(videos)", source)
+        self.assertIn('raw_video_count = sum(1 for video in videos if video.get("video_id"))', source)
         self.assertIn('evidence["duplicate_count"] = max(0, raw_video_count - len(videos))', source)
 
     def test_chart_labels_use_real_newline_separators(self):
