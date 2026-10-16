@@ -38,3 +38,73 @@ jobs:
           python-version: "3.12"
       - name: Run deterministic scheduler policy tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
+
+  daily-report-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install report dependencies and CJK font
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          python -m pip install --disable-pip-version-check --quiet python-docx python-pptx matplotlib pillow
+      - name: Build Word, PowerPoint, chart and manifest from deterministic fixture
+        run: |
+          mkdir -p data
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone, timedelta
+          from pathlib import Path
+          now = datetime.now(timezone.utc)
+          def iso(hours):
+              return (now - timedelta(hours=hours)).isoformat()
+          videos = [
+              {"video_id":"fixture-1","title":"Notion MCP 自動化流程","channel_id":"channel-a","channel_title":"頻道 A","published_at":iso(12),"views":900,"url":"https://example.com/1","description":"MCP 自動化工作流","comments":[{"text":"測試留言"}],"comments_obtained_count":1},
+              {"video_id":"fixture-2","title":"AI 教學與課程","channel_id":"channel-b","channel_title":"頻道 B","published_at":iso(100),"views":700,"url":"https://example.com/2","description":"教學課程","comments":[],"comments_obtained_count":0},
+              {"video_id":"fixture-3","title":"AI 副業賺錢","channel_id":"channel-c","channel_title":"頻道 C","views":500,"url":"https://example.com/3","description":"AI 副業","comments":[],"comments_obtained_count":0},
+          ]
+          per_query = {
+              "AI賺錢":{"videos":[dict(v) for v in videos]},
+              "AI副業":{"videos":[dict(videos[0]), dict(videos[2])]},
+          }
+          payload = {
+              "generated_at":now.isoformat(),
+              "source":"deterministic-ci-fixture",
+              "recent_72h_sample":{"videos":videos,"per_query":per_query},
+          }
+          Path("data/latest.json").write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
+          PY
+          python scripts/build_daily_reports.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from docx import Document
+          from pptx import Presentation
+          from PIL import Image
+          manifest = json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8"))
+          evidence = manifest["evidence_summary"]
+          assert evidence["sample_count"] == 3, evidence
+          assert evidence["duplicate_count"] == 1, evidence
+          assert evidence["stale_count"] == 1, evidence
+          assert evidence["freshness_unknown_count"] == 1, evidence
+          for key in ("word", "pptx", "chart"):
+              assert Path(manifest[key]).is_file() and Path(manifest[key]).stat().st_size > 0, key
+          word_text = "\\n".join(p.text for p in Document(manifest["word"]).paragraphs)
+          assert "跨查詢重複 1 部" in word_text
+          assert "超過72h 1 部" in word_text
+          assert "日期不可判定 1 部" in word_text
+          assert "來源獨立性" in word_text
+          pptx = Presentation(manifest["pptx"])
+          slide_text = "\\n".join(shape.text for shape in pptx.slides[1].shapes if hasattr(shape, "text"))
+          assert "重複 1" in slide_text
+          assert "超過72h 1" in slide_text
+          assert "日期不可判定 1" in slide_text
+          assert "來源獨立性未驗證" in slide_text
+          with Image.open(manifest["chart"]) as image:
+              assert image.width >= 1000 and image.height >= 600, image.size
+              image.verify()
+          print("PASS: Word/PPTX/chart/manifest agree on sample, duplicates, freshness and caveats.")
+          PY
