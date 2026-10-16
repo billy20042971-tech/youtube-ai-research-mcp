@@ -24,7 +24,7 @@ class DailyHistoryTests(unittest.TestCase):
         self.assertIsNone(result["new_video_count"])
         saved = json.loads(Path(self.history_path).read_text(encoding="utf-8"))
         self.assertEqual(len(saved["snapshots"]), 1)
-        self.assertEqual(saved["snapshots"][0]["snapshot_date"], "2026-10-14")
+        self.assertEqual(saved["snapshots"][0]["snapshot_date"], "2026-10-15")
 
     def test_cross_day_recurrence_and_new_video_comparison(self):
         update_history(
