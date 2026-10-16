@@ -92,6 +92,7 @@ jobs:
           assert history["status"] == "baseline", history
           assert history["snapshot_date"], history
           assert len(history["topic_observations"]) > 0, history
+          assert Path("data/daily-summary-history.json").is_file()
           assert evidence["sample_count"] == 3, evidence
           assert evidence["duplicate_count"] == 2, evidence
           assert evidence["stale_count"] == 1, evidence
