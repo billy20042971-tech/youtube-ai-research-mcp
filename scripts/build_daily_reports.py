@@ -69,8 +69,8 @@ def chart_label(title):
     text = re.sub(r"\s+", " ", str(title or "")).strip() or "(無標題)"
     lines = wrap(text, width=18, break_long_words=True, break_on_hyphens=False)
     if len(lines) <= 2:
-        return "\\n".join(lines)
-    return lines[0] + "\\n" + lines[1][:15] + "…"
+        return "\n".join(lines)
+    return lines[0] + "\n" + lines[1][:15] + "…"
 
 labels = [chart_label(v.get("title")) for v in top][::-1]
 values = [safe_int(v.get("views")) for v in top][::-1]
@@ -141,7 +141,7 @@ for video in top[:8]:
     for comment in comments[:3]:
         text = comment.get("text", "") if isinstance(comment, dict) else str(comment)
         if text:
-            doc.add_paragraph("・" + str(text).replace("\\n", " ")[:220])
+            doc.add_paragraph("・" + str(text).replace("\n", " ")[:220])
 
 doc.add_heading("4. AI OS 實作觀察（通用框架，非本次樣本的趨勢結論）", level=1)
 for item in [
@@ -165,13 +165,13 @@ def slide(title, body):
     page.placeholders[1].text = body
 
 slide("YouTube AI 趨勢研究雷達", f"{date}｜近 72 小時去重樣本 {len(videos)} 部")
-slide("一分鐘決策摘要", summary["headline"] + "\\n" + "\\n".join(
+slide("一分鐘決策摘要", summary["headline"] + "\n" + "\n".join(
     f"{i}. {s['topic']}｜{s['confidence']}｜{s['video_count']} 部／{s['channel_count']} 頻道"
     for i, s in enumerate(summary["signals"], 1)
 ))
-slide("證據限制", "\\n".join("• " + x for x in summary["limitations"]))
+slide("證據限制", "\n".join("• " + x for x in summary["limitations"]))
 slide("下一步", "目前採取：持續觀察。觀看數不是需求、收入、效果或可靠性的證明。\n有可驗證證據後，再決定是否安排實驗。")
-slide("高觀看影片候選", "\\n".join(
+slide("高觀看影片候選", "\n".join(
     f"{i}. {(v.get('title') or '(無標題)')[:55]}｜{safe_int(v.get('views')):,}"
     for i, v in enumerate(top[:7], 1)
 ))
