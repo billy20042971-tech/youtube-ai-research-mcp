@@ -13,9 +13,11 @@ on:
       - "scripts/mcp_sse.py"
       - "scripts/daily_summary.py"
       - "scripts/daily_summary_evidence.py"
+      - "scripts/daily_history.py"
       - "scripts/build_daily_reports.py"
       - "tests/test_daily_summary.py"
       - "tests/test_daily_summary_evidence.py"
+      - "tests/test_daily_history.py"
       - "tests/test_daily_report_evidence_integration.py"
       - "tests/test_daily_report_format.py"
       - ".github/workflows/scheduler-policy-tests.yml"
@@ -86,6 +88,11 @@ jobs:
           from PIL import Image
           manifest = json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8"))
           evidence = manifest["evidence_summary"]
+          history = manifest["history_summary"]
+          assert history["status"] == "baseline", history
+          assert history["snapshot_date"], history
+          assert len(history["topic_observations"]) > 0, history
+          assert Path("data/daily-summary-history.json").is_file()
           assert evidence["sample_count"] == 3, evidence
           assert evidence["duplicate_count"] == 2, evidence
           assert evidence["stale_count"] == 1, evidence
@@ -97,12 +104,16 @@ jobs:
           assert "超過72h 1 部" in word_text
           assert "日期不可判定 1 部" in word_text
           assert "來源獨立性" in word_text
+          assert "跨日觀察" in word_text
           pptx = Presentation(manifest["pptx"])
           slide_text = "\\n".join(shape.text for shape in pptx.slides[1].shapes if hasattr(shape, "text"))
           assert "重複 2" in slide_text
           assert "超過72h 1" in slide_text
           assert "日期不可判定 1" in slide_text
           assert "來源獨立性未驗證" in slide_text
+          history_slide_text = "\\n".join(shape.text for shape in pptx.slides[3].shapes if hasattr(shape, "text"))
+          assert "跨日觀察" in history_slide_text
+          assert "歷史基準" in history_slide_text or "baseline" in history_slide_text
           with Image.open(manifest["chart"]) as image:
               assert image.width >= 1000 and image.height >= 600, image.size
               image.verify()
