@@ -1,101 +1,83 @@
 import json
-from pathlib import Path
-from datetime import datetime, timezone
-from collections import Counter
 import re
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+from textwrap import wrap
 
-def safe_int(v):
+from scripts.daily_summary import build_summary
+
+
+def safe_int(value):
     try:
-        return int(v or 0)
-    except Exception:
+        return int(value or 0)
+    except (TypeError, ValueError):
         return 0
 
-def slug(s):
-    return re.sub(r"[^0-9A-Za-z_\-一-龥]+", "_", s)[:80].strip("_") or "report"
 
 src = json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
 recent = src.get("recent_72h_sample", {})
-
-# MCP returns a compact per_query list where "comments" is a numeric count,
-# plus an enriched top-level "videos" list where "comments" is the actual list.
-# Always enrich per-query records from the top-level list before reporting.
 enriched_by_id = {
-    v.get("video_id"): v
-    for v in recent.get("videos", [])
-    if v.get("video_id")
+    v.get("video_id"): v for v in recent.get("videos", [])
+    if isinstance(v, dict) and v.get("video_id")
 }
-
 videos = []
-for q, d in recent.get("per_query", {}).items():
-    for raw in d.get("videos", []):
-        x = dict(raw)
-        x["query"] = q
-        enriched = enriched_by_id.get(x.get("video_id"))
-        if enriched:
-            for key in (
-                "title", "channel_id", "channel_title", "published_at", "description",
-                "tags", "views", "likes", "comments", "url", "comments_obtained_count",
-                "comments_requested", "comments_unavailable"
-            ):
-                if key in enriched:
-                    x[key] = enriched[key]
-        comments = x.get("comments")
+for query, data in recent.get("per_query", {}).items():
+    for raw in data.get("videos", []):
+        if not isinstance(raw, dict):
+            continue
+        video = dict(raw)
+        video["query"] = query
+        enriched = enriched_by_id.get(video.get("video_id"), {})
+        for key in ("title", "channel_id", "channel_title", "published_at", "description",
+                    "tags", "views", "likes", "comments", "url", "comments_obtained_count"):
+            if key in enriched:
+                video[key] = enriched[key]
+        comments = video.get("comments")
         if not isinstance(comments, list):
-            x["comments_count"] = safe_int(comments)
-            x["comments"] = []
+            video["comments_count"] = safe_int(comments)
+            video["comments"] = []
         else:
-            x["comments_count"] = len(comments)
-        videos.append(x)
+            video["comments_count"] = len(comments)
+        videos.append(video)
 
-seen = {}
-for v in videos:
-    seen[v.get("video_id")] = v
-videos = list(seen.values())
-videos.sort(key=lambda x: safe_int(x.get("views")), reverse=True)
-
+deduped = {}
+for video in videos:
+    if video.get("video_id"):
+        deduped[video["video_id"]] = video
+videos = sorted(deduped.values(), key=lambda v: safe_int(v.get("views")), reverse=True)
 now = datetime.now(timezone.utc)
 date = now.strftime("%Y-%m-%d")
 out = Path("reports") / date
 out.mkdir(parents=True, exist_ok=True)
+summary = build_summary(videos, generated_at=src.get("generated_at"))
 
-# Visuals: explicitly use a CJK font and wrap long labels for legibility.
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
-from textwrap import wrap
-
 available_fonts = {f.name for f in font_manager.fontManager.ttflist}
 cjk_candidates = ["Noto Sans CJK TC", "Noto Sans CJK HK", "Noto Sans CJK SC", "Noto Sans CJK JP"]
 chosen_font = next((name for name in cjk_candidates if name in available_fonts), None)
 if not chosen_font:
-    raise RuntimeError(
-        "No supported CJK font found. Install fonts-noto-cjk before generating charts; "
-        f"available candidates checked: {cjk_candidates}"
-    )
+    raise RuntimeError("No supported CJK font found; install fonts-noto-cjk.")
 plt.rcParams["font.family"] = chosen_font
 plt.rcParams["axes.unicode_minus"] = False
 
 top = videos[:10]
 def chart_label(title):
-    # Keep chart labels readable; retain full titles and URLs in the Word report.
-    text = re.sub(r"\s+", " ", str(title or "")).strip()
-    if not text:
-        return "(無標題)"
+    text = re.sub(r"\\s+", " ", str(title or "")).strip() or "(無標題)"
     lines = wrap(text, width=18, break_long_words=True, break_on_hyphens=False)
-    if len(lines) > 2:
-        lines = [lines[0], lines[1][:15] + "…"]
-    return "\n".join(lines)
+    if len(lines) <= 2:
+        return "\\n".join(lines)
+    return lines[0] + "\\n" + lines[1][:15] + "…"
 
-labels = [chart_label(v.get("title", "")) for v in top][::-1]
+labels = [chart_label(v.get("title")) for v in top][::-1]
 values = [safe_int(v.get("views")) for v in top][::-1]
-fig_height = max(7.0, 0.72 * len(labels) + 1.8)
-fig, ax = plt.subplots(figsize=(12, fig_height))
-ax.barh(labels, values, color="#2878B5")
-ax.set_title("YouTube AI 趨勢研究雷達｜觀看數前 10 名", fontsize=15, pad=16)
-ax.set_xlabel("觀看次數", fontsize=11)
-ax.tick_params(axis="y", labelsize=9)
-ax.tick_params(axis="x", labelsize=9)
+fig, ax = plt.subplots(figsize=(12, max(7.0, 0.72 * len(labels) + 1.8)))
+ax.barh(labels, values)
+ax.set_title("YouTube AI 研究雷達｜觀看數前 10 名（僅為曝光訊號）", fontsize=15, pad=16)
+ax.set_xlabel("觀看次數")
 ax.grid(axis="x", linestyle=":", alpha=0.35)
 ax.set_axisbelow(True)
 fig.subplots_adjust(left=0.38, right=0.97, top=0.94, bottom=0.08)
@@ -103,127 +85,111 @@ chart_path = out / "top10_views.png"
 fig.savefig(chart_path, dpi=180, bbox_inches="tight", facecolor="white")
 plt.close(fig)
 
-# Basic artifact sanity checks: image must be readable PNG and non-trivial size.
 from PIL import Image
-with Image.open(chart_path) as chart:
-    chart.verify()
-with Image.open(chart_path) as chart:
-    if chart.width < 1000 or chart.height < 600:
-        raise RuntimeError(f"Chart dimensions too small: {chart.size}")
-if chart_path.stat().st_size < 20_000:
+with Image.open(chart_path) as image:
+    image.verify()
+with Image.open(chart_path) as image:
+    if image.width < 1000 or image.height < 600:
+        raise RuntimeError(f"Chart dimensions too small: {image.size}")
+if chart_path.stat().st_size < 20000:
     raise RuntimeError(f"Chart file suspiciously small: {chart_path.stat().st_size} bytes")
 
 channels = Counter(v.get("channel_title", "") for v in videos if v.get("channel_title"))
 queries = Counter(v.get("query", "") for v in videos if v.get("query"))
 
-# Word
 from docx import Document
 from docx.shared import Inches
-
 doc = Document()
-doc.add_heading(f"YouTube AI趨勢研究雷達｜{date}", 0)
-doc.add_paragraph(
-    f"自動產出時間：{now.isoformat()} | 資料來源：YouTube Research MCP | "
-    f"近72h去重樣本：{len(videos)}"
-)
-doc.add_heading("1. 一分鐘摘要", level=1)
-doc.add_paragraph(
-    "本報告由每日 MCP 固定採樣自動產生。排名主要反映觀看量，正式趨勢判定仍需結合發布時間、"
-    "跨頻道、留言、持續性與交叉驗證。"
-)
-doc.add_heading("2. 今日高訊號影片", level=1)
-for i, v in enumerate(videos[:10], 1):
+doc.add_heading(f"YouTube AI 趨勢研究雷達｜{date}", 0)
+doc.add_paragraph(f"產出時間：{now.isoformat()}｜近 72 小時去重樣本：{len(videos)}")
+doc.add_heading("1. 一分鐘決策摘要", level=1)
+doc.add_paragraph(summary["headline"])
+for i, signal in enumerate(summary["signals"], 1):
+    doc.add_heading(f"{i}. {signal['topic']}｜{signal['classification']}", level=2)
     doc.add_paragraph(
-        f"{i}. {v.get('title')}｜{v.get('channel_title')}｜"
-        f"{safe_int(v.get('views')):,} views｜{v.get('published_at')}\n{v.get('url', '')}"
+        f"樣本 {signal['video_count']} 部／頻道 {signal['channel_count']} 個；"
+        f"證據強度：{signal['confidence']}。{signal['evidence']}。"
+    )
+    doc.add_paragraph(
+        f"代表影片：{signal['representative_title']}｜觀看 {signal['views']:,}｜"
+        f"發布：{signal['published_at']}\n{signal['representative_url']}"
+    )
+doc.add_paragraph("行動建議：目前資料只支持「持續觀察」；不要僅憑觀看數採購工具、改變教學或宣稱投資／收入效果。")
+doc.add_heading("證據限制", level=2)
+for limitation in summary["limitations"]:
+    doc.add_paragraph("• " + limitation)
+if summary["deep_dive"]:
+    doc.add_heading("最多 1 部候選深讀影片", level=2)
+    doc.add_paragraph(
+        f"{summary['deep_dive']['title']}\n{summary['deep_dive']['url']}\n"
+        f"{summary['deep_dive']['reason']} 時間戳：未提供可靠時間戳，不臆測。"
     )
 
-if (out / "top10_views.png").exists():
-    doc.add_picture(str(out / "top10_views.png"), width=Inches(6.4))
-
-doc.add_heading("3. 留言與證據", level=1)
-for v in videos[:8]:
-    comments = v.get("comments")
-    if not isinstance(comments, list):
-        comments = []
-    obtained = v.get("comments_obtained_count")
-    if obtained is None:
-        obtained = len(comments)
+doc.add_heading("2. 觀看數前 10 名（曝光訊號，不等於趨勢證明）", level=1)
+for i, video in enumerate(top, 1):
     doc.add_paragraph(
-        f"{v.get('title')}｜實際取得留言 {safe_int(obtained)} 則"
+        f"{i}. {video.get('title') or '(無標題)'}｜{video.get('channel_title') or '頻道未提供'}｜"
+        f"{safe_int(video.get('views')):,} views｜{video.get('published_at') or '發布時間未提供'}\n"
+        f"{video.get('url') or ''}"
     )
-    for c in comments[:3]:
-        if isinstance(c, dict):
-            txt = str(c.get("text", "")).replace("\n", " ")
-        else:
-            txt = str(c).replace("\n", " ")
-        if txt:
-            doc.add_paragraph("・" + txt[:220])
+doc.add_picture(str(chart_path), width=Inches(6.4))
 
-doc.add_heading("4. AI OS 整合研究框架", level=1)
-for s in [
-    "Agent：負責規劃、工具選擇、執行與停止條件；複雜任務採可恢復的多步驟 loop。",
-    "MCP：作為工具／資料連接層；工具輸入輸出採結構化資料，外部不可信文字不得直接驅動高風險寫入。",
-    "Verification：工具結果、輸入、輸出、寫回前後都設檢查點；必要時以第二次讀取驗證。",
-    "State：保存 task_id、step、input_hash、tool_result、checkpoint、last_success、next_step，讓 Context reset 不等於任務遺失。",
-    "Recovery：失敗從最近成功 checkpoint 繼續；可重試步驟與不可重試副作用分離，避免重複寫入。",
-    "Automation：排程層只負責叫醒流程；Agent 負責決策與執行；Notion 保存正式狀態與 Audit；GitHub 保存程式與產物。",
-    "本數位大腦優先採：Notion=State/Memory，MCP=Tool Bus，Agent=Orchestrator，GitHub Actions=Scheduler/Worker，Verification=Gate，Audit=Evidence。"
+doc.add_heading("3. 留言抽樣（非代表性民調）", level=1)
+for video in top[:8]:
+    comments = video.get("comments") if isinstance(video.get("comments"), list) else []
+    doc.add_paragraph(f"{video.get('title') or '(無標題)'}｜實際取得留言 {safe_int(video.get('comments_obtained_count', len(comments)))} 則")
+    for comment in comments[:3]:
+        text = comment.get("text", "") if isinstance(comment, dict) else str(comment)
+        if text:
+            doc.add_paragraph("・" + str(text).replace("\\n", " ")[:220])
+
+doc.add_heading("4. AI OS 實作觀察（通用框架，非本次樣本的趨勢結論）", level=1)
+for item in [
+    "Agent：規劃、工具選擇、執行與停止條件；高風險動作需人工授權。",
+    "MCP：工具／資料連接層；外部文字視為不可信輸入。",
+    "Verification：檢查資料新鮮度、輸出完整性與寫回讀回結果。",
+    "State／Recovery：保存 execution_id、checkpoint 與失敗原因，避免重複副作用。",
+    "Automation：排程是否準時與研究流程是否成功，必須分開驗收。",
 ]:
-    doc.add_paragraph("• " + s)
+    doc.add_paragraph("• " + item)
 
-doc.add_heading("5. 今日自動化檢查", level=1)
-doc.add_paragraph(
-    "固定採樣 → 原始資料保存 → 去重 → 報告產出 → 產物驗證 → 後續 AI 分析／Notion 寫回。"
-    "任何資料過期、MCP 失敗或產物缺失，應停止宣稱完成。"
-)
-doc.add_heading("6. 下一步", level=1)
-doc.add_paragraph(
-    "持續觀察跨頻道訊號；優先把可驗證的 Agent/MCP/State/Recovery/Verification/Automation "
-    "pattern 轉成可重複工作流程，而不是追逐單一熱門工具。"
-)
-doc.save(out / f"YouTube_AI趨勢研究雷達_{date}_完整報告.docx")
+word_path = out / f"YouTube_AI趨勢研究雷達_{date}_完整報告.docx"
+doc.save(word_path)
 
-# PowerPoint
 from pptx import Presentation
 from pptx.util import Inches as PInches
-
 prs = Presentation()
-slides = [
-    ("YouTube AI趨勢研究雷達", f"{date}｜MCP 自動採樣"),
-    ("一分鐘摘要", f"近72h去重樣本：{len(videos)}\n固定查詢：" + ", ".join(queries.keys())),
-    ("高訊號影片", "\n".join(
-        f"{i}. {v.get('title', '')[:55]}｜{safe_int(v.get('views')):,}"
-        for i, v in enumerate(videos[:7], 1)
-    )),
-    ("Agent × MCP", "Agent：規劃與執行\nMCP：工具／資料連接\n結構化輸入輸出，隔離不可信文字"),
-    ("Verification × State", "Verification：每個副作用前後設 Gate\nState：保存 checkpoint / next_step / evidence\nContext reset 不等於任務遺失"),
-    ("Recovery × Automation", "Recovery：從最近成功 checkpoint 繼續\nAutomation：排程叫醒；Agent 執行；Notion 保存狀態；GitHub 保存產物"),
-    ("今日結論", "目標不是每天抓更多資料，而是每天讓 AI OS 少一個人工步驟。")
-]
-for title, body in slides:
-    s = prs.slides.add_slide(prs.slide_layouts[1])
-    s.shapes.title.text = title
-    s.placeholders[1].text = body
+def slide(title, body):
+    page = prs.slides.add_slide(prs.slide_layouts[1])
+    page.shapes.title.text = title
+    page.placeholders[1].text = body
 
-if (out / "top10_views.png").exists():
-    s = prs.slides.add_slide(prs.slide_layouts[5])
-    s.shapes.add_picture(
-        str(out / "top10_views.png"), PInches(0.6), PInches(1.1), width=PInches(8.8)
-    )
-
-prs.save(out / f"YouTube_AI趨勢研究雷達_{date}_簡報.pptx")
+slide("YouTube AI 趨勢研究雷達", f"{date}｜近 72 小時去重樣本 {len(videos)} 部")
+slide("一分鐘決策摘要", summary["headline"] + "\\n" + "\\n".join(
+    f"{i}. {s['topic']}｜{s['confidence']}｜{s['video_count']} 部／{s['channel_count']} 頻道"
+    for i, s in enumerate(summary["signals"], 1)
+))
+slide("證據限制", "\\n".join("• " + x for x in summary["limitations"]))
+slide("下一步", "目前採取：持續觀察。觀看數不是需求、收入、效果或可靠性的證明。\n有可驗證證據後，再決定是否安排實驗。")
+slide("高觀看影片候選", "\\n".join(
+    f"{i}. {(v.get('title') or '(無標題)')[:55]}｜{safe_int(v.get('views')):,}"
+    for i, v in enumerate(top[:7], 1)
+))
+page = prs.slides.add_slide(prs.slide_layouts[5])
+page.shapes.add_picture(str(chart_path), PInches(0.6), PInches(1.1), width=PInches(8.8))
+pptx_path = out / f"YouTube_AI趨勢研究雷達_{date}_簡報.pptx"
+prs.save(pptx_path)
 
 manifest = {
     "generated_at": now.isoformat(),
     "source": "YouTube Research MCP",
     "sample_count": len(videos),
-    "word": str(out / f"YouTube_AI趨勢研究雷達_{date}_完整報告.docx"),
-    "pptx": str(out / f"YouTube_AI趨勢研究雷達_{date}_簡報.pptx"),
-    "chart": str(out / "top10_views.png"),
-    "automation_status": "generated"
+    "summary_signal_count": len(summary["signals"]),
+    "summary_status": "evidence_limited" if videos else "insufficient_sample",
+    "word": str(word_path),
+    "pptx": str(pptx_path),
+    "chart": str(chart_path),
+    "automation_status": "generated",
 }
-Path("reports/latest-manifest.json").write_text(
-    json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
-)
+Path("reports/latest-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 print(json.dumps(manifest, ensure_ascii=False, indent=2))
