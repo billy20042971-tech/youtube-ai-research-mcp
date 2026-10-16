@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.daily_history import update_history
+from scripts.daily_history import persist_history, update_history
 
 
 class DailyHistoryTests(unittest.TestCase):
@@ -58,6 +58,17 @@ class DailyHistoryTests(unittest.TestCase):
         saved = json.loads(Path(self.history_path).read_text(encoding="utf-8"))
         self.assertEqual(len(saved["snapshots"]), 1)
         self.assertEqual(saved["snapshots"][0]["video_ids"], ["b"])
+
+    def test_deferred_persistence_waits_until_caller_commits_report(self):
+        result, payload, path = update_history(
+            [{"video_id": "a", "title": "AI Agent 自動化"}], {},
+            {"stale_count": 0, "freshness_unknown_count": 0},
+            "2026-10-16T22:00:00Z", self.history_path, persist=False,
+        )
+        self.assertEqual(result["status"], "baseline")
+        self.assertFalse(Path(path).exists())
+        persist_history(path, payload)
+        self.assertTrue(Path(path).exists())
 
     def test_corrupt_history_fails_without_overwriting_it(self):
         Path(self.history_path).write_text("{broken", encoding="utf-8")
