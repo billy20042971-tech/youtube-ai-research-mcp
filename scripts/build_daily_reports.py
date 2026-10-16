@@ -8,10 +8,12 @@ from textwrap import wrap
 try:
     from scripts.daily_summary import build_summary, report_date_taipei
     from scripts.daily_summary_evidence import evidence_metadata
+    from scripts.daily_history import persist_history, update_history
 except ModuleNotFoundError:
     # Support direct execution as: python scripts/build_daily_reports.py
     from daily_summary import build_summary, report_date_taipei
     from daily_summary_evidence import evidence_metadata
+    from daily_history import persist_history, update_history
 
 
 def safe_int(value):
@@ -60,6 +62,9 @@ out.mkdir(parents=True, exist_ok=True)
 summary = build_summary(videos, generated_at=src.get("generated_at"))
 evidence = evidence_metadata(videos, src.get("generated_at"))
 evidence["duplicate_count"] = max(0, raw_video_count - len(videos))
+history, pending_history, history_path = update_history(
+    videos, summary, evidence, generated_at=src.get("generated_at"), persist=False
+)
 
 import matplotlib
 matplotlib.use("Agg")
@@ -156,6 +161,21 @@ for signal in evidence["signals"]:
     )
 for limitation in evidence["limitations"]:
     doc.add_paragraph("證據限制：" + limitation)
+doc.add_heading("跨日觀察（非趨勢定論）", level=2)
+if history["status"] == "baseline":
+    doc.add_paragraph(f"歷史基準日：{history['snapshot_date']}。目前尚無前次快照，今天建立基準。")
+else:
+    doc.add_paragraph(
+        f"本次比較 {history['comparison_runs']} 次先前研究；前次日期：{history['previous_snapshot_date']}；"
+        f"與前次相比新增影片 {history['new_video_count']} 部。"
+    )
+for observation in history["topic_observations"][:5]:
+    doc.add_paragraph(
+        f"主題：{observation['topic']}｜本次 {observation['current_video_count']} 部｜"
+        f"近7次記錄出現 {observation['observed_runs_in_last_7']} 次｜{observation['classification']}"
+    )
+for limitation in history["limitations"]:
+    doc.add_paragraph("跨日比較限制：" + limitation)
 if summary["deep_dive"]:
     doc.add_heading("最多 1 部候選深讀影片", level=2)
     doc.add_paragraph(
@@ -211,6 +231,16 @@ slide("一分鐘決策摘要", summary["headline"] + "\n" + "\n".join(
     f"超過72h {evidence['stale_count']}｜日期不可判定 {evidence['freshness_unknown_count']}\n" +
     "來源獨立性未驗證；工作關聯為關鍵字初篩。")
 slide("證據限制", "\n".join("• " + x for x in summary["limitations"]))
+history_lines = [
+    f"狀態：{history['status']}｜比較次數：{history['comparison_runs']}｜前次日期：{history['previous_snapshot_date'] or '無'}",
+    f"新增影片：{history['new_video_count'] if history['new_video_count'] is not None else '基準日，無從比較'}",
+]
+history_lines.extend(
+    f"{item['topic']}｜本次 {item['current_video_count']} 部｜近7次出現 {item['observed_runs_in_last_7']} 次｜{item['classification']}"
+    for item in history["topic_observations"][:5]
+)
+history_lines.extend("限制：" + item for item in history["limitations"][:2])
+slide("跨日觀察（非趨勢定論）", "\n".join(history_lines))
 slide("下一步", "目前採取：持續觀察。觀看數不是需求、收入、效果或可靠性的證明。\n有可驗證證據後，再決定是否安排實驗。")
 slide("高觀看影片候選", "\n".join(
     f"{i}. {(v.get('title') or '(無標題)')[:55]}｜{safe_int(v.get('views')):,}"
@@ -228,10 +258,12 @@ manifest = {
     "summary_signal_count": len(summary["signals"]),
     "summary_status": "evidence_limited" if videos else "insufficient_sample",
     "evidence_summary": evidence,
+    "history_summary": history,
     "word": str(word_path),
     "pptx": str(pptx_path),
     "chart": str(chart_path),
     "automation_status": "generated",
 }
 Path("reports/latest-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+persist_history(history_path, pending_history)
 print(json.dumps(manifest, ensure_ascii=False, indent=2))
