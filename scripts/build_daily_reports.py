@@ -66,7 +66,7 @@ plt.rcParams["axes.unicode_minus"] = False
 
 top = videos[:10]
 def chart_label(title):
-    text = re.sub(r"\\s+", " ", str(title or "")).strip() or "(無標題)"
+    text = re.sub(r"\s+", " ", str(title or "")).strip() or "(無標題)"
     lines = wrap(text, width=18, break_long_words=True, break_on_hyphens=False)
     if len(lines) <= 2:
         return "\\n".join(lines)
