@@ -6,11 +6,11 @@ from pathlib import Path
 from textwrap import wrap
 
 try:
-    from scripts.daily_summary import build_summary
+    from scripts.daily_summary import build_summary, report_date_taipei
     from scripts.daily_summary_evidence import evidence_metadata
 except ModuleNotFoundError:
     # Support direct execution as: python scripts/build_daily_reports.py
-    from daily_summary import build_summary
+    from daily_summary import build_summary, report_date_taipei
     from daily_summary_evidence import evidence_metadata
 
 
@@ -54,7 +54,7 @@ for video in videos:
         deduped[video["video_id"]] = video
 videos = sorted(deduped.values(), key=lambda v: safe_int(v.get("views")), reverse=True)
 now = datetime.now(timezone.utc)
-date = now.strftime("%Y-%m-%d")
+date = report_date_taipei(now)
 out = Path("reports") / date
 out.mkdir(parents=True, exist_ok=True)
 summary = build_summary(videos, generated_at=src.get("generated_at"))
