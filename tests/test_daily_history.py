@@ -90,5 +90,16 @@ class DailyHistoryTests(unittest.TestCase):
         self.assertEqual(result[0]["snapshot_date"], "2026-10-17")
         self.assertEqual(result[1]["snapshots"][0]["snapshot_date"], "2026-10-17")
 
+    def test_malformed_snapshot_entry_fails_without_overwriting_history(self):
+        original = '{"snapshots": [null]}'
+        Path(self.history_path).write_text(original, encoding="utf-8")
+        with self.assertRaisesRegex(RuntimeError, "every snapshot must be an object"):
+            update_history(
+                [{"video_id": "a", "title": "AI Agent"}], {},
+                {"stale_count": 0, "freshness_unknown_count": 0},
+                "2026-10-16T22:00:00Z", self.history_path,
+            )
+        self.assertEqual(Path(self.history_path).read_text(encoding="utf-8"), original)
+
 if __name__ == "__main__":
     unittest.main()
