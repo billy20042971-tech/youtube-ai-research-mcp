@@ -81,5 +81,14 @@ class DailyHistoryTests(unittest.TestCase):
         self.assertEqual(Path(self.history_path).read_text(encoding="utf-8"), "{broken")
 
 
+    def test_snapshot_date_uses_taipei_calendar_day_at_utc_schedule_boundary(self):
+        result = update_history(
+            [{"video_id": "a", "title": "AI Agent 自動化"}], {},
+            {"stale_count": 0, "freshness_unknown_count": 0},
+            "2026-10-16T22:00:00Z", self.history_path, persist=False,
+        )
+        self.assertEqual(result[0]["snapshot_date"], "2026-10-17")
+        self.assertEqual(result[1]["snapshots"][0]["snapshot_date"], "2026-10-17")
+
 if __name__ == "__main__":
     unittest.main()
