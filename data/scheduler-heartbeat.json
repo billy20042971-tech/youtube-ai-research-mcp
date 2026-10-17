@@ -1,14 +1,18 @@
 {
-  "heartbeat_id": "heartbeat-38829228048-attempt-1",
+  "heartbeat_id": "heartbeat-38986500083-attempt-1",
   "workflow": "Scheduler Heartbeat and Missed-Deadline Check",
   "trigger": "schedule",
-  "github_run_id": "38829228048",
+  "github_run_id": "38986500083",
   "github_run_attempt": "1",
-  "checked_at_taipei": "2026-10-16T08:23:46.039644+08:00",
-  "taipei_date": "2026-10-16",
+  "checked_at_taipei": "2026-10-17T08:28:10.666350+08:00",
+  "taipei_date": "2026-10-17",
   "research_scheduled_run_found": false,
   "research_run_id": null,
   "research_run_url": null,
   "research_run_started_at": null,
-  "status": "SCHEDULER_MISSED_DEADLINE"
+  "query_total_count": 1,
+  "query_returned_count": 1,
+  "invalid_today_schedule_run_ids": [],
+  "status": "SCHEDULER_MISSED_DEADLINE",
+  "reason": "complete_run_list_contains_no_today_schedule_started_by_0615"
 }
