@@ -136,9 +136,14 @@ jobs:
             fi
 
             if [ "$rc" -eq 0 ]; then
-              write_state "SUCCESS" "" ""
+              if ! write_state "SUCCESS" "" ""; then
+                rc=1
+                FAILURE_REASON="SUCCESS state rejected because data/manifest bindings are incomplete"
+                RECOVERY_ACTION="Inspect per-execution data, manifest, and execution IDs."
+                write_state "FAILED" "$FAILURE_REASON" "$RECOVERY_ACTION" || true
+              fi
             else
-              write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}"
+              write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}" || true
             fi
 
             if [ "$GITHUB_REF" != "refs/heads/main" ]; then
@@ -198,11 +203,34 @@ jobs:
           call_tool() {
             local outfile="$1"
             local arguments="$2"
-            curl --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 240 -sS --fail-with-body \
-              -o "$outfile" -X POST "$MCP_URL" \
-              -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-              -H "Mcp-Session-Id: $SESSION_ID" \
-              --data "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"youtube_research_sample\",\"arguments\":$arguments}}" 
+            local attempt=1
+            local max_attempts=2
+            local http_status=""
+            local curl_rc=0
+            while [ "$attempt" -le "$max_attempts" ]; do
+              : > "$outfile"
+              set +e
+              http_status="$(curl -sS -o "$outfile" -w '%{http_code}' --connect-timeout 15 --max-time 240 \
+                -X POST "$MCP_URL" \
+                -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+                -H "Mcp-Session-Id: $SESSION_ID" \
+                --data "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":3,\\"method\\":\\"tools/call\\",\\"params\\":{\\"name\\":\\"youtube_research_sample\\",\\"arguments\\":$arguments}}")"
+              curl_rc=$?
+              set -u
+              if [ "$curl_rc" -eq 0 ] && [[ "$http_status" =~ ^2[0-9][0-9]$ ]] \
+                && [ -s "$outfile" ] && grep -q '[^[:space:]]' "$outfile"; then
+                echo "MCP tools/call attempt=$attempt HTTP=$http_status body=nonempty"
+                return 0
+              fi
+              echo "::warning::MCP tools/call attempt=$attempt/$max_attempts curl_exit=$curl_rc HTTP=${http_status:-empty} body_nonempty=$(if [ -s "$outfile" ] && grep -q '[^[:space:]]' "$outfile"; then echo true; else echo false; fi)"
+              if [ "$attempt" -lt "$max_attempts" ]; then
+                echo "MCP tools/call retrying once after bounded 5-second backoff."
+                sleep 5
+              fi
+              attempt=$((attempt + 1))
+            done
+            echo "::error::MCP tools/call failed after $max_attempts attempts; empty or invalid HTTP response will not be parsed."
+            return 1
           }
 
           echo "=== 3. Fixed sample ==="
