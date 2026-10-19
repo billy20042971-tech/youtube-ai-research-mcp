@@ -63,8 +63,9 @@ jobs:
           success=(
               state.get("status")=="SUCCESS"
               and state.get("data_execution_match") is True
+              and state.get("summary_execution_match") is True
               and state.get("manifest_execution_match") is True
-              and state.get("data_sample_count") == state.get("manifest_sample_count")
+              and state.get("data_sample_count") == state.get("summary_sample_count") == state.get("manifest_sample_count")
               and taipei_date(state.get("completed_at"))==today
               and taipei_date(state.get("data_generated_at"))==today
               and taipei_date(state.get("manifest_generated_at"))==today
