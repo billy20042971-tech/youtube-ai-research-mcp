@@ -114,6 +114,9 @@ class SchedulerPolicyTests(unittest.TestCase):
         parser = (ROOT / "scripts/mcp_sse.py").read_text(encoding="utf-8")
         self.assertIn("multiple data lines", parser)
         self.assertIn("parse_mcp_response_file", production)
+        self.assertIn("application-level retry", production)
+        self.assertIn('data/last-successful-execution.json', production)
+        self.assertIn('data/executions', production)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
