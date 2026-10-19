@@ -195,7 +195,7 @@ jobs:
                 -o "$outfile" -X POST "$MCP_URL" \
                 -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
                 -H "Mcp-Session-Id: $SESSION_ID" \
-                --data "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":3,\\"method\\":\\"tools/call\\",\\"params\\":{\\"name\\":\\"youtube_research_sample\\",\\"arguments\\":$arguments}}"; then
+                --data "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"youtube_research_sample\",\"arguments\":$arguments}}"; then
                 if [ -s "$outfile" ] && [ -n "$(tr -d '[:space:]' < "$outfile")" ]; then
                   return 0
                 fi
