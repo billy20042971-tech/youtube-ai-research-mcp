@@ -29,13 +29,18 @@ class NotionWritebackTests(unittest.TestCase):
                 "execution_id": "gh-old-attempt-1",
                 "sample_count": 39,
             }), encoding="utf-8")
-            with patch.object(notion_writeback, "AUDIT_PATH", root / "data/notion-writeback-audit.json"), \\
-                 patch.object(notion_writeback, "request_json") as request, \\
-                 patch.dict(os.environ, {"GITHUB_RUN_ID": "new", "GITHUB_RUN_ATTEMPT": "1",
-                                         "NOTION_API_KEY": "test-token", "NOTION_PAGE_ID": "test-page"}, clear=True):
-                with self.assertRaisesRegex(RuntimeError, "execution_id does not match"):
-                    notion_writeback.main()
-                request.assert_not_called()
+            previous = Path.cwd()
+            try:
+                os.chdir(root)
+                with patch.object(notion_writeback, "AUDIT_PATH", root / "data/notion-writeback-audit.json"), \\
+                     patch.object(notion_writeback, "request_json") as request, \\
+                     patch.dict(os.environ, {"GITHUB_RUN_ID": "new", "GITHUB_RUN_ATTEMPT": "1",
+                                             "NOTION_API_KEY": "test-token", "NOTION_PAGE_ID": "test-page"}, clear=True):
+                    with self.assertRaisesRegex(RuntimeError, "execution_id does not match"):
+                        notion_writeback.main()
+                    request.assert_not_called()
+            finally:
+                os.chdir(previous)
 
     def test_comment_contains_stable_execution_id_and_artifact_paths(self):
         text = comment_text(
