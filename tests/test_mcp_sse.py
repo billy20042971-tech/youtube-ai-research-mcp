@@ -39,7 +39,7 @@ class McpSseParserTests(unittest.TestCase):
 
 
     def test_rejects_empty_and_whitespace_only_response_bodies(self):
-        for raw in ("", "   \\n\\t "):
+        for raw in ("", "   ", " \t "):
             with self.subTest(raw=repr(raw)), self.assertRaisesRegex(RuntimeError, "body is empty"):
                 parse_mcp_response_text(raw)
 
