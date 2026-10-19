@@ -56,7 +56,10 @@ videos.sort(key=lambda x: safe_int(x.get("views")), reverse=True)
 
 now = datetime.now(timezone.utc)
 date = now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")
-out = Path("reports") / date
+execution_id = str(src.get("execution_id") or "").strip()
+if not re.fullmatch(r"gh-[0-9]+-attempt-[0-9]+", execution_id):
+    raise RuntimeError("Missing or invalid execution_id; refusing to publish an unbound report.")
+out = Path("reports") / date / "executions" / execution_id
 out.mkdir(parents=True, exist_ok=True)
 
 # Visuals: explicitly use a CJK font and wrap long labels for legibility.
