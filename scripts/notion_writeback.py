@@ -144,10 +144,6 @@ def main() -> int:
     manifest_path = Path("reports/latest-manifest.json")
     latest = json.loads(latest_path.read_text(encoding="utf-8")) if latest_path.exists() else {}
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
-    if latest.get("execution_id") != execution_id:
-        raise RuntimeError("Notion audit blocked: data/latest.json execution_id does not match this GitHub run.")
-    if manifest.get("execution_id") != execution_id:
-        raise RuntimeError("Notion audit blocked: reports/latest-manifest.json execution_id does not match this GitHub run.")
     state = {
         "github_run_id": os.environ.get("GITHUB_RUN_ID", ""),
         "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", "1"),
@@ -167,6 +163,11 @@ def main() -> int:
             "note": "Set GitHub Actions secrets NOTION_API_KEY and NOTION_PAGE_ID to enable automatic Notion writeback.",
         })
         return 1
+
+    if latest.get("execution_id") != execution_id:
+        raise RuntimeError("Notion audit blocked: data/latest.json execution_id does not match this GitHub run.")
+    if manifest.get("execution_id") != execution_id:
+        raise RuntimeError("Notion audit blocked: reports/latest-manifest.json execution_id does not match this GitHub run.")
 
     text = comment_text(execution_id, manifest, state)
     comment_id = ensure_comment(page_id, token, execution_id, text)
