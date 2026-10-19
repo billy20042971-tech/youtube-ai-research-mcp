@@ -1,6 +1,8 @@
 import importlib.util
 import json
 import os
+import re
+import textwrap
 import subprocess
 import sys
 import tempfile
@@ -112,13 +114,23 @@ class SchedulerPolicyTests(unittest.TestCase):
         parser = (ROOT / "scripts/mcp_sse.py").read_text(encoding="utf-8")
         self.assertIn("multiple data lines", parser)
         self.assertIn("parse_mcp_response_file", production)
-        self.assertIn('data["execution_id"]', production)
+        self.assertIn('"execution_id":os.environ["EXECUTION_ID"]', production)
         self.assertIn("data/last-successful-execution.json", production)
         self.assertIn('stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")', production)
         self.assertIn("report_date_taipei(now)", (ROOT / "scripts/build_daily_reports.py").read_text(encoding="utf-8"))
         self.assertIn("last-successful-execution.json?ref=main", recovery)
         self.assertIn("summary_execution_match", recovery)
         self.assertIn("manifest_execution_match", recovery)
+
+    def test_daily_research_run_script_has_valid_bash_syntax(self):
+        production = (ROOT / ".github/workflows/daily-youtube-research.yml").read_text(encoding="utf-8")
+        self.assertIn("        run: |", production)
+        script = textwrap.dedent(production.split("        run: |", 1)[1])
+        script = re.sub(r"\\$\\{\\{.*?\\}\\}", "test-placeholder", script)
+        result = subprocess.run(
+            ["bash", "-n"], input=script, capture_output=True, text=True, check=False
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
