@@ -117,6 +117,9 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn("application-level retry", production)
         self.assertIn('data/last-successful-execution.json', production)
         self.assertIn('data/executions', production)
+        self.assertIn('date = now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")',
+                      (ROOT / "scripts/build_daily_reports.py").read_text(encoding="utf-8"))
+        self.assertIn('stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")', production)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
