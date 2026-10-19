@@ -88,15 +88,25 @@ jobs:
                   pass
           state["data_execution_id"] = None
           state["manifest_execution_id"] = None
+          manifest_record = {}
           try:
               state["data_execution_id"] = json.loads(Path("data/latest.json").read_text(encoding="utf-8")).get("execution_id")
           except Exception:
               pass
           try:
-              state["manifest_execution_id"] = json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8")).get("execution_id")
+              manifest_record = json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8"))
+              state["manifest_execution_id"] = manifest_record.get("execution_id")
           except Exception:
               pass
-          state_dir = Path("data/executions")
+          state["data_snapshot_path"] = (
+              f"data/executions/{execution_id}/latest.json"
+              if state["data_execution_id"] == execution_id else None
+          )
+          state["report_artifacts"] = (
+              {key: manifest_record.get(key) for key in ("word", "pptx", "chart")}
+              if state["manifest_execution_id"] == execution_id else {}
+          )
+          state_dir = Path("data/execution-history")
           state_dir.mkdir(parents=True, exist_ok=True)
           state_text = json.dumps(state, ensure_ascii=False, indent=2) + "\n"
           (state_dir / f"{execution_id}.json").write_text(state_text, encoding="utf-8")
@@ -271,8 +281,13 @@ jobs:
           }
           out=Path("data"); out.mkdir(exist_ok=True)
           stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")
-          (out/f"youtube-research-{stamp}.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
-          (out/"latest.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
+          data_text=json.dumps(data,ensure_ascii=False,indent=2)
+          (out/f"youtube-research-{stamp}.json").write_text(data_text,encoding="utf-8")
+          (out/"latest.json").write_text(data_text,encoding="utf-8")
+          execution_dir=out/"executions"/execution_id
+          execution_dir.mkdir(parents=True,exist_ok=True)
+          (execution_dir/"latest.json").write_text(data_text,encoding="utf-8")
+          (execution_dir/f"youtube-research-{stamp}.json").write_text(data_text,encoding="utf-8")
           print(f"Verified 72h data: fresh={len(fresh)}, stale={len(stale)}")
           PY
           if [ "$?" -ne 0 ]; then
@@ -286,7 +301,7 @@ jobs:
           src=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
           recent=src["recent_72h_sample"]
           enriched={v["video_id"]:v for v in recent.get("videos",[]) if v.get("video_id")}
-          out={"generated_at":src["generated_at"],"recent_72h_sample":{}}
+          out={"generated_at":src["generated_at"],"execution_id":src["execution_id"],"recent_72h_sample":{}}
           for q,d in recent.get("per_query",{}).items():
               out["recent_72h_sample"][q]=[]
               for v in d.get("videos",[]):
@@ -300,7 +315,11 @@ jobs:
                       "comments_obtained_count":e.get("comments_obtained_count",0),
                       "comments":[{"text":x.get("text"),"likes":x.get("likes"),"reply_count":x.get("reply_count")} for x in comments]
                   })
-          Path("data/recent-summary.json").write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
+          summary_text=json.dumps(out,ensure_ascii=False,indent=2)
+          Path("data/recent-summary.json").write_text(summary_text,encoding="utf-8")
+          execution_dir=Path("data/executions") / out["execution_id"]
+          execution_dir.mkdir(parents=True,exist_ok=True)
+          (execution_dir/"recent-summary.json").write_text(summary_text,encoding="utf-8")
           PY
 
           echo "=== 7. Build and verify Word/PPTX ==="
