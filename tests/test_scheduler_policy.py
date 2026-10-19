@@ -114,6 +114,8 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn("parse_mcp_response_file", production)
         self.assertIn('data["execution_id"]', production)
         self.assertIn("data/last-successful-execution.json", production)
+        self.assertIn('stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")', production)
+        self.assertIn("report_date_taipei(now)", (ROOT / "scripts/build_daily_reports.py").read_text(encoding="utf-8"))
         self.assertIn("last-successful-execution.json?ref=main", recovery)
         self.assertIn("summary_execution_match", recovery)
         self.assertIn("manifest_execution_match", recovery)
