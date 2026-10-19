@@ -265,6 +265,7 @@ jobs:
           import json, os
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
+          from zoneinfo import ZoneInfo
 
           from scripts.mcp_sse import parse_mcp_response_file
 
@@ -305,7 +306,7 @@ jobs:
               "verification":{"fresh_videos":len(fresh),"stale_or_invalid_videos":len(stale),"verified_72h":verified_72h}
           }
           out=Path("data"); out.mkdir(exist_ok=True)
-          stamp=now.strftime("%Y-%m-%d")
+          stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")
           (out/f"youtube-research-{stamp}.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
           (out/"latest.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
           print(f"Verified 72h data: fresh={len(fresh)}, stale={len(stale)}")
