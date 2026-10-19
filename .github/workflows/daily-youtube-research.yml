@@ -191,7 +191,7 @@ jobs:
             local attempt rc
             for attempt in 1 2 3; do
               : > "$outfile"
-              if curl --retry 2 --retry-delay 3 --connect-timeout 15 --max-time 240 -sS --fail-with-body \
+              if curl --connect-timeout 15 --max-time 240 -sS --fail-with-body \
                 -o "$outfile" -X POST "$MCP_URL" \
                 -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
                 -H "Mcp-Session-Id: $SESSION_ID" \
