@@ -132,6 +132,80 @@ class SchedulerPolicyTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+
+    def _run_mocked_mcp_tool_call(self, empty_always=False):
+        production = (ROOT / ".github/workflows/daily-youtube-research.yml").read_text(encoding="utf-8")
+        run_script = textwrap.dedent(production.split("        run: |", 1)[1])
+        start = run_script.index("call_tool() {")
+        end = run_script.index("\n}", start) + 2
+        function = run_script[start:end]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp = Path(temp_dir)
+            bin_dir = temp / "bin"
+            bin_dir.mkdir()
+            curl = bin_dir / "curl"
+            curl.write_text("""#!/usr/bin/env bash
+set -eu
+out=""
+data=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -o) out="$2"; shift 2 ;;
+    --data) data="$2"; shift 2 ;;
+    -w) shift 2 ;;
+    *) shift ;;
+  esac
+done
+printf '%s\\n' "$data" >> "$CAPTURED_MCP_REQUESTS"
+count=0
+if [ -f "$MOCK_CURL_COUNT" ]; then count="$(cat "$MOCK_CURL_COUNT")"; fi
+count=$((count + 1))
+printf '%s' "$count" > "$MOCK_CURL_COUNT"
+if [ "\${MOCK_EMPTY_ALWAYS:-0}" = "1" ] || [ "$count" -eq 1 ]; then
+  : > "$out"
+else
+  printf 'data: {"jsonrpc":"2.0","id":3,"result":{"structuredContent":{"videos":[1]}}}\\n\\n' > "$out"
+fi
+printf '200'
+""", encoding="utf-8")
+            curl.chmod(0o755)
+            sleep = bin_dir / "sleep"
+            sleep.write_text("#!/usr/bin/env bash\\nexit 0\\n", encoding="utf-8")
+            sleep.chmod(0o755)
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH','')}"
+            env["MCP_URL"] = "https://example.invalid/mcp"
+            env["SESSION_ID"] = "unit-test-session"
+            env["MOCK_CURL_COUNT"] = str(temp / "count.txt")
+            env["CAPTURED_MCP_REQUESTS"] = str(temp / "requests.jsonl")
+            if empty_always:
+                env["MOCK_EMPTY_ALWAYS"] = "1"
+            shell = function + '\ncall_tool out.body \'{"queries":["AI副業"],"videos_per_query":1}\'\n'
+            result = subprocess.run(["bash", "-c", shell], cwd=temp, env=env, capture_output=True, text=True, check=False)
+            count = int((temp / "count.txt").read_text(encoding="utf-8"))
+            requests = (temp / "requests.jsonl").read_text(encoding="utf-8").splitlines()
+            return result, count, requests, (temp / "out.body").read_text(encoding="utf-8") if (temp / "out.body").exists() else ""
+
+    def test_mcp_empty_body_retries_once_and_sends_valid_json_rpc(self):
+        result, count, requests, body = self._run_mocked_mcp_tool_call()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(count, 2)
+        self.assertTrue(body.strip())
+        self.assertEqual(len(requests), 2)
+        payload = json.loads(requests[0])
+        self.assertEqual(payload["method"], "tools/call")
+        self.assertEqual(payload["params"]["name"], "youtube_research_sample")
+        self.assertEqual(payload["params"]["arguments"]["queries"], ["AI副業"])
+
+    def test_mcp_empty_body_fails_closed_after_bounded_retry(self):
+        result, count, requests, body = self._run_mocked_mcp_tool_call(empty_always=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(count, 2)
+        self.assertEqual(len(requests), 2)
+        self.assertEqual(body, "")
+        self.assertIn("failed after 2 attempts", result.stdout)
+
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
         tests_workflow = (ROOT / ".github/workflows/scheduler-policy-tests.yml").read_text(encoding="utf-8")
