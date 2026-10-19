@@ -123,10 +123,6 @@ class NotionWritebackTests(unittest.TestCase):
         self.assertEqual(text_from_comment(comment), "execution_id: gh-123attempt-1")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
     def test_readback_rejects_correct_id_with_wrong_comment_content(self):
         execution_id = "gh-126-attempt-1"
         with patch(
@@ -142,3 +138,7 @@ if __name__ == "__main__":
         self.assertFalse(verified)
         self.assertEqual(request.call_count, 2)
         self.assertTrue(all(c.args[0] == "GET" for c in request.call_args_list))
+
+
+if __name__ == "__main__":
+    unittest.main()
