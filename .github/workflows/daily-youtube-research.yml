@@ -229,7 +229,7 @@ jobs:
                 -H "Mcp-Session-Id: $SESSION_ID" \
                 --data "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":3,\\"method\\":\\"tools/call\\",\\"params\\":{\\"name\\":\\"youtube_research_sample\\",\\"arguments\\":$arguments}}")"
               curl_rc=$?
-              set -u
+              set -euo pipefail
               if [ "$curl_rc" -eq 0 ] && [[ "$http_status" =~ ^2[0-9][0-9]$ ]] \
                 && [ -s "$outfile" ] && grep -q '[^[:space:]]' "$outfile"; then
                 echo "MCP tools/call attempt=$attempt HTTP=$http_status body=nonempty"
