@@ -117,12 +117,14 @@ def ensure_comment(page_id: str, token: str, execution_id: str, text: str) -> st
     return comment_id
 
 
-def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str) -> bool:
+def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str, expected_text: str) -> bool:
     """Verify the exact comment ID and execution marker, retrying reads only."""
     for attempt in range(2):
         found = next(
             (item for item in list_comments(page_id, token)
-             if item.get("id") == comment_id and execution_id in text_from_comment(item)),
+             if item.get("id") == comment_id
+             and execution_id in text_from_comment(item)
+             and text_from_comment(item) == expected_text[:1900]),
             None,
         )
         if found:
@@ -144,6 +146,13 @@ def main() -> int:
     manifest_path = Path("reports/latest-manifest.json")
     latest = json.loads(latest_path.read_text(encoding="utf-8")) if latest_path.exists() else {}
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    if latest.get("execution_id") != execution_id or manifest.get("execution_id") != execution_id:
+        raise RuntimeError("Data/manifest execution_id does not match this GitHub run; refusing Notion PASS")
+    if latest.get("sample_count") != manifest.get("sample_count"):
+        raise RuntimeError("Data/manifest sample_count mismatch; refusing Notion PASS")
+    verification=latest.get("verification", {})
+    if verification.get("verified_72h") is not True or verification.get("fresh_videos", 0) <= 0 or verification.get("stale_or_invalid_videos") != 0:
+        raise RuntimeError("72h verification gate is not PASS; refusing Notion PASS")
     state = {
         "github_run_id": os.environ.get("GITHUB_RUN_ID", ""),
         "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", "1"),
@@ -166,7 +175,8 @@ def main() -> int:
 
     text = comment_text(execution_id, manifest, state)
     comment_id = ensure_comment(page_id, token, execution_id, text)
-    if not verify_comment(page_id, token, comment_id, execution_id):
+    expected_text=text[:1900]
+    if not verify_comment(page_id, token, comment_id, execution_id, expected_text):
         raise RuntimeError(f"Notion comment {comment_id} exists or was created but could not be verified by readback.")
 
     write_audit({
@@ -178,6 +188,11 @@ def main() -> int:
         "writeback_verified": True,
         "readback_verified": True,
         "sample_count": manifest.get("sample_count"),
+        "data_generated_at": latest.get("generated_at"),
+        "manifest_generated_at": manifest.get("generated_at"),
+        "data_execution_id": latest.get("execution_id"),
+        "manifest_execution_id": manifest.get("execution_id"),
+        "content_verified": True,
         "github_run_id": state.get("github_run_id", os.environ.get("GITHUB_RUN_ID")),
     })
     return 0
