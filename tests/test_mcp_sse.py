@@ -35,7 +35,7 @@ class McpSseParserTests(unittest.TestCase):
 
     def test_rejects_empty_body_for_retry_layer(self):
         with self.assertRaisesRegex(RuntimeError, "body is empty"):
-            parse_mcp_response_text(" \\n\\t ")
+            parse_mcp_response_text(" " + chr(10) + chr(9) + " ")
 
     def test_rejects_malformed_payload_without_echoing_response(self):
         with self.assertRaisesRegex(RuntimeError, "Invalid JSON"):
