@@ -86,7 +86,23 @@ jobs:
                   state["data_verification"]=d.get("verification", {})
               except Exception:
                   pass
-          Path("data/execution-state.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+          state["data_execution_id"] = None
+          state["manifest_execution_id"] = None
+          try:
+              state["data_execution_id"] = json.loads(Path("data/latest.json").read_text(encoding="utf-8")).get("execution_id")
+          except Exception:
+              pass
+          try:
+              state["manifest_execution_id"] = json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8")).get("execution_id")
+          except Exception:
+              pass
+          state_dir = Path("data/executions")
+          state_dir.mkdir(parents=True, exist_ok=True)
+          state_text = json.dumps(state, ensure_ascii=False, indent=2) + "\n"
+          (state_dir / f"{execution_id}.json").write_text(state_text, encoding="utf-8")
+          Path("data/execution-state.json").write_text(state_text, encoding="utf-8")
+          if status == "SUCCESS":
+              Path("data/last-successful-execution.json").write_text(state_text, encoding="utf-8")
           PY
           }
 
@@ -172,11 +188,26 @@ jobs:
           call_tool() {
             local outfile="$1"
             local arguments="$2"
-            curl --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 240 -sS --fail-with-body \
-              -o "$outfile" -X POST "$MCP_URL" \
-              -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-              -H "Mcp-Session-Id: $SESSION_ID" \
-              --data "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"youtube_research_sample\",\"arguments\":$arguments}}" 
+            local attempt rc
+            for attempt in 1 2 3; do
+              : > "$outfile"
+              if curl --retry 2 --retry-delay 3 --connect-timeout 15 --max-time 240 -sS --fail-with-body \
+                -o "$outfile" -X POST "$MCP_URL" \
+                -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+                -H "Mcp-Session-Id: $SESSION_ID" \
+                --data "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":3,\\"method\\":\\"tools/call\\",\\"params\\":{\\"name\\":\\"youtube_research_sample\\",\\"arguments\\":$arguments}}"; then
+                if [ -s "$outfile" ] && [ -n "$(tr -d '[:space:]' < "$outfile")" ]; then
+                  return 0
+                fi
+                echo "::warning::MCP tool call returned an empty body (application-level retry $attempt/3)."
+              else
+                rc=$?
+                echo "::warning::MCP tool call failed (curl exit $rc; attempt $attempt/3)."
+              fi
+              if [ "$attempt" -lt 3 ]; then sleep $((attempt * 5)); fi
+            done
+            echo "::error::MCP tool call exhausted three attempts without a non-empty response."
+            return 1
           }
 
           echo "=== 3. Fixed sample ==="
@@ -195,13 +226,15 @@ jobs:
 
           echo "=== 5. Parse and verify ==="
           python - <<'PY' || exit 1
-          import json
+          import json, os
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
+          from zoneinfo import ZoneInfo
 
           from scripts.mcp_sse import parse_mcp_response_file
 
           now=datetime.now(timezone.utc)
+          execution_id=f"gh-{os.environ['GITHUB_RUN_ID']}-attempt-{os.environ['GITHUB_RUN_ATTEMPT']}"
           cutoff=now-timedelta(hours=72)
           fixed=parse_mcp_response_file("fixed.body")
           recent=parse_mcp_response_file("recent.body")
@@ -228,6 +261,7 @@ jobs:
               )
           data={
               "generated_at":now.isoformat(),
+              "execution_id":execution_id,
               "source":"YouTube Research MCP",
               "mcp_endpoint":"https://youtube-ai-research-mcp.onrender.com/mcp",
               "published_after":cutoff.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -236,7 +270,7 @@ jobs:
               "verification":{"fresh_videos":len(fresh),"stale_or_invalid_videos":len(stale),"verified_72h":verified_72h}
           }
           out=Path("data"); out.mkdir(exist_ok=True)
-          stamp=now.strftime("%Y-%m-%d")
+          stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")
           (out/f"youtube-research-{stamp}.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
           (out/"latest.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
           print(f"Verified 72h data: fresh={len(fresh)}, stale={len(stale)}")
