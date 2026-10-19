@@ -32,13 +32,17 @@ class NotionWritebackTests(unittest.TestCase):
             previous = Path.cwd()
             try:
                 os.chdir(root)
-                with patch.object(notion_writeback, "AUDIT_PATH", root / "data/notion-writeback-audit.json"), \\
-                     patch.object(notion_writeback, "request_json") as request, \\
-                     patch.dict(os.environ, {"GITHUB_RUN_ID": "new", "GITHUB_RUN_ATTEMPT": "1",
-                                             "NOTION_API_KEY": "test-token", "NOTION_PAGE_ID": "test-page"}, clear=True):
-                    with self.assertRaisesRegex(RuntimeError, "execution_id does not match"):
-                        notion_writeback.main()
-                    request.assert_not_called()
+                with patch.object(notion_writeback, "AUDIT_PATH", root / "data/notion-writeback-audit.json"):
+                    with patch.object(notion_writeback, "request_json") as request:
+                        with patch.dict(os.environ, {
+                            "GITHUB_RUN_ID": "new",
+                            "GITHUB_RUN_ATTEMPT": "1",
+                            "NOTION_API_KEY": "test-token",
+                            "NOTION_PAGE_ID": "test-page",
+                        }, clear=True):
+                            with self.assertRaisesRegex(RuntimeError, "execution_id does not match"):
+                                notion_writeback.main()
+                        request.assert_not_called()
             finally:
                 os.chdir(previous)
 
