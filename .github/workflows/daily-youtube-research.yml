@@ -80,7 +80,9 @@ jobs:
           }
           latest = Path("data/latest.json")
           manifest_path = Path("reports/latest-manifest.json")
+          summary_path = Path("data/recent-summary.json")
           data_bound = False
+          summary_bound = False
           manifest_bound = False
           if latest.exists():
               try:
@@ -92,6 +94,16 @@ jobs:
                       state["data_verification"]=d.get("verification", {})
               except Exception:
                   data_bound = False
+          if summary_path.exists():
+              try:
+                  sm=json.loads(summary_path.read_text(encoding="utf-8"))
+                  summary_bound = (sm.get("execution_id") == execution_id and data_bound
+                                   and sm.get("generated_at") == d.get("generated_at"))
+                  if summary_bound:
+                      state["summary_generated_at"]=sm.get("generated_at")
+                      state["summary_sample_count"]=sm.get("sample_count")
+              except Exception:
+                  summary_bound = False
           if manifest_path.exists():
               try:
                   m=json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -102,8 +114,9 @@ jobs:
               except Exception:
                   manifest_bound = False
           state["data_execution_match"] = data_bound
+          state["summary_execution_match"] = summary_bound
           state["manifest_execution_match"] = manifest_bound
-          if status == "SUCCESS" and not (data_bound and manifest_bound):
+          if status == "SUCCESS" and not (data_bound and summary_bound and manifest_bound):
               raise RuntimeError("Refusing SUCCESS state: data/manifest do not belong to this execution")
           Path("data/executions").mkdir(parents=True, exist_ok=True)
           Path(f"data/executions/{execution_id}.json").write_text(
@@ -308,7 +321,7 @@ jobs:
           src=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
           recent=src["recent_72h_sample"]
           enriched={v["video_id"]:v for v in recent.get("videos",[]) if v.get("video_id")}
-          out={"generated_at":src["generated_at"],"recent_72h_sample":{}}
+          out={"execution_id":src.get("execution_id"),"sample_count":src.get("sample_count"),"generated_at":src["generated_at"],"recent_72h_sample":{}}
           for q,d in recent.get("per_query",{}).items():
               out["recent_72h_sample"][q]=[]
               for v in d.get("videos",[]):
@@ -355,10 +368,15 @@ jobs:
           from datetime import datetime, timezone, timedelta
           execution_id=os.environ["EXECUTION_ID"]
           data=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
+          summary=json.loads(Path("data/recent-summary.json").read_text(encoding="utf-8"))
           manifest_path=Path("reports/latest-manifest.json")
           manifest=json.loads(manifest_path.read_text(encoding="utf-8"))
           if data.get("execution_id") != execution_id:
               raise RuntimeError("data/latest.json execution_id does not match this run")
+          if summary.get("execution_id") != execution_id or summary.get("generated_at") != data.get("generated_at"):
+              raise RuntimeError("data/recent-summary.json does not match this execution/data timestamp")
+          if summary.get("sample_count") != data.get("sample_count"):
+              raise RuntimeError("data/recent-summary.json sample_count mismatch")
           verification=data.get("verification", {})
           fresh=verification.get("fresh_videos", 0)
           stale=verification.get("stale_or_invalid_videos", -1)
