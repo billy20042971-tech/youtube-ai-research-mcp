@@ -171,7 +171,7 @@ printf '200'
 """, encoding="utf-8")
             curl.chmod(0o755)
             sleep = bin_dir / "sleep"
-            sleep.write_text("#!/usr/bin/env bash\\nexit 0\\n", encoding="utf-8")
+            sleep.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
             sleep.chmod(0o755)
             env = os.environ.copy()
             env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH','')}"
