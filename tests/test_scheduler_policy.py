@@ -99,6 +99,7 @@ class SchedulerPolicyTests(unittest.TestCase):
         self.assertIn("(scheduled.hour, scheduled.minute) <= (6, 15)", recovery)
         self.assertIn('recovery=(trigger=="workflow_dispatch" and state.get("recovery_attempt") is True)', recovery)
         self.assertIn("scripts/recovery_policy.py", recovery)
+        self.assertIn('cron: "20-59/10 22 * * *"', recovery)
         self.assertIn("sys.exit(1)", recovery)
         self.assertIn("verified production data is not complete.", recovery)
         self.assertIn("verified production state is incomplete; continuing to recovery policy.", recovery)
@@ -114,6 +115,8 @@ class SchedulerPolicyTests(unittest.TestCase):
         parser = (ROOT / "scripts/mcp_sse.py").read_text(encoding="utf-8")
         self.assertIn("multiple data lines", parser)
         self.assertIn("parse_mcp_response_file", production)
+        self.assertIn('data["execution_id"]', production)
+        self.assertIn("data/last-successful-execution.json", production)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
