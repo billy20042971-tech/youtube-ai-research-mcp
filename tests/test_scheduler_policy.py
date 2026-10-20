@@ -94,7 +94,7 @@ class SchedulerPolicyTests(unittest.TestCase):
         recovery = (ROOT / ".github/workflows/youtube-research-self-healing.yml").read_text(encoding="utf-8")
         self.assertIn('if [ "$GITHUB_EVENT_NAME" = "schedule" ]', production)
         self.assertIn('[ "$recovery_attempt" = "true" ]', production)
-        self.assertIn('if [ "$is_formal_run" != "true" ]', production)
+        self.assertIn('if [ "$formal" != "true" ]', production)
         self.assertIn("schedule_on_time=", recovery)
         self.assertIn("(scheduled.hour, scheduled.minute) <= (6, 15)", recovery)
         self.assertIn('recovery=(trigger=="workflow_dispatch" and state.get("recovery_attempt") is True)', recovery)
