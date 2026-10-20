@@ -40,3 +40,12 @@ class McpSseParserTests(unittest.TestCase):
     def test_rejects_malformed_payload_without_echoing_response(self):
         with self.assertRaisesRegex(RuntimeError, "Invalid JSON"):
             parse_mcp_response_text('data: {"jsonrpc":"2.0","result":{"text":"bad')
+
+    def test_rejects_sse_without_data_event(self):
+        with self.assertRaisesRegex(RuntimeError, "no data events"):
+            parse_mcp_response_text("event: message\n\n")
+
+    def test_rejects_json_rpc_error(self):
+        payload = {"jsonrpc": "2.0", "id": 3, "error": {"code": -32603, "message": "private"}}
+        with self.assertRaisesRegex(RuntimeError, "JSON-RPC error"):
+            parse_mcp_response_text(json.dumps(payload))

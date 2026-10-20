@@ -221,6 +221,7 @@ prs.save(out / f"YouTube_AI趨勢研究雷達_{date}_簡報.pptx")
 manifest = {
     "generated_at": now.isoformat(),
     "execution_id": src.get("execution_id"),
+    "data_generated_at": src.get("generated_at"),
     "source": "YouTube Research MCP",
     "sample_count": len(videos),
     "word": str(out / f"YouTube_AI趨勢研究雷達_{date}_完整報告.docx"),

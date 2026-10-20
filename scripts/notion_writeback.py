@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -117,22 +118,31 @@ def ensure_comment(page_id: str, token: str, execution_id: str, text: str) -> st
     return comment_id
 
 
-def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str) -> bool:
-    """Verify the exact comment ID and execution marker, retrying reads only."""
-    for attempt in range(2):
+def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str, expected_text: str) -> bool:
+    """Verify exact comment ID, execution marker, and full content with read-only retries."""
+    for attempt in range(3):
         found = next(
             (item for item in list_comments(page_id, token)
-             if item.get("id") == comment_id and execution_id in text_from_comment(item)),
+             if item.get("id") == comment_id
+             and execution_id in text_from_comment(item)
+             and text_from_comment(item) == expected_text),
             None,
         )
         if found:
             return True
+        if attempt < 2:
+            time.sleep(1 + attempt)
     return False
 
 
 def write_audit(record: dict) -> None:
     AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
     AUDIT_PATH.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    execution_id = record.get("execution_id")
+    if isinstance(execution_id, str) and execution_id:
+        history = AUDIT_PATH.parent / "execution-history" / (execution_id + "-notion-writeback-audit.json")
+        history.parent.mkdir(parents=True, exist_ok=True)
+        history.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(record, ensure_ascii=False))
 
 
@@ -141,8 +151,10 @@ def main() -> int:
     token = os.environ.get("NOTION_API_KEY", "").strip()
     page_id = os.environ.get("NOTION_PAGE_ID", "").strip()
     latest_path = Path("data/latest.json")
+    summary_path = Path("data/recent-summary.json")
     manifest_path = Path("reports/latest-manifest.json")
     latest = json.loads(latest_path.read_text(encoding="utf-8")) if latest_path.exists() else {}
+    summary = json.loads(summary_path.read_text(encoding="utf-8")) if summary_path.exists() else {}
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
     state = {
         "github_run_id": os.environ.get("GITHUB_RUN_ID", ""),
@@ -150,6 +162,9 @@ def main() -> int:
         "trigger": os.environ.get("GITHUB_EVENT_NAME", ""),
         "status": "IN_PROGRESS",
         "data_verification": latest.get("verification", {}),
+        "data_generated_at": latest.get("generated_at", ""),
+        "summary_generated_at": summary.get("generated_at", ""),
+        "manifest_generated_at": manifest.get("generated_at", ""),
     }
 
     if not token or not page_id:
@@ -164,25 +179,37 @@ def main() -> int:
         })
         return 1
 
-    if latest.get("execution_id") != execution_id:
-        raise RuntimeError("Notion audit blocked: data/latest.json execution_id does not match this GitHub run.")
-    if manifest.get("execution_id") != execution_id:
-        raise RuntimeError("Notion audit blocked: reports/latest-manifest.json execution_id does not match this GitHub run.")
-
+    if (latest.get("execution_id") != execution_id
+            or summary.get("execution_id") != execution_id
+            or manifest.get("execution_id") != execution_id):
+        raise RuntimeError("Data/summary/manifest execution_id does not match this GitHub run; refusing Notion PASS.")
+    if not (latest.get("generated_at") == summary.get("generated_at") == manifest.get("data_generated_at")):
+        raise RuntimeError("Data/summary/manifest generated_at mismatch; refusing Notion PASS.")
+    if not (latest.get("sample_count") == summary.get("sample_count") == manifest.get("sample_count")):
+        raise RuntimeError("Data/summary/manifest sample_count mismatch; refusing Notion PASS.")
+    verification = latest.get("verification", {})
+    if (verification.get("verified_72h") is not True
+            or not isinstance(verification.get("fresh_videos"), int)
+            or verification.get("fresh_videos", 0) <= 0
+            or verification.get("stale_or_invalid_videos") != 0):
+        raise RuntimeError("72h verification gate is not PASS; refusing Notion PASS.")
     text = comment_text(execution_id, manifest, state)
     comment_id = ensure_comment(page_id, token, execution_id, text)
-    if not verify_comment(page_id, token, comment_id, execution_id):
-        raise RuntimeError(f"Notion comment {comment_id} exists or was created but could not be verified by readback.")
-
+    expected_text = text[:1900]
+    if not verify_comment(page_id, token, comment_id, execution_id, expected_text):
+        raise RuntimeError(f"Notion comment {comment_id} could not be verified against exact content on readback.")
     write_audit({
-        "execution_id": execution_id,
-        "status": "PASS",
-        "checked_at": now_iso(),
-        "page_id": page_id,
-        "comment_id": comment_id,
-        "writeback_verified": True,
-        "readback_verified": True,
+        "execution_id": execution_id, "status": "PASS", "checked_at": now_iso(),
+        "page_id": page_id, "comment_id": comment_id,
+        "writeback_verified": True, "readback_verified": True, "content_verified": True,
         "sample_count": manifest.get("sample_count"),
+        "data_execution_id": latest.get("execution_id"),
+        "summary_execution_id": summary.get("execution_id"),
+        "manifest_execution_id": manifest.get("execution_id"),
+        "data_generated_at": latest.get("generated_at"),
+        "summary_generated_at": summary.get("generated_at"),
+        "manifest_data_generated_at": manifest.get("data_generated_at"),
+        "manifest_generated_at": manifest.get("generated_at"),
         "github_run_id": state.get("github_run_id", os.environ.get("GITHUB_RUN_ID")),
     })
     return 0

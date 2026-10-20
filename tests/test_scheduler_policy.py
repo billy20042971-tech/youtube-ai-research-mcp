@@ -114,15 +114,22 @@ class SchedulerPolicyTests(unittest.TestCase):
         parser = (ROOT / "scripts/mcp_sse.py").read_text(encoding="utf-8")
         self.assertIn("multiple data lines", parser)
         self.assertIn("parse_mcp_response_file", production)
-        self.assertIn("application-level retry", production)
-        self.assertIn('data/last-successful-execution.json', production)
-        self.assertIn('data/execution-history', production)
-        self.assertIn('data/executions/{execution_id}/latest.json', production)
+        transport = (ROOT / "scripts/mcp_request.py").read_text(encoding="utf-8")
+        evidence = (ROOT / "scripts/execution_evidence.py").read_text(encoding="utf-8")
+        finalizer = (ROOT / "scripts/finalize_execution.py").read_text(encoding="utf-8")
+        self.assertIn("max_attempts=2", transport)
+        self.assertIn("retryable_http_status", transport)
+        self.assertIn("data/last-successful-execution.json", evidence)
+        self.assertIn("data/execution-history", evidence)
+        self.assertIn("validate_execution_artifacts", evidence)
+        self.assertIn("scripts/finalize_execution.py", production)
+        self.assertIn("data/executions", production)
         self.assertIn('date = now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")',
                       (ROOT / "scripts/build_daily_reports.py").read_text(encoding="utf-8"))
-        self.assertIn('stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")', production)
-        self.assertIn('Path("reports") / date / "executions" / execution_id',
+        self.assertIn('"data_generated_at": src.get("generated_at")',
                       (ROOT / "scripts/build_daily_reports.py").read_text(encoding="utf-8"))
+        self.assertIn("expected_text", (ROOT / "scripts/notion_writeback.py").read_text(encoding="utf-8"))
+        self.assertIn("write_execution_state", finalizer)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")
