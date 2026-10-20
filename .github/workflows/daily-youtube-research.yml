@@ -95,9 +95,21 @@ jobs:
               git add data/ reports/
             else
               # Preserve the failed attempt only; do not commit partial latest data/reports.
-              git add "data/execution-state.json" "data/execution-history/$EXECUTION_ID.json" \
-                "data/execution-history/$EXECUTION_ID-notion-writeback-audit.json" \
-                data/notion-writeback-audit.json || true
+              git add "data/execution-state.json" "data/execution-history/$EXECUTION_ID.json"
+              if [ -f "data/execution-history/$EXECUTION_ID-notion-writeback-audit.json" ]; then
+                git add "data/execution-history/$EXECUTION_ID-notion-writeback-audit.json"
+              fi
+              AUDIT_EXECUTION_ID="$(python - <<'PY'
+          import json
+          try:
+              print(json.load(open("data/notion-writeback-audit.json", encoding="utf-8")).get("execution_id", ""))
+          except Exception:
+              print("")
+          PY
+          )"
+              if [ "$AUDIT_EXECUTION_ID" = "$EXECUTION_ID" ]; then
+                git add data/notion-writeback-audit.json
+              fi
               git restore --worktree -- data/ reports/ || true
             fi
             if ! git diff --cached --quiet; then

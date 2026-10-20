@@ -3,11 +3,37 @@ import json
 import os
 import sys
 from pathlib import Path
-from scripts.execution_evidence import write_execution_state
+from execution_evidence import atomic_json, read_json, write_execution_state
+from datetime import datetime, timezone
+
+def ensure_failure_audit(root: Path, execution_id: str, reason: str, run_id: str) -> None:
+    """Do not let a previous run's PASS remain the apparent latest audit after a new run fails."""
+    audit_path = root / "data/notion-writeback-audit.json"
+    current = read_json(audit_path)
+    if current.get("execution_id") == execution_id:
+        return
+    record = {
+        "execution_id": execution_id,
+        "status": "NOT_RUN",
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "github_run_id": run_id,
+        "writeback_verified": False,
+        "readback_verified": False,
+        "content_verified": False,
+        "error": (reason or "Pipeline failed before Notion writeback was verified.")[:500],
+    }
+    atomic_json(audit_path, record)
+    history_path = root / "data/execution-history" / (execution_id + "-notion-writeback-audit.json")
+    atomic_json(history_path, record)
+
 
 def main():
     eid = os.environ["EXECUTION_ID"]
     requested = os.environ["STATE_STATUS"]
+    root = Path.cwd()
+    if requested != "SUCCESS":
+        ensure_failure_audit(root, eid, os.environ.get("STATE_FAILURE_REASON", ""),
+                             os.environ.get("GITHUB_RUN_ID", ""))
     state, accepted = write_execution_state(
         Path.cwd(), execution_id=eid, started_at=os.environ.get("STARTED_AT", ""),
         github_run_id=os.environ.get("GITHUB_RUN_ID", ""),

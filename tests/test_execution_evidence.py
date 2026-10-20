@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -91,6 +94,34 @@ class ExecutionEvidenceTests(unittest.TestCase):
             self.assertTrue(ok); self.assertEqual(state["status"],"SUCCESS")
             self.assertEqual((root/"data/execution-history"/(first+".json")).read_text(),history)
             self.assertEqual(json.loads((root/"data/last-successful-execution.json").read_text())["execution_id"],second)
+
+    def test_finalize_cli_runs_as_script_and_fails_closed_without_artifacts(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        script = repo_root / "scripts" / "finalize_execution.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            env = os.environ.copy()
+            env.update({
+                "EXECUTION_ID": "gh-907-attempt-1",
+                "STATE_STATUS": "SUCCESS",
+                "STARTED_AT": "2026-10-20T06:30:00+08:00",
+                "GITHUB_RUN_ID": "907",
+                "GITHUB_RUN_ATTEMPT": "1",
+                "GITHUB_EVENT_NAME": "schedule",
+                "RECOVERY_ATTEMPT": "false",
+                "STATE_FAILURE_REASON": "",
+                "STATE_RECOVERY_ACTION": "",
+                "MCP_URL": "https://mcp.invalid",
+            })
+            result = subprocess.run(
+                [sys.executable, str(script)], cwd=tmp, env=env,
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            state = json.loads((Path(tmp) / "data/execution-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(state["status"], "FAILED")
+            self.assertEqual(state["artifact_gate_status"], "FAIL")
+            self.assertFalse((Path(tmp) / "data/last-successful-execution.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
