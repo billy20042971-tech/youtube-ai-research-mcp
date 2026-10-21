@@ -68,8 +68,9 @@ class ExecutionEvidenceTests(unittest.TestCase):
 
     def test_summary_count_must_match_verified_fresh_videos(self):
         summary = {**self.summary, "sample_count": 2}
+        manifest = {**self.manifest, "sample_count": 2}
         with self.assertRaisesRegex(ValueError, "does not match verified fresh video count"):
-            validate_success_evidence(self.state, self.data, summary, self.manifest, self.audit)
+            validate_success_evidence(self.state, self.data, summary, manifest, self.audit)
 
     def test_boolean_counts_fail_closed(self):
         data = {**self.data, "verification": {"fresh_videos": True, "stale_or_invalid_videos": 0, "verified_72h": True}}
