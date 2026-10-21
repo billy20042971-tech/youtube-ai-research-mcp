@@ -88,8 +88,6 @@ jobs:
               "recovery_action": recovery or None
           }
           latest = Path("data/latest.json")
-          manifest_path = Path("reports/latest-manifest.json")
-          audit_path = Path("data/notion-writeback-audit.json")
           if latest.exists():
               try:
                   d=json.loads(latest.read_text(encoding="utf-8"))
@@ -100,29 +98,8 @@ jobs:
               except Exception:
                   pass
           state["execution_id"] = execution_id
-          if status == "SUCCESS":
-              try:
-                  d=json.loads(latest.read_text(encoding="utf-8"))
-                  m=json.loads(manifest_path.read_text(encoding="utf-8"))
-                  a=json.loads(audit_path.read_text(encoding="utf-8"))
-                  if not (d.get("execution_id") == execution_id and m.get("execution_id") == execution_id and a.get("execution_id") == execution_id and a.get("status") == "PASS" and a.get("readback_verified") is True):
-                      raise ValueError("execution evidence IDs or Notion readback do not match")
-              except Exception as exc:
-                  print(f"Execution evidence gate failed: {exc}", file=sys.stderr)
-                  raise SystemExit(1)
-          Path("data/execution-state.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
-          history_path = Path("data/execution-history.json")
-          try:
-              history=json.loads(history_path.read_text(encoding="utf-8")) if history_path.exists() else {"executions": []}
-              records=history.get("executions", []) if isinstance(history, dict) else []
-              if not isinstance(records, list): records=[]
-          except Exception:
-              records=[]
-          records=[r for r in records if not (isinstance(r, dict) and r.get("execution_id") == execution_id)]
-          records.append(state)
-          history_path.write_text(json.dumps({"executions": records[-100:]}, ensure_ascii=False, indent=2), encoding="utf-8")
-          if status == "SUCCESS":
-              Path("data/latest-successful-execution.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+          from scripts.execution_evidence import record_execution_state
+          record_execution_state(state, root=".")
           PY
           }
 
