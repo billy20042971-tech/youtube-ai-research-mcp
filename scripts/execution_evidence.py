@@ -1,0 +1,84 @@
+"""Execution-scoped evidence validation and bounded execution history."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"Expected a JSON object in {path.name}")
+    return value
+
+
+def validate_success_evidence(
+    state: dict[str, Any],
+    data: dict[str, Any],
+    manifest: dict[str, Any],
+    audit: dict[str, Any],
+) -> None:
+    execution_id = state.get("execution_id")
+    if not isinstance(execution_id, str) or not execution_id:
+        raise ValueError("Current execution ID is missing")
+    if not all(item.get("execution_id") == execution_id for item in (data, manifest, audit)):
+        raise ValueError("Data, report manifest, and Notion audit execution IDs do not match")
+    if state.get("status") != "SUCCESS" or state.get("data") != "PASS" or state.get("reports") != "PASS" or state.get("verification") != "PASS":
+        raise ValueError("Execution status gates are not all PASS")
+    verification = data.get("verification")
+    if not isinstance(verification, dict):
+        raise ValueError("Data verification evidence is missing")
+    if verification.get("verified_72h") is not True or not isinstance(verification.get("fresh_videos"), int) or verification["fresh_videos"] <= 0 or verification.get("stale_or_invalid_videos") != 0:
+        raise ValueError("Freshness Data Gate failed")
+    if not isinstance(manifest.get("sample_count"), int) or manifest["sample_count"] <= 0:
+        raise ValueError("Report manifest sample_count is missing or invalid")
+    if audit.get("status") != "PASS" or audit.get("writeback_verified") is not True or audit.get("readback_verified") is not True:
+        raise ValueError("Notion writeback/readback Audit is not PASS")
+    if not audit.get("page_id") or not audit.get("comment_id") or not audit.get("readback_content_sha256"):
+        raise ValueError("Notion readback identity/content evidence is incomplete")
+
+
+def record_execution_state(
+    state: dict[str, Any],
+    *,
+    root: str | Path = ".",
+    history_limit: int = 100,
+) -> None:
+    """Record every run, updating the last-success pointer only after full validation."""
+    root = Path(root)
+    if history_limit < 1:
+        raise ValueError("history_limit must be at least 1")
+
+    if state.get("status") == "SUCCESS":
+        data = _read_json(root / "data/latest.json")
+        manifest = _read_json(root / "reports/latest-manifest.json")
+        audit = _read_json(root / "data/notion-writeback-audit.json")
+        validate_success_evidence(state, data, manifest, audit)
+
+    (root / "data/execution-state.json").write_text(
+        json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    history_path = root / "data/execution-history.json"
+    try:
+        history = _read_json(history_path) if history_path.exists() else {"executions": []}
+        records = history.get("executions", [])
+        if not isinstance(records, list):
+            records = []
+    except (OSError, ValueError, json.JSONDecodeError):
+        records = []
+
+    execution_id = state.get("execution_id")
+    records = [
+        item for item in records
+        if not (isinstance(item, dict) and item.get("execution_id") == execution_id)
+    ]
+    records.append(state)
+    history_path.write_text(
+        json.dumps({"executions": records[-history_limit:]}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    if state.get("status") == "SUCCESS":
+        (root / "data/latest-successful-execution.json").write_text(
+            json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
