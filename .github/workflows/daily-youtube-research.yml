@@ -98,7 +98,9 @@ jobs:
               except Exception:
                   pass
           state["execution_id"] = execution_id
-          from scripts.execution_evidence import record_execution_state
+          from scripts.execution_evidence import ensure_failure_audit, record_execution_state
+          if status != "SUCCESS":
+              ensure_failure_audit(root=".", execution_id=execution_id, reason=reason, run_id=run_id)
           record_execution_state(state, root=".")
           PY
           }
