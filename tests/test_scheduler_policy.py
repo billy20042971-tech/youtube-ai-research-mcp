@@ -94,7 +94,7 @@ class SchedulerPolicyTests(unittest.TestCase):
         recovery = (ROOT / ".github/workflows/youtube-research-self-healing.yml").read_text(encoding="utf-8")
         self.assertIn('if [ "$GITHUB_EVENT_NAME" = "schedule" ]', production)
         self.assertIn('[ "$recovery_attempt" = "true" ]', production)
-        self.assertIn('if [ "$is_formal_run" != "true" ]', production)
+        self.assertIn('if [ "$formal" != "true" ]', production)
         self.assertIn("schedule_on_time=", recovery)
         self.assertIn("(scheduled.hour, scheduled.minute) <= (6, 15)", recovery)
         self.assertIn('recovery=(trigger=="workflow_dispatch" and state.get("recovery_attempt") is True)', recovery)
@@ -114,6 +114,22 @@ class SchedulerPolicyTests(unittest.TestCase):
         parser = (ROOT / "scripts/mcp_sse.py").read_text(encoding="utf-8")
         self.assertIn("multiple data lines", parser)
         self.assertIn("parse_mcp_response_file", production)
+        transport = (ROOT / "scripts/mcp_request.py").read_text(encoding="utf-8")
+        evidence = (ROOT / "scripts/execution_evidence.py").read_text(encoding="utf-8")
+        finalizer = (ROOT / "scripts/finalize_execution.py").read_text(encoding="utf-8")
+        self.assertIn("max_attempts=2", transport)
+        self.assertIn("retryable_http_status", transport)
+        self.assertIn("data/last-successful-execution.json", evidence)
+        self.assertIn("data/execution-history", evidence)
+        self.assertIn("validate_execution_artifacts", evidence)
+        self.assertIn("scripts/finalize_execution.py", production)
+        self.assertIn("data/executions", production)
+        self.assertIn('date = now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")',
+                      (ROOT / "scripts/build_daily_reports.py").read_text(encoding="utf-8"))
+        self.assertIn('"data_generated_at": src.get("generated_at")',
+                      (ROOT / "scripts/build_daily_reports.py").read_text(encoding="utf-8"))
+        self.assertIn("expected_text", (ROOT / "scripts/notion_writeback.py").read_text(encoding="utf-8"))
+        self.assertIn("write_execution_state", finalizer)
 
     def test_durable_heartbeat_workflow_contract(self):
         heartbeat = (ROOT / ".github/workflows/scheduler-heartbeat.yml").read_text(encoding="utf-8")

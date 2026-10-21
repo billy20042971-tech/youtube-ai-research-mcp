@@ -1,4 +1,8 @@
+import json
+import os
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import call, patch
 
 from scripts import notion_writeback
@@ -12,6 +16,36 @@ from scripts.notion_writeback import (
 
 
 class NotionWritebackTests(unittest.TestCase):
+    def test_audit_blocks_when_data_and_manifest_are_from_another_execution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "data").mkdir()
+            (root / "reports").mkdir()
+            (root / "data/latest.json").write_text(json.dumps({
+                "execution_id": "gh-old-attempt-1",
+                "verification": {"verified_72h": True},
+            }), encoding="utf-8")
+            (root / "reports/latest-manifest.json").write_text(json.dumps({
+                "execution_id": "gh-old-attempt-1",
+                "sample_count": 39,
+            }), encoding="utf-8")
+            previous = Path.cwd()
+            try:
+                os.chdir(root)
+                with patch.object(notion_writeback, "AUDIT_PATH", root / "data/notion-writeback-audit.json"):
+                    with patch.object(notion_writeback, "request_json") as request:
+                        with patch.dict(os.environ, {
+                            "GITHUB_RUN_ID": "new",
+                            "GITHUB_RUN_ATTEMPT": "1",
+                            "NOTION_API_KEY": "test-token",
+                            "NOTION_PAGE_ID": "test-page",
+                        }, clear=True):
+                            with self.assertRaisesRegex(RuntimeError, "execution_id does not match"):
+                                notion_writeback.main()
+                        request.assert_not_called()
+            finally:
+                os.chdir(previous)
+
     def test_comment_contains_stable_execution_id_and_artifact_paths(self):
         text = comment_text(
             "gh-123-attempt-2",
@@ -99,7 +133,7 @@ class NotionWritebackTests(unittest.TestCase):
                  "has_more": False, "next_cursor": None},
             ],
         ) as request:
-            verified = verify_comment("page", "token", "created-id", execution_id)
+            verified = verify_comment("page", "token", "created-id", execution_id, f"execution_id: {execution_id}")
 
         self.assertTrue(verified)
         self.assertEqual(request.call_count, 2)
@@ -122,6 +156,19 @@ class NotionWritebackTests(unittest.TestCase):
         }
         self.assertEqual(text_from_comment(comment), "execution_id: gh-123attempt-1")
 
+
+    def test_readback_rejects_correct_id_but_wrong_full_content(self):
+        execution_id = "gh-126-attempt-1"
+        with patch(
+            "scripts.notion_writeback.request_json",
+            return_value={"results": [self.comment("created-id", execution_id)],
+                          "has_more": False, "next_cursor": None},
+        ) as request:
+            with patch("scripts.notion_writeback.time.sleep"):
+                verified = verify_comment("page", "token", "created-id", execution_id,
+                                          "execution_id: " + execution_id + "\nexpected full content")
+        self.assertFalse(verified)
+        self.assertEqual(request.call_count, 3)
 
 if __name__ == "__main__":
     unittest.main()

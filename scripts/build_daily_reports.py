@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from collections import Counter
 import re
 
@@ -54,8 +55,11 @@ videos = list(seen.values())
 videos.sort(key=lambda x: safe_int(x.get("views")), reverse=True)
 
 now = datetime.now(timezone.utc)
-date = now.strftime("%Y-%m-%d")
-out = Path("reports") / date
+date = now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")
+execution_id = str(src.get("execution_id") or "").strip()
+if not re.fullmatch(r"gh-[0-9]+-attempt-[0-9]+", execution_id):
+    raise RuntimeError("Missing or invalid execution_id; refusing to publish an unbound report.")
+out = Path("reports") / date / "executions" / execution_id
 out.mkdir(parents=True, exist_ok=True)
 
 # Visuals: explicitly use a CJK font and wrap long labels for legibility.
@@ -216,6 +220,8 @@ prs.save(out / f"YouTube_AI趨勢研究雷達_{date}_簡報.pptx")
 
 manifest = {
     "generated_at": now.isoformat(),
+    "execution_id": src.get("execution_id"),
+    "data_generated_at": src.get("generated_at"),
     "source": "YouTube Research MCP",
     "sample_count": len(videos),
     "word": str(out / f"YouTube_AI趨勢研究雷達_{date}_完整報告.docx"),

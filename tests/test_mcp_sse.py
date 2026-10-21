@@ -33,6 +33,19 @@ class McpSseParserTests(unittest.TestCase):
         payload = {"jsonrpc": "2.0", "id": 3, "result": {"content": [{"type": "text", "text": json.dumps({"ok": True})}]}}
         self.assertEqual(parse_mcp_response_text(json.dumps(payload)), {"ok": True})
 
+    def test_rejects_empty_body_for_retry_layer(self):
+        with self.assertRaisesRegex(RuntimeError, "body is empty"):
+            parse_mcp_response_text(" " + chr(10) + chr(9) + " ")
+
     def test_rejects_malformed_payload_without_echoing_response(self):
         with self.assertRaisesRegex(RuntimeError, "Invalid JSON"):
             parse_mcp_response_text('data: {"jsonrpc":"2.0","result":{"text":"bad')
+
+    def test_rejects_sse_without_data_event(self):
+        with self.assertRaisesRegex(RuntimeError, "no data events"):
+            parse_mcp_response_text("event: message\n\n")
+
+    def test_rejects_json_rpc_error(self):
+        payload = {"jsonrpc": "2.0", "id": 3, "error": {"code": -32603, "message": "private"}}
+        with self.assertRaisesRegex(RuntimeError, "JSON-RPC error"):
+            parse_mcp_response_text(json.dumps(payload))

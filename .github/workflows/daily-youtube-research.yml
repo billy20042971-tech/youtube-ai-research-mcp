@@ -52,80 +52,72 @@ jobs:
           )"
           fi
 
+          # Per-run evidence is finalized by a separately tested Python gate.
+          FAILURE_REASON=""
+          RECOVERY_ACTION=""
           write_state() {
             local status="$1"
-            local reason="${2:-}"
-            local recovery="${3:-}"
-            RECOVERY_ATTEMPT="$RECOVERY_ATTEMPT" python - "$EXECUTION_ID" "$STARTED_AT" "$status" "$reason" "$recovery" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_EVENT_NAME" "$MCP_URL" <<'PY'
-          import json, os, sys
-          from datetime import datetime, timezone
-          from pathlib import Path
-          execution_id, started_at, status, reason, recovery, run_id, attempt, event, mcp_url = sys.argv[1:]
-          state = {
-              "execution_id": execution_id,
-              "workflow": "Daily YouTube Research via MCP",
-              "status": status,
-              "started_at": started_at,
-              "completed_at": datetime.now(timezone.utc).isoformat(),
-              "github_run_id": run_id,
-              "github_run_attempt": attempt,
-              "trigger": event,
-              "recovery_attempt": os.getenv("RECOVERY_ATTEMPT", "false").lower() == "true",
-              "mcp_endpoint": mcp_url,
-              "data": "PASS" if status == "SUCCESS" else "UNKNOWN",
-              "reports": "PASS" if status == "SUCCESS" else "UNKNOWN",
-              "verification": "PASS" if status == "SUCCESS" else "FAIL",
-              "failure_reason": reason or None,
-              "recovery_action": recovery or None
-          }
-          latest = Path("data/latest.json")
-          if latest.exists():
-              try:
-                  d=json.loads(latest.read_text(encoding="utf-8"))
-                  state["data_generated_at"]=d.get("generated_at")
-                  state["data_verification"]=d.get("verification", {})
-              except Exception:
-                  pass
-          Path("data/execution-state.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
-          PY
+            local reason="$2"
+            local recovery="$3"
+            EXECUTION_ID="$EXECUTION_ID" STARTED_AT="$STARTED_AT" RECOVERY_ATTEMPT="$RECOVERY_ATTEMPT" \
+              STATE_STATUS="$status" STATE_FAILURE_REASON="$reason" STATE_RECOVERY_ACTION="$recovery" \
+              python scripts/finalize_execution.py
           }
 
           finalize() {
             local rc="$?"
             local recovery_attempt="$RECOVERY_ATTEMPT"
-            local is_formal_run="false"
-
-            # Formal state is reserved for scheduled production and explicitly
-            # authorized recovery dispatches. Ordinary manual/push runs must
-            # never rewrite or publish shared production data/state.
+            local formal="false"
             if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
-              is_formal_run="true"
+              formal="true"
             elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$recovery_attempt" = "true" ]; then
-              is_formal_run="true"
+              formal="true"
             fi
-
-            if [ "$is_formal_run" != "true" ]; then
-              echo "::notice::Non-formal run: keeping generated files isolated to this runner; production state will not be written or published."
-              return "$rc"
+            if [ "$formal" != "true" ]; then
+              echo "::notice::Non-formal run: keeping generated files isolated to this runner."
+              exit "$rc"
             fi
-
             if [ "$rc" -eq 0 ]; then
-              write_state "SUCCESS" "" ""
+              if ! write_state "SUCCESS" "" ""; then
+                rc=1
+                echo "::error::SUCCESS rejected by execution evidence gate."
+              fi
             else
-              write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}"
+              write_state "FAILED" "$FAILURE_REASON" "$RECOVERY_ACTION" || true
             fi
-
             if [ "$GITHUB_REF" != "refs/heads/main" ]; then
-              return "$rc"
+              exit "$rc"
             fi
-
             git config user.name "youtube-research-bot"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/ reports/ || true
-            git commit -m "chore: record daily YouTube research execution state" || true
-
-            # Another workflow/run may have advanced main while this job was running.
-            # Rebase onto the latest remote before publishing the execution state.
+            if [ "$rc" -eq 0 ]; then
+              # Publish latest pointers only after all evidence gates pass.
+              git add data/ reports/
+            else
+              # Preserve the failed attempt only; do not commit partial latest data/reports.
+              git add "data/execution-state.json" "data/execution-history/$EXECUTION_ID.json"
+              if [ -f "data/execution-history/$EXECUTION_ID-notion-writeback-audit.json" ]; then
+                git add "data/execution-history/$EXECUTION_ID-notion-writeback-audit.json"
+              fi
+              AUDIT_EXECUTION_ID="$(python - <<'PY'
+          import json
+          try:
+              print(json.load(open("data/notion-writeback-audit.json", encoding="utf-8")).get("execution_id", ""))
+          except Exception:
+              print("")
+          PY
+          )"
+              if [ "$AUDIT_EXECUTION_ID" = "$EXECUTION_ID" ]; then
+                git add data/notion-writeback-audit.json
+              fi
+              git restore --worktree -- data/ reports/ || true
+            fi
+            if ! git diff --cached --quiet; then
+              if ! git commit -m "chore: record daily YouTube research execution state"; then
+                echo "::error::Failed to commit execution evidence."
+                exit 1
+              fi
+            fi
             for attempt in 1 2 3; do
               git fetch origin main
               if ! git rebase origin/main; then
@@ -134,13 +126,12 @@ jobs:
                 continue
               fi
               if git push origin HEAD:main; then
-                return "$rc"
+                exit "$rc"
               fi
               sleep $((attempt * 2))
             done
-
             echo "::error::Failed to publish execution state after 3 retries."
-            return 1
+            exit 1
           }
           trap finalize EXIT
 
@@ -172,11 +163,8 @@ jobs:
           call_tool() {
             local outfile="$1"
             local arguments="$2"
-            curl --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 240 -sS --fail-with-body \
-              -o "$outfile" -X POST "$MCP_URL" \
-              -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-              -H "Mcp-Session-Id: $SESSION_ID" \
-              --data "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"youtube_research_sample\",\"arguments\":$arguments}}" 
+            MCP_SESSION_ID="$SESSION_ID" MCP_TOOL_ARGUMENTS="$arguments" MCP_OUTPUT_FILE="$outfile" \
+              python scripts/mcp_request.py
           }
 
           echo "=== 3. Fixed sample ==="
@@ -195,13 +183,15 @@ jobs:
 
           echo "=== 5. Parse and verify ==="
           python - <<'PY' || exit 1
-          import json
+          import json, os
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
+          from zoneinfo import ZoneInfo
 
           from scripts.mcp_sse import parse_mcp_response_file
 
           now=datetime.now(timezone.utc)
+          execution_id=f"gh-{os.environ['GITHUB_RUN_ID']}-attempt-{os.environ['GITHUB_RUN_ATTEMPT']}"
           cutoff=now-timedelta(hours=72)
           fixed=parse_mcp_response_file("fixed.body")
           recent=parse_mcp_response_file("recent.body")
@@ -228,6 +218,8 @@ jobs:
               )
           data={
               "generated_at":now.isoformat(),
+              "execution_id":execution_id,
+              "sample_count":len(fresh),
               "source":"YouTube Research MCP",
               "mcp_endpoint":"https://youtube-ai-research-mcp.onrender.com/mcp",
               "published_after":cutoff.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -236,9 +228,14 @@ jobs:
               "verification":{"fresh_videos":len(fresh),"stale_or_invalid_videos":len(stale),"verified_72h":verified_72h}
           }
           out=Path("data"); out.mkdir(exist_ok=True)
-          stamp=now.strftime("%Y-%m-%d")
-          (out/f"youtube-research-{stamp}.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
-          (out/"latest.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
+          stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")
+          data_text=json.dumps(data,ensure_ascii=False,indent=2)
+          (out/f"youtube-research-{stamp}.json").write_text(data_text,encoding="utf-8")
+          (out/"latest.json").write_text(data_text,encoding="utf-8")
+          execution_dir=out/"executions"/execution_id
+          execution_dir.mkdir(parents=True,exist_ok=True)
+          (execution_dir/"latest.json").write_text(data_text,encoding="utf-8")
+          (execution_dir/f"youtube-research-{stamp}.json").write_text(data_text,encoding="utf-8")
           print(f"Verified 72h data: fresh={len(fresh)}, stale={len(stale)}")
           PY
           if [ "$?" -ne 0 ]; then
@@ -252,7 +249,7 @@ jobs:
           src=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
           recent=src["recent_72h_sample"]
           enriched={v["video_id"]:v for v in recent.get("videos",[]) if v.get("video_id")}
-          out={"generated_at":src["generated_at"],"recent_72h_sample":{}}
+          out={"generated_at":src["generated_at"],"execution_id":src["execution_id"],"sample_count":src["sample_count"],"recent_72h_sample":{}}
           for q,d in recent.get("per_query",{}).items():
               out["recent_72h_sample"][q]=[]
               for v in d.get("videos",[]):
@@ -266,7 +263,11 @@ jobs:
                       "comments_obtained_count":e.get("comments_obtained_count",0),
                       "comments":[{"text":x.get("text"),"likes":x.get("likes"),"reply_count":x.get("reply_count")} for x in comments]
                   })
-          Path("data/recent-summary.json").write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
+          summary_text=json.dumps(out,ensure_ascii=False,indent=2)
+          Path("data/recent-summary.json").write_text(summary_text,encoding="utf-8")
+          execution_dir=Path("data/executions") / out["execution_id"]
+          execution_dir.mkdir(parents=True,exist_ok=True)
+          (execution_dir/"recent-summary.json").write_text(summary_text,encoding="utf-8")
           PY
 
           echo "=== 7. Build and verify Word/PPTX ==="
