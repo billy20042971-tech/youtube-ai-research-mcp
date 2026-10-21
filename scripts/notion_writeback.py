@@ -147,7 +147,7 @@ def write_audit(record: dict) -> None:
     execution_id=record.get("execution_id")
     records=[item for item in records if not (isinstance(item, dict) and item.get("execution_id") == execution_id)]
     records.append(record)
-    history_path.write_text(json.dumps({"audits": records[-100:]}, ensure_ascii=False, indent=2)+"\\n", encoding="utf-8")
+    history_path.write_text(json.dumps({"audits": records[-100:]}, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
 
 
 def main() -> int:
