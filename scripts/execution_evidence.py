@@ -33,11 +33,17 @@ def validate_success_evidence(
     verification = data.get("verification")
     if not isinstance(verification, dict):
         raise ValueError("Data verification evidence is missing")
-    if verification.get("verified_72h") is not True or not isinstance(verification.get("fresh_videos"), int) or verification["fresh_videos"] <= 0 or verification.get("stale_or_invalid_videos") != 0:
+    fresh_count = verification.get("fresh_videos")
+    stale_count = verification.get("stale_or_invalid_videos")
+    if (verification.get("verified_72h") is not True
+            or not isinstance(fresh_count, int) or isinstance(fresh_count, bool) or fresh_count <= 0
+            or not isinstance(stale_count, int) or isinstance(stale_count, bool) or stale_count != 0):
         raise ValueError("Freshness Data Gate failed")
-    if not isinstance(manifest.get("sample_count"), int) or manifest["sample_count"] <= 0:
+    if summary.get("sample_count") != fresh_count:
+        raise ValueError("Recent summary sample_count does not match verified fresh video count")
+    if not isinstance(manifest.get("sample_count"), int) or isinstance(manifest.get("sample_count"), bool) or manifest["sample_count"] <= 0:
         raise ValueError("Report manifest sample_count is missing or invalid")
-    if not isinstance(summary.get("sample_count"), int) or summary["sample_count"] <= 0:
+    if not isinstance(summary.get("sample_count"), int) or isinstance(summary.get("sample_count"), bool) or summary["sample_count"] <= 0:
         raise ValueError("Recent summary sample_count is missing or invalid")
     if summary["sample_count"] != manifest["sample_count"]:
         raise ValueError("Recent summary and report manifest sample_count do not match")
