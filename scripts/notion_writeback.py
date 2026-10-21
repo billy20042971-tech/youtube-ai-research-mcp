@@ -13,6 +13,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -130,6 +131,8 @@ def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str,
         )
         if found:
             return True
+        if attempt == 0:
+            time.sleep(1)
     return False
 
 
