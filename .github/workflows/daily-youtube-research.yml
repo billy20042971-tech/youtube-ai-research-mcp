@@ -202,11 +202,18 @@ jobs:
           call_tool() {
             local outfile="$1"
             local arguments="$2"
-            curl --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 240 -sS --fail-with-body \
-              -o "$outfile" -X POST "$MCP_URL" \
-              -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-              -H "Mcp-Session-Id: $SESSION_ID" \
-              --data "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"youtube_research_sample\",\"arguments\":$arguments}}" 
+            python - "$MCP_URL" "$SESSION_ID" "$outfile" "$arguments" <<'PY'
+          import json, sys
+          from pathlib import Path
+          from scripts.mcp_http import call_mcp_tool
+          url, session_id, outfile, raw_arguments = sys.argv[1:]
+          try:
+              body = call_mcp_tool(url, session_id, json.loads(raw_arguments), max_attempts=3)
+          except Exception as exc:
+              print(f"::error::MCP tool call failed: {exc}", file=sys.stderr)
+              raise SystemExit(1)
+          Path(outfile).write_bytes(body)
+          PY
           }
 
           echo "=== 3. Fixed sample ==="
