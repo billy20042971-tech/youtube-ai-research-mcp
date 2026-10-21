@@ -37,6 +37,15 @@ jobs:
           mkdir -p data reports
 
           EXECUTION_ID="gh-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}"
+          BACKUP_DIR="${RUNNER_TEMP:-/tmp}/youtube-research-backup-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$BACKUP_DIR"
+          for item in "data/latest.json" "data/recent-summary.json" "reports/latest-manifest.json"; do
+            backup_name="$(printf "%s" "$item" | tr "/" "_")"
+            if [ -f "$item" ]; then
+              cp "$item" "$BACKUP_DIR/$backup_name"
+              touch "$BACKUP_DIR/$backup_name.present"
+            fi
+          done
           STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           STATE_FILE="data/execution-state.json"
           RECOVERY_ATTEMPT="false"
@@ -82,12 +91,29 @@ jobs:
           if latest.exists():
               try:
                   d=json.loads(latest.read_text(encoding="utf-8"))
-                  state["data_generated_at"]=d.get("generated_at")
-                  state["data_verification"]=d.get("verification", {})
+                  # Never attach old data metadata to a different execution.
+                  if d.get("execution_id") == execution_id:
+                      state["data_generated_at"]=d.get("generated_at")
+                      state["data_verification"]=d.get("verification", {})
               except Exception:
                   pass
-          Path("data/execution-state.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+          state["execution_id"] = execution_id
+          from scripts.execution_evidence import ensure_failure_audit, record_execution_state
+          if status != "SUCCESS":
+              ensure_failure_audit(root=".", execution_id=execution_id, reason=reason, run_id=run_id)
+          record_execution_state(state, root=".")
           PY
+          }
+
+          restore_previous_latest_artifacts() {
+            for item in "data/latest.json" "data/recent-summary.json" "reports/latest-manifest.json"; do
+              backup_name="$(printf "%s" "$item" | tr "/" "_")"
+              if [ -f "$BACKUP_DIR/$backup_name.present" ]; then
+                cp "$BACKUP_DIR/$backup_name" "$item"
+              else
+                rm -f "$item"
+              fi
+            done
           }
 
           finalize() {
@@ -110,8 +136,13 @@ jobs:
             fi
 
             if [ "$rc" -eq 0 ]; then
-              write_state "SUCCESS" "" ""
+              if ! write_state "SUCCESS" "" ""; then
+                rc=1
+                restore_previous_latest_artifacts
+                write_state "FAILED" "Execution evidence consistency gate failed" "Inspect data/latest.json, reports/latest-manifest.json, and data/notion-writeback-audit.json for mismatched execution IDs."
+              fi
             else
+              restore_previous_latest_artifacts
               write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}"
             fi
 
@@ -172,11 +203,18 @@ jobs:
           call_tool() {
             local outfile="$1"
             local arguments="$2"
-            curl --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 240 -sS --fail-with-body \
-              -o "$outfile" -X POST "$MCP_URL" \
-              -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-              -H "Mcp-Session-Id: $SESSION_ID" \
-              --data "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"youtube_research_sample\",\"arguments\":$arguments}}" 
+            python - "$MCP_URL" "$SESSION_ID" "$outfile" "$arguments" <<'PY'
+          import json, sys
+          from pathlib import Path
+          from scripts.mcp_http import call_mcp_tool
+          url, session_id, outfile, raw_arguments = sys.argv[1:]
+          try:
+              body = call_mcp_tool(url, session_id, json.loads(raw_arguments), max_attempts=3)
+          except Exception as exc:
+              print(f"::error::MCP tool call failed: {exc}", file=sys.stderr)
+              raise SystemExit(1)
+          Path(outfile).write_bytes(body)
+          PY
           }
 
           echo "=== 3. Fixed sample ==="
@@ -194,8 +232,8 @@ jobs:
             || fail "MCP dynamic 72h sample failed" "Retry the MCP tool call; do not publish stale data."
 
           echo "=== 5. Parse and verify ==="
-          python - <<'PY' || exit 1
-          import json
+          python - "$EXECUTION_ID" <<'PY' || exit 1
+          import json, sys, os
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
 
@@ -227,6 +265,10 @@ jobs:
                   f"72h verification failed: fresh={len(fresh)}, stale_or_invalid={len(stale)}"
               )
           data={
+              "execution_id":sys.argv[1],
+              "github_run_id":os.environ.get("GITHUB_RUN_ID", ""),
+              "github_run_attempt":os.environ.get("GITHUB_RUN_ATTEMPT", "1"),
+              "trigger":os.environ.get("GITHUB_EVENT_NAME", ""),
               "generated_at":now.isoformat(),
               "source":"YouTube Research MCP",
               "mcp_endpoint":"https://youtube-ai-research-mcp.onrender.com/mcp",
@@ -247,7 +289,7 @@ jobs:
 
           echo "=== 6. Prepare compact analysis data ==="
           python - <<'PY' || fail "Compact data preparation failed" "Inspect data/latest.json structure."
-          import json
+          import json, os
           from pathlib import Path
           src=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
           recent=src["recent_72h_sample"]
@@ -266,6 +308,9 @@ jobs:
                       "comments_obtained_count":e.get("comments_obtained_count",0),
                       "comments":[{"text":x.get("text"),"likes":x.get("likes"),"reply_count":x.get("reply_count")} for x in comments]
                   })
+          out["sample_count"] = len(enriched)
+          out["execution_id"] = f"gh-{os.environ.get('GITHUB_RUN_ID', '')}-attempt-{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
+          out["trigger"] = os.environ.get("GITHUB_EVENT_NAME", "")
           Path("data/recent-summary.json").write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
           PY
 
@@ -274,11 +319,18 @@ jobs:
           python -m pip install --disable-pip-version-check --quiet python-docx python-pptx matplotlib pillow             || fail "Report dependencies failed to install" "Retry GitHub runner dependency installation."
           python scripts/build_daily_reports.py \
             || fail "Report generation failed" "Inspect scripts/build_daily_reports.py and runner logs."
-          python - <<'PY' || fail "Report verification failed" "Inspect reports/latest-manifest.json and generated files."
-          import json
+          python - "$EXECUTION_ID" <<'PY' || fail "Report verification failed" "Inspect reports/latest-manifest.json and generated files."
+          import json, sys
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
+          execution_id=sys.argv[1]
+          data=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
+          summary=json.loads(Path("data/recent-summary.json").read_text(encoding="utf-8"))
+          if data.get("execution_id") != execution_id or summary.get("execution_id") != execution_id:
+              raise RuntimeError("Data and recent summary execution IDs do not match this run")
           m=json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8"))
+          m["execution_id"] = execution_id
+          Path("reports/latest-manifest.json").write_text(json.dumps(m,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           for key in ("word","pptx","chart"):
               p=Path(m[key])
               if not p.is_file() or p.stat().st_size==0:

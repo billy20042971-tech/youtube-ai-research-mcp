@@ -6,12 +6,14 @@ Missing credentials produce an explicit SKIPPED audit record and a non-zero exit
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -117,16 +119,20 @@ def ensure_comment(page_id: str, token: str, execution_id: str, text: str) -> st
     return comment_id
 
 
-def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str) -> bool:
+def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str, expected_text: str | None = None) -> bool:
     """Verify the exact comment ID and execution marker, retrying reads only."""
     for attempt in range(2):
         found = next(
             (item for item in list_comments(page_id, token)
-             if item.get("id") == comment_id and execution_id in text_from_comment(item)),
+             if item.get("id") == comment_id
+             and execution_id in text_from_comment(item)
+             and (expected_text is None or text_from_comment(item) == expected_text)),
             None,
         )
         if found:
             return True
+        if attempt == 0:
+            time.sleep(1)
     return False
 
 
@@ -134,6 +140,17 @@ def write_audit(record: dict) -> None:
     AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
     AUDIT_PATH.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(record, ensure_ascii=False))
+    history_path = Path("data/notion-writeback-audit-history.json")
+    try:
+        history=json.loads(history_path.read_text(encoding="utf-8")) if history_path.exists() else {"audits": []}
+        records=history.get("audits", []) if isinstance(history, dict) else []
+        if not isinstance(records, list): records=[]
+    except Exception:
+        records=[]
+    execution_id=record.get("execution_id")
+    records=[item for item in records if not (isinstance(item, dict) and item.get("execution_id") == execution_id)]
+    records.append(record)
+    history_path.write_text(json.dumps({"audits": records[-100:]}, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
 
 
 def main() -> int:
@@ -164,9 +181,12 @@ def main() -> int:
         })
         return 1
 
+    if latest.get("execution_id") != execution_id or manifest.get("execution_id") != execution_id:
+        raise RuntimeError("Data and report manifest execution IDs do not match the current GitHub run.")
+
     text = comment_text(execution_id, manifest, state)
     comment_id = ensure_comment(page_id, token, execution_id, text)
-    if not verify_comment(page_id, token, comment_id, execution_id):
+    if not verify_comment(page_id, token, comment_id, execution_id, text):
         raise RuntimeError(f"Notion comment {comment_id} exists or was created but could not be verified by readback.")
 
     write_audit({
@@ -177,6 +197,7 @@ def main() -> int:
         "comment_id": comment_id,
         "writeback_verified": True,
         "readback_verified": True,
+        "readback_content_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
         "sample_count": manifest.get("sample_count"),
         "github_run_id": state.get("github_run_id", os.environ.get("GITHUB_RUN_ID")),
     })
@@ -192,6 +213,7 @@ if __name__ == "__main__":
             "status": "FAILED",
             "checked_at": now_iso(),
             "writeback_verified": False,
+            "readback_verified": False,
             "error": str(exc)[:1000],
         }
         write_audit(record)
