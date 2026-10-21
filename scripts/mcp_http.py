@@ -52,7 +52,9 @@ def call_mcp_tool(
         )
         try:
             with opener(req, timeout=timeout) as response:
-                status = getattr(response, "status", response.getcode())
+                status = getattr(response, "status", None)
+                if status is None:
+                    status = response.getcode()
                 body = response.read()
             if 200 <= status < 300:
                 if body and body.strip():
