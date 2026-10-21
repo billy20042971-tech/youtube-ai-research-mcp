@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.execution_evidence import record_execution_state, validate_success_evidence
+from scripts.execution_evidence import ensure_failure_audit, record_execution_state, validate_success_evidence
 
 
 class ExecutionEvidenceTests(unittest.TestCase):
@@ -167,6 +167,27 @@ class ExecutionEvidenceTests(unittest.TestCase):
         self.assertEqual([x["execution_id"] for x in history["executions"]], [
             "gh-100-attempt-1", "gh-103-attempt-1", "gh-104-attempt-1"
         ])
+
+    def test_failure_before_notion_writeback_does_not_leave_previous_pass_audit(self):
+        old_audit = {**self.audit, "execution_id": "gh-old-attempt-1"}
+        (self.root / "data/notion-writeback-audit.json").write_text(json.dumps(old_audit), encoding="utf-8")
+        changed = ensure_failure_audit(root=self.root, execution_id="gh-106-attempt-1",
+                                       reason="MCP initialize failed", run_id="106")
+        saved = json.loads((self.root / "data/notion-writeback-audit.json").read_text())
+        self.assertTrue(changed)
+        self.assertEqual(saved["execution_id"], "gh-106-attempt-1")
+        self.assertEqual(saved["status"], "NOT_RUN")
+        self.assertFalse(saved["writeback_verified"])
+        self.assertFalse(saved["readback_verified"])
+
+    def test_failure_does_not_overwrite_same_execution_notion_audit(self):
+        self.write_evidence()
+        changed = ensure_failure_audit(root=self.root, execution_id=self.execution_id,
+                                       reason="later evidence gate failed", run_id="100")
+        saved = json.loads((self.root / "data/notion-writeback-audit.json").read_text())
+        self.assertFalse(changed)
+        self.assertEqual(saved["status"], "PASS")
+        self.assertEqual(saved["execution_id"], self.execution_id)
 
     def test_history_is_bounded(self):
         history_path = self.root / "data/execution-history.json"
