@@ -79,14 +79,41 @@ jobs:
               "recovery_action": recovery or None
           }
           latest = Path("data/latest.json")
+          manifest_path = Path("reports/latest-manifest.json")
+          audit_path = Path("data/notion-writeback-audit.json")
           if latest.exists():
               try:
                   d=json.loads(latest.read_text(encoding="utf-8"))
-                  state["data_generated_at"]=d.get("generated_at")
-                  state["data_verification"]=d.get("verification", {})
+                  # Never attach old data metadata to a different execution.
+                  if d.get("execution_id") == execution_id:
+                      state["data_generated_at"]=d.get("generated_at")
+                      state["data_verification"]=d.get("verification", {})
               except Exception:
                   pass
+          state["execution_id"] = execution_id
+          if status == "SUCCESS":
+              try:
+                  d=json.loads(latest.read_text(encoding="utf-8"))
+                  m=json.loads(manifest_path.read_text(encoding="utf-8"))
+                  a=json.loads(audit_path.read_text(encoding="utf-8"))
+                  if not (d.get("execution_id") == execution_id and m.get("execution_id") == execution_id and a.get("execution_id") == execution_id and a.get("status") == "PASS" and a.get("readback_verified") is True):
+                      raise ValueError("execution evidence IDs or Notion readback do not match")
+              except Exception as exc:
+                  print(f"Execution evidence gate failed: {exc}", file=sys.stderr)
+                  raise SystemExit(1)
           Path("data/execution-state.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+          history_path = Path("data/execution-history.json")
+          try:
+              history=json.loads(history_path.read_text(encoding="utf-8")) if history_path.exists() else {"executions": []}
+              records=history.get("executions", []) if isinstance(history, dict) else []
+              if not isinstance(records, list): records=[]
+          except Exception:
+              records=[]
+          records=[r for r in records if not (isinstance(r, dict) and r.get("execution_id") == execution_id)]
+          records.append(state)
+          history_path.write_text(json.dumps({"executions": records[-100:]}, ensure_ascii=False, indent=2), encoding="utf-8")
+          if status == "SUCCESS":
+              Path("data/latest-successful-execution.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
           PY
           }
 
@@ -110,7 +137,10 @@ jobs:
             fi
 
             if [ "$rc" -eq 0 ]; then
-              write_state "SUCCESS" "" ""
+              if ! write_state "SUCCESS" "" ""; then
+                rc=1
+                write_state "FAILED" "Execution evidence consistency gate failed" "Inspect data/latest.json, reports/latest-manifest.json, and data/notion-writeback-audit.json for mismatched execution IDs."
+              fi
             else
               write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}"
             fi
@@ -194,8 +224,8 @@ jobs:
             || fail "MCP dynamic 72h sample failed" "Retry the MCP tool call; do not publish stale data."
 
           echo "=== 5. Parse and verify ==="
-          python - <<'PY' || exit 1
-          import json
+          python - "$EXECUTION_ID" <<'PY' || exit 1
+          import json, sys, os
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
 
@@ -227,6 +257,10 @@ jobs:
                   f"72h verification failed: fresh={len(fresh)}, stale_or_invalid={len(stale)}"
               )
           data={
+              "execution_id":sys.argv[1],
+              "github_run_id":os.environ.get("GITHUB_RUN_ID", ""),
+              "github_run_attempt":os.environ.get("GITHUB_RUN_ATTEMPT", "1"),
+              "trigger":os.environ.get("GITHUB_EVENT_NAME", ""),
               "generated_at":now.isoformat(),
               "source":"YouTube Research MCP",
               "mcp_endpoint":"https://youtube-ai-research-mcp.onrender.com/mcp",
@@ -266,6 +300,8 @@ jobs:
                       "comments_obtained_count":e.get("comments_obtained_count",0),
                       "comments":[{"text":x.get("text"),"likes":x.get("likes"),"reply_count":x.get("reply_count")} for x in comments]
                   })
+          out["execution_id"] = f"gh-{os.environ.get('GITHUB_RUN_ID', '')}-attempt-{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
+          out["trigger"] = os.environ.get("GITHUB_EVENT_NAME", "")
           Path("data/recent-summary.json").write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
           PY
 
@@ -274,11 +310,18 @@ jobs:
           python -m pip install --disable-pip-version-check --quiet python-docx python-pptx matplotlib pillow             || fail "Report dependencies failed to install" "Retry GitHub runner dependency installation."
           python scripts/build_daily_reports.py \
             || fail "Report generation failed" "Inspect scripts/build_daily_reports.py and runner logs."
-          python - <<'PY' || fail "Report verification failed" "Inspect reports/latest-manifest.json and generated files."
-          import json
+          python - "$EXECUTION_ID" <<'PY' || fail "Report verification failed" "Inspect reports/latest-manifest.json and generated files."
+          import json, sys
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
+          execution_id=sys.argv[1]
+          data=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
+          summary=json.loads(Path("data/recent-summary.json").read_text(encoding="utf-8"))
+          if data.get("execution_id") != execution_id or summary.get("execution_id") != execution_id:
+              raise RuntimeError("Data and recent summary execution IDs do not match this run")
           m=json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8"))
+          m["execution_id"] = execution_id
+          Path("reports/latest-manifest.json").write_text(json.dumps(m,ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")
           for key in ("word","pptx","chart"):
               p=Path(m[key])
               if not p.is_file() or p.stat().st_size==0:
