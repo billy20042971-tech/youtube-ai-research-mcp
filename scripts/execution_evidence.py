@@ -81,6 +81,19 @@ def ensure_failure_audit(
     temp_path = audit_path.with_name(audit_path.name + ".tmp")
     temp_path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temp_path.replace(audit_path)
+    history_path = root / "data/notion-writeback-audit-history.json"
+    try:
+        history = _read_json(history_path) if history_path.exists() else {"audits": []}
+        records = history.get("audits", [])
+        if not isinstance(records, list):
+            records = []
+    except (OSError, ValueError, json.JSONDecodeError):
+        records = []
+    records = [item for item in records if not (isinstance(item, dict) and item.get("execution_id") == execution_id)]
+    records.append(record)
+    history_temp = history_path.with_name(history_path.name + ".tmp")
+    history_temp.write_text(json.dumps({"audits": records[-100:]}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    history_temp.replace(history_path)
     return True
 
 
