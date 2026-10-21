@@ -56,6 +56,34 @@ def validate_success_evidence(
         raise ValueError("Notion readback identity/content evidence is incomplete")
 
 
+def ensure_failure_audit(
+    *, root: str | Path, execution_id: str, reason: str, run_id: str
+) -> bool:
+    """Replace an older run's audit PASS when this run fails before writeback."""
+    root = Path(root)
+    audit_path = root / "data/notion-writeback-audit.json"
+    try:
+        current = _read_json(audit_path) if audit_path.exists() else {}
+    except (OSError, ValueError, json.JSONDecodeError):
+        current = {}
+    if current.get("execution_id") == execution_id:
+        return False
+    record = {
+        "execution_id": execution_id,
+        "status": "NOT_RUN",
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "github_run_id": run_id,
+        "writeback_verified": False,
+        "readback_verified": False,
+        "error": (reason or "Pipeline failed before Notion writeback was verified.")[:500],
+    }
+    audit_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = audit_path.with_name(audit_path.name + ".tmp")
+    temp_path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    temp_path.replace(audit_path)
+    return True
+
+
 def record_execution_state(
     state: dict[str, Any],
     *,
