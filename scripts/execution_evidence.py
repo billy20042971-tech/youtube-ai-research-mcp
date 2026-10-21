@@ -39,14 +39,14 @@ def validate_success_evidence(
             or not isinstance(fresh_count, int) or isinstance(fresh_count, bool) or fresh_count <= 0
             or not isinstance(stale_count, int) or isinstance(stale_count, bool) or stale_count != 0):
         raise ValueError("Freshness Data Gate failed")
-    if summary.get("sample_count") != fresh_count:
-        raise ValueError("Recent summary sample_count does not match verified fresh video count")
     if not isinstance(manifest.get("sample_count"), int) or isinstance(manifest.get("sample_count"), bool) or manifest["sample_count"] <= 0:
         raise ValueError("Report manifest sample_count is missing or invalid")
     if not isinstance(summary.get("sample_count"), int) or isinstance(summary.get("sample_count"), bool) or summary["sample_count"] <= 0:
         raise ValueError("Recent summary sample_count is missing or invalid")
     if summary["sample_count"] != manifest["sample_count"]:
         raise ValueError("Recent summary and report manifest sample_count do not match")
+    if summary["sample_count"] != fresh_count:
+        raise ValueError("Recent summary sample_count does not match verified fresh video count")
     try:
         data_time = datetime.fromisoformat(str(data["generated_at"]).replace("Z", "+00:00"))
         manifest_time = datetime.fromisoformat(str(manifest["generated_at"]).replace("Z", "+00:00"))
