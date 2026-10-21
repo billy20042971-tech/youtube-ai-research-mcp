@@ -20,6 +20,14 @@ from pathlib import Path
 API_BASE = "https://api.notion.com/v1"
 API_VERSION = "2022-06-28"
 AUDIT_PATH = Path("data/notion-writeback-audit.json")
+EXPECTED_NOTION_PAGE_ID = "3cc4006515d9806cb196f038cf8c5bc4"
+
+
+def validate_target_page_id(page_id: str) -> None:
+    """Fail closed if the configured secret points outside the approved AI Lab page."""
+    normalized = page_id.replace("-", "").strip().lower()
+    if normalized != EXPECTED_NOTION_PAGE_ID:
+        raise RuntimeError("NOTION_PAGE_ID does not match the approved AI Lab page; no Notion write was attempted.")
 
 
 def now_iso() -> str:
@@ -180,6 +188,8 @@ def main() -> int:
             "note": "Set GitHub Actions secrets NOTION_API_KEY and NOTION_PAGE_ID to enable automatic Notion writeback.",
         })
         return 1
+
+    validate_target_page_id(page_id)
 
     if latest.get("execution_id") != execution_id or manifest.get("execution_id") != execution_id:
         raise RuntimeError("Data and report manifest execution IDs do not match the current GitHub run.")
