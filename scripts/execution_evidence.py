@@ -79,7 +79,7 @@ def ensure_failure_audit(
     }
     audit_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = audit_path.with_name(audit_path.name + ".tmp")
-    temp_path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    temp_path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temp_path.replace(audit_path)
     return True
 
