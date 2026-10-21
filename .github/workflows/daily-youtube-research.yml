@@ -281,7 +281,7 @@ jobs:
 
           echo "=== 6. Prepare compact analysis data ==="
           python - <<'PY' || fail "Compact data preparation failed" "Inspect data/latest.json structure."
-          import json
+          import json, os
           from pathlib import Path
           src=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
           recent=src["recent_72h_sample"]
@@ -321,7 +321,7 @@ jobs:
               raise RuntimeError("Data and recent summary execution IDs do not match this run")
           m=json.loads(Path("reports/latest-manifest.json").read_text(encoding="utf-8"))
           m["execution_id"] = execution_id
-          Path("reports/latest-manifest.json").write_text(json.dumps(m,ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")
+          Path("reports/latest-manifest.json").write_text(json.dumps(m,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
           for key in ("word","pptx","chart"):
               p=Path(m[key])
               if not p.is_file() or p.stat().st_size==0:
