@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,15 @@ def validate_success_evidence(
         raise ValueError("Freshness Data Gate failed")
     if not isinstance(manifest.get("sample_count"), int) or manifest["sample_count"] <= 0:
         raise ValueError("Report manifest sample_count is missing or invalid")
+    try:
+        data_time = datetime.fromisoformat(str(data["generated_at"]).replace("Z", "+00:00"))
+        manifest_time = datetime.fromisoformat(str(manifest["generated_at"]).replace("Z", "+00:00"))
+        if data_time.tzinfo is None or manifest_time.tzinfo is None:
+            raise ValueError("timestamps must include timezone information")
+        if abs((manifest_time.astimezone(timezone.utc) - data_time.astimezone(timezone.utc)).total_seconds()) > 900:
+            raise ValueError("Data and report manifest timestamps differ by more than 15 minutes")
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(f"Data/manifest timestamp consistency failed: {exc}") from None
     if audit.get("status") != "PASS" or audit.get("writeback_verified") is not True or audit.get("readback_verified") is not True:
         raise ValueError("Notion writeback/readback Audit is not PASS")
     if not audit.get("page_id") or not audit.get("comment_id") or not audit.get("readback_content_sha256"):
