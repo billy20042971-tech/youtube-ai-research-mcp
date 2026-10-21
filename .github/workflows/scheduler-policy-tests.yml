@@ -1,4 +1,5 @@
 name: Scheduler Policy Tests
+# Phase 1 keeps only regression checks for active safety behavior.
 
 on:
   pull_request:
