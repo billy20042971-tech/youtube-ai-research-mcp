@@ -37,6 +37,15 @@ jobs:
           mkdir -p data reports
 
           EXECUTION_ID="gh-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}"
+          BACKUP_DIR="${RUNNER_TEMP:-/tmp}/youtube-research-backup-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$BACKUP_DIR"
+          for item in "data/latest.json" "data/recent-summary.json" "reports/latest-manifest.json"; do
+            backup_name="$(printf "%s" "$item" | tr "/" "_")"
+            if [ -f "$item" ]; then
+              cp "$item" "$BACKUP_DIR/$backup_name"
+              touch "$BACKUP_DIR/$backup_name.present"
+            fi
+          done
           STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           STATE_FILE="data/execution-state.json"
           RECOVERY_ATTEMPT="false"
@@ -117,6 +126,17 @@ jobs:
           PY
           }
 
+          restore_previous_latest_artifacts() {
+            for item in "data/latest.json" "data/recent-summary.json" "reports/latest-manifest.json"; do
+              backup_name="$(printf "%s" "$item" | tr "/" "_")"
+              if [ -f "$BACKUP_DIR/$backup_name.present" ]; then
+                cp "$BACKUP_DIR/$backup_name" "$item"
+              else
+                rm -f "$item"
+              fi
+            done
+          }
+
           finalize() {
             local rc="$?"
             local recovery_attempt="$RECOVERY_ATTEMPT"
@@ -139,9 +159,11 @@ jobs:
             if [ "$rc" -eq 0 ]; then
               if ! write_state "SUCCESS" "" ""; then
                 rc=1
+                restore_previous_latest_artifacts
                 write_state "FAILED" "Execution evidence consistency gate failed" "Inspect data/latest.json, reports/latest-manifest.json, and data/notion-writeback-audit.json for mismatched execution IDs."
               fi
             else
+              restore_previous_latest_artifacts
               write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}"
             fi
 
