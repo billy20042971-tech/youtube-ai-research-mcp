@@ -28,6 +28,7 @@ class ExecutionEvidenceTests(unittest.TestCase):
             "generated_at": "2026-10-21T00:00:00Z",
             "verification": {"fresh_videos": 3, "stale_or_invalid_videos": 0, "verified_72h": True},
         }
+        self.summary = {"execution_id": self.execution_id, "sample_count": 3, "generated_at": "2026-10-21T00:00:00Z", "recent_72h_sample": {}}
         self.manifest = {"execution_id": self.execution_id, "sample_count": 3, "generated_at": "2026-10-21T00:00:01Z"}
         self.audit = {
             "execution_id": self.execution_id, "status": "PASS", "writeback_verified": True,
@@ -38,36 +39,52 @@ class ExecutionEvidenceTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def write_evidence(self, data=None, manifest=None, audit=None):
+    def write_evidence(self, data=None, summary=None, manifest=None, audit=None):
         for path, value in (
             ("data/latest.json", data or self.data),
+            ("data/recent-summary.json", summary or self.summary),
             ("reports/latest-manifest.json", manifest or self.manifest),
             ("data/notion-writeback-audit.json", audit or self.audit),
         ):
             (self.root / path).write_text(json.dumps(value), encoding="utf-8")
 
     def test_complete_matching_evidence_passes(self):
-        validate_success_evidence(self.state, self.data, self.manifest, self.audit)
+        validate_success_evidence(self.state, self.data, self.summary, self.manifest, self.audit)
 
     def test_data_execution_id_mismatch_fails(self):
         data = {**self.data, "execution_id": "gh-old-attempt-1"}
         with self.assertRaisesRegex(ValueError, "execution IDs do not match"):
-            validate_success_evidence(self.state, data, self.manifest, self.audit)
+            validate_success_evidence(self.state, data, self.summary, self.manifest, self.audit)
+
+    def test_summary_execution_id_mismatch_fails(self):
+        summary = {**self.summary, "execution_id": "gh-old-attempt-1"}
+        with self.assertRaisesRegex(ValueError, "execution IDs do not match"):
+            validate_success_evidence(self.state, self.data, summary, self.manifest, self.audit)
+
+    def test_summary_timestamp_mismatch_fails(self):
+        summary = {**self.summary, "generated_at": "2026-10-21T02:00:00Z"}
+        with self.assertRaisesRegex(ValueError, "timestamps do not match"):
+            validate_success_evidence(self.state, self.data, summary, self.manifest, self.audit)
+
+    def test_summary_sample_count_mismatch_fails(self):
+        summary = {**self.summary, "sample_count": 2}
+        with self.assertRaisesRegex(ValueError, "sample_count do not match"):
+            validate_success_evidence(self.state, self.data, summary, self.manifest, self.audit)
 
     def test_manifest_execution_id_mismatch_fails(self):
         manifest = {**self.manifest, "execution_id": "gh-old-attempt-1"}
         with self.assertRaisesRegex(ValueError, "execution IDs do not match"):
-            validate_success_evidence(self.state, self.data, manifest, self.audit)
+            validate_success_evidence(self.state, self.data, self.summary, manifest, self.audit)
 
     def test_audit_execution_id_mismatch_fails(self):
         audit = {**self.audit, "execution_id": "gh-other-attempt-1"}
         with self.assertRaisesRegex(ValueError, "execution IDs do not match"):
-            validate_success_evidence(self.state, self.data, self.manifest, audit)
+            validate_success_evidence(self.state, self.data, self.summary, self.manifest, audit)
 
     def test_manifest_timestamp_mismatch_fails(self):
         manifest = {**self.manifest, "generated_at": "2026-10-21T02:00:00Z"}
         with self.assertRaisesRegex(ValueError, "timestamps differ"):
-            validate_success_evidence(self.state, self.data, manifest, self.audit)
+            validate_success_evidence(self.state, self.data, self.summary, manifest, self.audit)
 
     def test_recovery_success_keeps_recovery_trigger_distinct(self):
         self.write_evidence()
@@ -75,6 +92,7 @@ class ExecutionEvidenceTests(unittest.TestCase):
                     "trigger": "workflow_dispatch", "recovery_attempt": True}
         self.write_evidence(
             data={**self.data, "execution_id": "gh-105-attempt-1"},
+            summary={**self.summary, "execution_id": "gh-105-attempt-1"},
             manifest={**self.manifest, "execution_id": "gh-105-attempt-1"},
             audit={**self.audit, "execution_id": "gh-105-attempt-1"},
         )
@@ -86,17 +104,17 @@ class ExecutionEvidenceTests(unittest.TestCase):
     def test_audit_readback_false_fails(self):
         audit = {**self.audit, "readback_verified": False}
         with self.assertRaisesRegex(ValueError, "Audit is not PASS"):
-            validate_success_evidence(self.state, self.data, self.manifest, audit)
+            validate_success_evidence(self.state, self.data, self.summary, self.manifest, audit)
 
     def test_audit_without_comment_identity_or_hash_fails(self):
         audit = {**self.audit, "comment_id": "", "readback_content_sha256": ""}
         with self.assertRaisesRegex(ValueError, "identity/content evidence"):
-            validate_success_evidence(self.state, self.data, self.manifest, audit)
+            validate_success_evidence(self.state, self.data, self.summary, self.manifest, audit)
 
     def test_stale_or_invalid_data_fails(self):
         data = {**self.data, "verification": {"fresh_videos": 3, "stale_or_invalid_videos": 1, "verified_72h": False}}
         with self.assertRaisesRegex(ValueError, "Freshness Data Gate"):
-            validate_success_evidence(self.state, data, self.manifest, self.audit)
+            validate_success_evidence(self.state, data, self.summary, self.manifest, self.audit)
 
     def test_success_writes_last_success_and_history(self):
         self.write_evidence()
@@ -138,6 +156,7 @@ class ExecutionEvidenceTests(unittest.TestCase):
         successful = {**self.state, "execution_id": "gh-104-attempt-1"}
         self.write_evidence(
             data={**self.data, "execution_id": "gh-104-attempt-1"},
+            summary={**self.summary, "execution_id": "gh-104-attempt-1"},
             manifest={**self.manifest, "execution_id": "gh-104-attempt-1"},
             audit={**self.audit, "execution_id": "gh-104-attempt-1"},
         )
