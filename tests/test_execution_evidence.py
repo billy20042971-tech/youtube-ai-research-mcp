@@ -66,6 +66,16 @@ class ExecutionEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "timestamps do not match"):
             validate_success_evidence(self.state, self.data, summary, self.manifest, self.audit)
 
+    def test_summary_count_must_match_verified_fresh_videos(self):
+        summary = {**self.summary, "sample_count": 2}
+        with self.assertRaisesRegex(ValueError, "does not match verified fresh video count"):
+            validate_success_evidence(self.state, self.data, summary, self.manifest, self.audit)
+
+    def test_boolean_counts_fail_closed(self):
+        data = {**self.data, "verification": {"fresh_videos": True, "stale_or_invalid_videos": 0, "verified_72h": True}}
+        with self.assertRaisesRegex(ValueError, "Freshness Data Gate failed"):
+            validate_success_evidence(self.state, data, self.summary, self.manifest, self.audit)
+
     def test_summary_sample_count_mismatch_fails(self):
         summary = {**self.summary, "sample_count": 2}
         with self.assertRaisesRegex(ValueError, "sample_count do not match"):
