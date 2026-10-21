@@ -99,7 +99,7 @@ class NotionWritebackTests(unittest.TestCase):
                  "has_more": False, "next_cursor": None},
             ],
         ) as request:
-            verified = verify_comment("page", "token", "created-id", execution_id)
+            verified = verify_comment("page", "token", "created-id", execution_id, f"execution_id: {execution_id}")
 
         self.assertTrue(verified)
         self.assertEqual(request.call_count, 2)
@@ -121,6 +121,23 @@ class NotionWritebackTests(unittest.TestCase):
             ]
         }
         self.assertEqual(text_from_comment(comment), "execution_id: gh-123attempt-1")
+
+
+    def test_readback_rejects_correct_id_with_wrong_comment_content(self):
+        execution_id = "gh-126-attempt-1"
+        with patch(
+            "scripts.notion_writeback.request_json",
+            return_value={"results": [self.comment("created-id", execution_id)],
+                          "has_more": False, "next_cursor": None},
+        ) as request:
+            verified = verify_comment(
+                "page", "token", "created-id", execution_id,
+                f"execution_id: {execution_id}\\nexpected body",
+            )
+
+        self.assertFalse(verified)
+        self.assertEqual(request.call_count, 2)
+        self.assertTrue(all(c.args[0] == "GET" for c in request.call_args_list))
 
 
 if __name__ == "__main__":

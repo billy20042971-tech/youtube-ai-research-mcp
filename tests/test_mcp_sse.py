@@ -36,3 +36,13 @@ class McpSseParserTests(unittest.TestCase):
     def test_rejects_malformed_payload_without_echoing_response(self):
         with self.assertRaisesRegex(RuntimeError, "Invalid JSON"):
             parse_mcp_response_text('data: {"jsonrpc":"2.0","result":{"text":"bad')
+
+
+    def test_rejects_empty_and_whitespace_only_response_bodies(self):
+        for raw in ("", "   ", " \t "):
+            with self.subTest(raw=repr(raw)), self.assertRaisesRegex(RuntimeError, "body is empty"):
+                parse_mcp_response_text(raw)
+
+    def test_rejects_sse_with_no_data_events(self):
+        with self.assertRaisesRegex(RuntimeError, "no data events"):
+            parse_mcp_response_text("event: message\\n\\n")

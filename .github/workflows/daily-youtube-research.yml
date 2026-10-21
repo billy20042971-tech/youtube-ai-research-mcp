@@ -79,14 +79,53 @@ jobs:
               "recovery_action": recovery or None
           }
           latest = Path("data/latest.json")
+          manifest_path = Path("reports/latest-manifest.json")
+          summary_path = Path("data/recent-summary.json")
+          data_bound = False
+          summary_bound = False
+          manifest_bound = False
           if latest.exists():
               try:
                   d=json.loads(latest.read_text(encoding="utf-8"))
-                  state["data_generated_at"]=d.get("generated_at")
-                  state["data_verification"]=d.get("verification", {})
+                  data_bound = d.get("execution_id") == execution_id
+                  if data_bound:
+                      state["data_generated_at"]=d.get("generated_at")
+                      state["data_sample_count"]=d.get("sample_count")
+                      state["data_verification"]=d.get("verification", {})
               except Exception:
-                  pass
-          Path("data/execution-state.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+                  data_bound = False
+          if summary_path.exists():
+              try:
+                  sm=json.loads(summary_path.read_text(encoding="utf-8"))
+                  summary_bound = (sm.get("execution_id") == execution_id and data_bound
+                                   and sm.get("generated_at") == d.get("generated_at"))
+                  if summary_bound:
+                      state["summary_generated_at"]=sm.get("generated_at")
+                      state["summary_sample_count"]=sm.get("sample_count")
+              except Exception:
+                  summary_bound = False
+          if manifest_path.exists():
+              try:
+                  m=json.loads(manifest_path.read_text(encoding="utf-8"))
+                  manifest_bound = m.get("execution_id") == execution_id
+                  if manifest_bound and data_bound:
+                      state["manifest_generated_at"]=m.get("generated_at")
+                      state["manifest_sample_count"]=m.get("sample_count")
+              except Exception:
+                  manifest_bound = False
+          state["data_execution_match"] = data_bound
+          state["summary_execution_match"] = summary_bound
+          state["manifest_execution_match"] = manifest_bound
+          if status == "SUCCESS" and not (data_bound and summary_bound and manifest_bound):
+              raise RuntimeError("Refusing SUCCESS state: data/manifest do not belong to this execution")
+          Path("data/executions").mkdir(parents=True, exist_ok=True)
+          Path(f"data/executions/{execution_id}.json").write_text(
+              json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          Path("data/execution-state.json").write_text(
+              json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          if status == "SUCCESS":
+              Path("data/last-successful-execution.json").write_text(
+                  json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
           }
 
@@ -110,9 +149,14 @@ jobs:
             fi
 
             if [ "$rc" -eq 0 ]; then
-              write_state "SUCCESS" "" ""
+              if ! write_state "SUCCESS" "" ""; then
+                rc=1
+                FAILURE_REASON="SUCCESS state rejected because data/manifest bindings are incomplete"
+                RECOVERY_ACTION="Inspect per-execution data, manifest, and execution IDs."
+                write_state "FAILED" "$FAILURE_REASON" "$RECOVERY_ACTION" || true
+              fi
             else
-              write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}"
+              write_state "FAILED" "${FAILURE_REASON:-Pipeline exited with code $rc}" "${RECOVERY_ACTION:-Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage.}" || true
             fi
 
             if [ "$GITHUB_REF" != "refs/heads/main" ]; then
@@ -172,11 +216,34 @@ jobs:
           call_tool() {
             local outfile="$1"
             local arguments="$2"
-            curl --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 240 -sS --fail-with-body \
-              -o "$outfile" -X POST "$MCP_URL" \
-              -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
-              -H "Mcp-Session-Id: $SESSION_ID" \
-              --data "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"youtube_research_sample\",\"arguments\":$arguments}}" 
+            local attempt=1
+            local max_attempts=2
+            local http_status=""
+            local curl_rc=0
+            while [ "$attempt" -le "$max_attempts" ]; do
+              : > "$outfile"
+              set +e
+              http_status="$(curl -sS -o "$outfile" -w '%{http_code}' --connect-timeout 15 --max-time 240 \
+                -X POST "$MCP_URL" \
+                -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+                -H "Mcp-Session-Id: $SESSION_ID" \
+                --data "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":3,\\"method\\":\\"tools/call\\",\\"params\\":{\\"name\\":\\"youtube_research_sample\\",\\"arguments\\":$arguments}}")"
+              curl_rc=$?
+              set -euo pipefail
+              if [ "$curl_rc" -eq 0 ] && [[ "$http_status" =~ ^2[0-9][0-9]$ ]] \
+                && [ -s "$outfile" ] && grep -q '[^[:space:]]' "$outfile"; then
+                echo "MCP tools/call attempt=$attempt HTTP=$http_status body=nonempty"
+                return 0
+              fi
+              echo "::warning::MCP tools/call attempt=$attempt/$max_attempts curl_exit=$curl_rc HTTP=${http_status:-empty} body_nonempty=$(if [ -s "$outfile" ] && grep -q '[^[:space:]]' "$outfile"; then echo true; else echo false; fi)"
+              if [ "$attempt" -lt "$max_attempts" ]; then
+                echo "MCP tools/call retrying once after bounded 5-second backoff."
+                sleep 5
+              fi
+              attempt=$((attempt + 1))
+            done
+            echo "::error::MCP tools/call failed after $max_attempts attempts; empty or invalid HTTP response will not be parsed."
+            return 1
           }
 
           echo "=== 3. Fixed sample ==="
@@ -194,10 +261,11 @@ jobs:
             || fail "MCP dynamic 72h sample failed" "Retry the MCP tool call; do not publish stale data."
 
           echo "=== 5. Parse and verify ==="
-          python - <<'PY' || exit 1
-          import json
+          EXECUTION_ID="$EXECUTION_ID" python - <<'PY' || exit 1
+          import json, os
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
+          from zoneinfo import ZoneInfo
 
           from scripts.mcp_sse import parse_mcp_response_file
 
@@ -227,6 +295,8 @@ jobs:
                   f"72h verification failed: fresh={len(fresh)}, stale_or_invalid={len(stale)}"
               )
           data={
+              "execution_id":os.environ["EXECUTION_ID"],
+              "sample_count":len(fresh),
               "generated_at":now.isoformat(),
               "source":"YouTube Research MCP",
               "mcp_endpoint":"https://youtube-ai-research-mcp.onrender.com/mcp",
@@ -236,7 +306,7 @@ jobs:
               "verification":{"fresh_videos":len(fresh),"stale_or_invalid_videos":len(stale),"verified_72h":verified_72h}
           }
           out=Path("data"); out.mkdir(exist_ok=True)
-          stamp=now.strftime("%Y-%m-%d")
+          stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")
           (out/f"youtube-research-{stamp}.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
           (out/"latest.json").write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8")
           print(f"Verified 72h data: fresh={len(fresh)}, stale={len(stale)}")
@@ -252,7 +322,7 @@ jobs:
           src=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
           recent=src["recent_72h_sample"]
           enriched={v["video_id"]:v for v in recent.get("videos",[]) if v.get("video_id")}
-          out={"generated_at":src["generated_at"],"recent_72h_sample":{}}
+          out={"execution_id":src.get("execution_id"),"sample_count":src.get("sample_count"),"generated_at":src["generated_at"],"recent_72h_sample":{}}
           for q,d in recent.get("per_query",{}).items():
               out["recent_72h_sample"][q]=[]
               for v in d.get("videos",[]):
@@ -292,9 +362,51 @@ jobs:
           print("Word/PPTX/PNG manifest verified and fresh.")
           PY
 
-          echo "=== 8. Notion writeback and readback audit ==="
+          echo "=== 8. Bind manifest and data to this execution ==="
+          EXECUTION_ID="$EXECUTION_ID" python - <<'PY' || fail "Data/manifest execution binding failed" "Do not write Notion audit or mark the run successful when data and reports do not belong to the same execution."
+          import json, os
+          from pathlib import Path
+          from datetime import datetime, timezone, timedelta
+          execution_id=os.environ["EXECUTION_ID"]
+          data=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
+          summary=json.loads(Path("data/recent-summary.json").read_text(encoding="utf-8"))
+          manifest_path=Path("reports/latest-manifest.json")
+          manifest=json.loads(manifest_path.read_text(encoding="utf-8"))
+          if data.get("execution_id") != execution_id:
+              raise RuntimeError("data/latest.json execution_id does not match this run")
+          if summary.get("execution_id") != execution_id or summary.get("generated_at") != data.get("generated_at"):
+              raise RuntimeError("data/recent-summary.json does not match this execution/data timestamp")
+          if summary.get("sample_count") != data.get("sample_count"):
+              raise RuntimeError("data/recent-summary.json sample_count mismatch")
+          verification=data.get("verification", {})
+          fresh=verification.get("fresh_videos", 0)
+          stale=verification.get("stale_or_invalid_videos", -1)
+          if verification.get("verified_72h") is not True or not isinstance(fresh,int) or fresh <= 0 or stale != 0:
+              raise RuntimeError("Data verification gate is not PASS")
+          if manifest.get("sample_count") != data.get("sample_count") or data.get("sample_count") != fresh:
+              raise RuntimeError("Data and manifest sample_count mismatch")
+          generated=manifest.get("generated_at")
+          if not generated:
+              raise RuntimeError("Manifest generated_at is missing")
+          dt=datetime.fromisoformat(generated.replace("Z","+00:00"))
+          if dt.tzinfo is None:
+              dt=dt.replace(tzinfo=timezone.utc)
+          if dt < datetime.now(timezone.utc)-timedelta(minutes=15):
+              raise RuntimeError("Manifest is stale")
+          for key in ("word","pptx","chart"):
+              path=Path(manifest.get(key,""))
+              if not path.is_file() or path.stat().st_size <= 0:
+                  raise RuntimeError(f"Missing/empty report artifact: {key}")
+          manifest["execution_id"]=execution_id
+          manifest["data_generated_at"]=data["generated_at"]
+          manifest["verification"]=verification
+          manifest_path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print(f"Bound data and manifest to {execution_id}; sample_count={fresh}")
+          PY
+
+          echo "=== 9. Notion writeback and readback audit ==="
           NOTION_API_KEY="${{ secrets.NOTION_API_KEY }}" NOTION_PAGE_ID="${{ secrets.NOTION_PAGE_ID }}" \
             python scripts/notion_writeback.py \
             || fail "Notion writeback/readback verification failed" "Check NOTION_API_KEY, NOTION_PAGE_ID, page sharing, and Notion API permissions."
 
-          echo "=== 9. Pipeline complete ==="
+          echo "=== 10. Pipeline complete ==="
