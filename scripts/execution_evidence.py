@@ -17,14 +17,17 @@ def _read_json(path: Path) -> dict[str, Any]:
 def validate_success_evidence(
     state: dict[str, Any],
     data: dict[str, Any],
+    summary: dict[str, Any],
     manifest: dict[str, Any],
     audit: dict[str, Any],
 ) -> None:
     execution_id = state.get("execution_id")
     if not isinstance(execution_id, str) or not execution_id:
         raise ValueError("Current execution ID is missing")
-    if not all(item.get("execution_id") == execution_id for item in (data, manifest, audit)):
-        raise ValueError("Data, report manifest, and Notion audit execution IDs do not match")
+    if not all(item.get("execution_id") == execution_id for item in (data, summary, manifest, audit)):
+        raise ValueError("Data, recent summary, report manifest, and Notion audit execution IDs do not match")
+    if summary.get("generated_at") != data.get("generated_at"):
+        raise ValueError("Data and recent summary timestamps do not match")
     if state.get("status") != "SUCCESS" or state.get("data") != "PASS" or state.get("reports") != "PASS" or state.get("verification") != "PASS":
         raise ValueError("Execution status gates are not all PASS")
     verification = data.get("verification")
@@ -34,6 +37,10 @@ def validate_success_evidence(
         raise ValueError("Freshness Data Gate failed")
     if not isinstance(manifest.get("sample_count"), int) or manifest["sample_count"] <= 0:
         raise ValueError("Report manifest sample_count is missing or invalid")
+    if not isinstance(summary.get("sample_count"), int) or summary["sample_count"] <= 0:
+        raise ValueError("Recent summary sample_count is missing or invalid")
+    if summary["sample_count"] != manifest["sample_count"]:
+        raise ValueError("Recent summary and report manifest sample_count do not match")
     try:
         data_time = datetime.fromisoformat(str(data["generated_at"]).replace("Z", "+00:00"))
         manifest_time = datetime.fromisoformat(str(manifest["generated_at"]).replace("Z", "+00:00"))
@@ -62,9 +69,10 @@ def record_execution_state(
 
     if state.get("status") == "SUCCESS":
         data = _read_json(root / "data/latest.json")
+        summary = _read_json(root / "data/recent-summary.json")
         manifest = _read_json(root / "reports/latest-manifest.json")
         audit = _read_json(root / "data/notion-writeback-audit.json")
-        validate_success_evidence(state, data, manifest, audit)
+        validate_success_evidence(state, data, summary, manifest, audit)
 
     (root / "data/execution-state.json").write_text(
         json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
