@@ -64,6 +64,25 @@ class ExecutionEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "execution IDs do not match"):
             validate_success_evidence(self.state, self.data, self.manifest, audit)
 
+    def test_manifest_timestamp_mismatch_fails(self):
+        manifest = {**self.manifest, "generated_at": "2026-10-21T02:00:00Z"}
+        with self.assertRaisesRegex(ValueError, "timestamps differ"):
+            validate_success_evidence(self.state, self.data, manifest, self.audit)
+
+    def test_recovery_success_keeps_recovery_trigger_distinct(self):
+        self.write_evidence()
+        recovery = {**self.state, "execution_id": "gh-105-attempt-1",
+                    "trigger": "workflow_dispatch", "recovery_attempt": True}
+        self.write_evidence(
+            data={**self.data, "execution_id": "gh-105-attempt-1"},
+            manifest={**self.manifest, "execution_id": "gh-105-attempt-1"},
+            audit={**self.audit, "execution_id": "gh-105-attempt-1"},
+        )
+        record_execution_state(recovery, root=self.root)
+        saved = json.loads((self.root / "data/latest-successful-execution.json").read_text())
+        self.assertEqual(saved["trigger"], "workflow_dispatch")
+        self.assertTrue(saved["recovery_attempt"])
+
     def test_audit_readback_false_fails(self):
         audit = {**self.audit, "readback_verified": False}
         with self.assertRaisesRegex(ValueError, "Audit is not PASS"):
