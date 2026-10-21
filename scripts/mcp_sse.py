@@ -7,14 +7,27 @@ from typing import Any
 
 
 def _decode_payload(payload: str, source: str) -> dict[str, Any]:
+    # Be tolerant of whitespace/BOM and a single SSE data prefix even when the
+    # response is incorrectly labelled as plain JSON.
+    text = payload.strip().lstrip("\ufeff").strip()
+    if text.startswith("data:"):
+        text = text[5:]
+        if text.startswith(" "):
+            text = text[1:]
+        text = text.strip()
     try:
-        value = json.loads(payload)
+        value = json.loads(text)
     except json.JSONDecodeError as exc:
+        preview = repr(payload[:200])
         raise RuntimeError(
-            f"Invalid JSON in MCP {source} payload (line {exc.lineno}, column {exc.colno})."
+            f"Invalid JSON in MCP {source} payload (line {exc.lineno}, "
+            f"column {exc.colno}); raw payload preview (first 200 chars): {preview}"
         ) from None
     if not isinstance(value, dict):
-        raise RuntimeError(f"MCP {source} payload is not a JSON object.")
+        raise RuntimeError(
+            f"MCP {source} payload is not a JSON object; "
+            f"raw payload preview (first 200 chars): {payload[:200]!r}"
+        )
     if "error" in value:
         raise RuntimeError("MCP returned a JSON-RPC error.")
     return value
@@ -22,9 +35,9 @@ def _decode_payload(payload: str, source: str) -> dict[str, Any]:
 
 def parse_mcp_response_text(raw: str) -> Any:
     """Parse a JSON response or the final valid JSON event in an SSE response."""
-    text = raw.lstrip("\ufeff").strip()
+    text = raw.strip().lstrip("\ufeff").strip()
     if not text:
-        raise RuntimeError("MCP response body is empty.")
+        raise RuntimeError("MCP response body is empty; raw payload preview (first 200 chars): ''")
 
     if not text.startswith(("data:", "event:", "id:", "retry:")):
         outer = _decode_payload(text, "JSON")
@@ -46,7 +59,10 @@ def parse_mcp_response_text(raw: str) -> Any:
             events.append("\n".join(current))
 
         if not events:
-            raise RuntimeError("MCP SSE response contains no data events.")
+            raise RuntimeError(
+                "MCP SSE response contains no data events; "
+                f"raw payload preview (first 200 chars): {text[:200]!r}"
+            )
 
         outer = None
         last_error: RuntimeError | None = None
@@ -62,7 +78,10 @@ def parse_mcp_response_text(raw: str) -> Any:
         if outer is None:
             if last_error:
                 raise last_error
-            raise RuntimeError("MCP SSE response contains no JSON response event.")
+            raise RuntimeError(
+                "MCP SSE response contains no JSON response event; "
+                f"raw payload preview (first 200 chars): {text[:200]!r}"
+            )
 
     result = outer.get("result", {})
     if not isinstance(result, dict):
@@ -76,7 +95,10 @@ def parse_mcp_response_text(raw: str) -> Any:
             try:
                 return json.loads(content)
             except (json.JSONDecodeError, TypeError):
-                raise RuntimeError("MCP text content is not valid JSON.") from None
+                raise RuntimeError(
+                    "MCP text content is not valid JSON; "
+                    f"raw payload preview (first 200 chars): {str(content)[:200]!r}"
+                ) from None
     # Some tools return their object directly as the result.
     if result:
         return result

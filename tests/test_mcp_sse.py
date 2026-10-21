@@ -13,6 +13,15 @@ class McpSseParserTests(unittest.TestCase):
         payload = {"jsonrpc": "2.0", "id": 3, "result": {"structuredContent": {"videos": [1]}}}
         self.assertEqual(parse_mcp_response_text("data: " + json.dumps(payload) + "\n\n"), {"videos": [1]})
 
+    def test_parses_json_with_leading_whitespace_and_bom(self):
+        payload = {"jsonrpc": "2.0", "id": 3, "result": {"structuredContent": {"ok": True}}}
+        raw = " \ufeff  " + json.dumps(payload) + "\n"
+        self.assertEqual(parse_mcp_response_text(raw), {"ok": True})
+
+    def test_parses_data_prefixed_json_with_leading_whitespace(self):
+        payload = {"jsonrpc": "2.0", "id": 3, "result": {"structuredContent": {"ok": True}}}
+        self.assertEqual(parse_mcp_response_text("  data: " + json.dumps(payload)), {"ok": True})
+
     def test_combines_multiline_sse_data_event(self):
         payload = {
             "jsonrpc": "2.0",
@@ -33,6 +42,12 @@ class McpSseParserTests(unittest.TestCase):
         payload = {"jsonrpc": "2.0", "id": 3, "result": {"content": [{"type": "text", "text": json.dumps({"ok": True})}]}}
         self.assertEqual(parse_mcp_response_text(json.dumps(payload)), {"ok": True})
 
-    def test_rejects_malformed_payload_without_echoing_response(self):
-        with self.assertRaisesRegex(RuntimeError, "Invalid JSON"):
-            parse_mcp_response_text('data: {"jsonrpc":"2.0","result":{"text":"bad')
+    def test_rejects_malformed_payload_with_first_200_chars(self):
+        raw = "<html>" + ("x" * 250)
+        with self.assertRaisesRegex(RuntimeError, "Invalid JSON") as ctx:
+            parse_mcp_response_text(raw)
+        message = str(ctx.exception)
+        self.assertIn("raw payload preview (first 200 chars)", message)
+        self.assertIn("<html>", message)
+        self.assertIn("x" * 190, message)
+        self.assertNotIn("x" * 201, message)
