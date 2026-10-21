@@ -105,6 +105,16 @@ class NotionWritebackTests(unittest.TestCase):
         self.assertEqual(request.call_count, 2)
         self.assertTrue(all(c.args[0] == "GET" for c in request.call_args_list))
 
+    def test_readback_rejects_content_mismatch_even_when_execution_id_matches(self):
+        execution_id = "gh-126-attempt-1"
+        expected = f"execution_id: {execution_id}\\nexpected full audit content"
+        with patch(
+            "scripts.notion_writeback.request_json",
+            return_value={"results": [self.comment("created-id", execution_id)],
+                          "has_more": False, "next_cursor": None},
+        ):
+            self.assertFalse(verify_comment("page", "token", "created-id", execution_id, expected))
+
     def test_rejects_repeated_pagination_cursor(self):
         with patch(
             "scripts.notion_writeback.request_json",
