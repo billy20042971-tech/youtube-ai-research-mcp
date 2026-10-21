@@ -179,6 +179,9 @@ class ExecutionEvidenceTests(unittest.TestCase):
         self.assertEqual(saved["status"], "NOT_RUN")
         self.assertFalse(saved["writeback_verified"])
         self.assertFalse(saved["readback_verified"])
+        history = json.loads((self.root / "data/notion-writeback-audit-history.json").read_text())
+        self.assertEqual(history["audits"][-1]["execution_id"], "gh-106-attempt-1")
+        self.assertEqual(history["audits"][-1]["status"], "NOT_RUN")
 
     def test_failure_does_not_overwrite_same_execution_notion_audit(self):
         self.write_evidence()
