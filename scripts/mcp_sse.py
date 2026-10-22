@@ -35,7 +35,10 @@ def _decode_payload(payload: str, source: str) -> dict[str, Any]:
 
 def parse_mcp_response_text(raw: str) -> Any:
     """Parse a JSON response or the final valid JSON event in an SSE response."""
+    # SSE comments (including server heartbeat/ping lines) are not part of an
+    # event's data. Remove them before deciding whether the body is JSON or SSE.
     text = raw.strip().lstrip("\ufeff").strip()
+    text = "\n".join(line for line in text.splitlines() if not line.startswith(":")).strip()
     if not text:
         raise RuntimeError("MCP response body is empty; raw payload preview (first 200 chars): ''")
 

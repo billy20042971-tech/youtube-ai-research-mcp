@@ -22,6 +22,29 @@ class McpSseParserTests(unittest.TestCase):
         payload = {"jsonrpc": "2.0", "id": 3, "result": {"structuredContent": {"ok": True}}}
         self.assertEqual(parse_mcp_response_text("  data: " + json.dumps(payload)), {"ok": True})
 
+    def test_ignores_leading_sse_ping_comment(self):
+        payload = {"jsonrpc": "2.0", "id": 3, "result": {"structuredContent": {"ok": True}}}
+        raw = ": ping - 2026-10-22 00:21:09.517050+00:00\n\ndata: " + json.dumps(payload) + "\n\n"
+        self.assertEqual(parse_mcp_response_text(raw), {"ok": True})
+
+    def test_ignores_multiple_sse_comment_lines_between_data_lines(self):
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": {"structuredContent": {"title": "AI 趨勢", "videos": [{"id": "a"}, {"id": "b"}]}},
+        }
+        pretty = json.dumps(payload, ensure_ascii=False, indent=2)
+        data_lines = pretty.splitlines()
+        raw = (
+            ": ping - timestamp one\n"
+            ": heartbeat detail\n"
+            + "\n".join("data: " + line for line in data_lines[:2])
+            + "\n: ping - timestamp two\n"
+            + "\n".join("data: " + line for line in data_lines[2:])
+            + "\n\n"
+        )
+        self.assertEqual(parse_mcp_response_text(raw), payload["result"]["structuredContent"])
+
     def test_combines_multiline_sse_data_event(self):
         payload = {
             "jsonrpc": "2.0",
