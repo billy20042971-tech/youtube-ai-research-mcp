@@ -49,6 +49,197 @@ def comment_text(execution_id: str, manifest: dict, state: dict) -> str:
     )
 
 
+
+DIMENSIONS = [
+    ("🔥 熱門焦點", ("viral", "trend", "popular", "views", "hot", "熱門", "趨勢", "爆紅")),
+    ("🚀 技術突破", ("model", "llm", "benchmark", "release", "sdk", "api", "模型", "發布", "技術", "突破")),
+    ("💡 Agent/MCP 落地", ("agent", "mcp", "workflow", "automation", "tool calling", "代理", "自動化", "工作流")),
+    ("💬 社群熱議", ("debate", "opinion", "problem", "issue", "cost", "controversy", "爭議", "問題", "成本", "踩坑")),
+    ("🛠️ 工具推薦", ("github", "open source", "repo", "tool", "prompt", "工具", "開源", "提示詞")),
+]
+NOTION_TEXT_LIMIT = 1800
+
+
+def split_text(text: str, limit: int = NOTION_TEXT_LIMIT) -> list[str]:
+    """Split content into safe Notion rich_text chunks, never exceeding 2000 chars."""
+    text = str(text or "")
+    if not text:
+        return [""]
+    chunks = []
+    while len(text) > limit:
+        cut = text.rfind("\n", 0, limit + 1)
+        if cut < limit // 2:
+            cut = limit
+        chunks.append(text[:cut])
+        text = text[cut:].lstrip("\n")
+    if text:
+        chunks.append(text)
+    return chunks
+
+
+def rich_text(content: str, *, bold: bool = False, url: str | None = None) -> list[dict]:
+    """Build schema-valid Notion rich_text items with per-item text limits."""
+    result = []
+    for part in split_text(content):
+        item = {
+            "type": "text",
+            "text": {"content": part},
+            "annotations": {"bold": bold},
+        }
+        if url and len(result) == 0:
+            item["text"]["link"] = {"url": url}
+        result.append(item)
+    return result
+
+
+def paragraph_block(text: str, *, bold: bool = False, url: str | None = None) -> dict:
+    return {"object": "block", "type": "paragraph", "paragraph": {"rich_text": rich_text(text, bold=bold, url=url)}}
+
+
+def bullet_block(label: str, body: str) -> list[dict]:
+    return [paragraph_block(label, bold=True)] + [
+        {"object": "block", "type": "bulleted_list_item", "bulleted_list_item": {"rich_text": rich_text(part)}}
+        for part in split_text(body) if part
+    ]
+
+
+def classify_video(video: dict) -> str:
+    text = " ".join(str(video.get(k, "")) for k in ("title", "description", "tags", "query", "channel_title")).lower()
+    for dimension, keywords in DIMENSIONS:
+        if any(word in text for word in keywords):
+            return dimension
+    return "🔥 熱門焦點"
+
+
+def video_blocks(video: dict, index: int) -> list[dict]:
+    """Render a source-grounded mobile briefing card; do not invent missing details."""
+    title = str(video.get("title") or "（影片未提供標題）").strip()
+    channel = str(video.get("channel_title") or "來源頻道未提供").strip()
+    url = str(video.get("url") or "").strip()
+    description = str(video.get("description") or "").strip()
+    if not description:
+        description = "來源未提供影片描述；需開啟原始影片或逐字稿補足事件背景。"
+    published = str(video.get("published_at") or "未提供")
+    views = video.get("views", "未提供")
+    likes = video.get("likes", "未提供")
+    comments = video.get("comments", [])
+    if not isinstance(comments, list):
+        comments = []
+    tags = video.get("tags", [])
+    if isinstance(tags, list):
+        tags_text = "、".join(str(x) for x in tags[:12]) or "未提供"
+    else:
+        tags_text = str(tags or "未提供")
+    comment_texts = []
+    for comment in comments[:3]:
+        value = comment.get("text", "") if isinstance(comment, dict) else str(comment)
+        value = " ".join(str(value).split())
+        if value:
+            comment_texts.append(value[:500])
+    blocks = [{
+        "object": "block", "type": "heading_3",
+        "heading_3": {"rich_text": rich_text(f"📌 {index}. {title}")},
+    }]
+    blocks.extend(bullet_block("📌 標題與事件來源", f"頻道／作者：{channel}；發布時間：{published}；觀看數：{views}；喜歡數：{likes}。"))
+    blocks.extend(bullet_block("📜 事件背景與來龍去脈（Context）", description))
+    blocks.extend(bullet_block("⚙️ 核心機制與技術動態（Technical Breakdown）",
+        f"影片標籤／檢索線索：{tags_text}。目前這是依來源中可取得的描述與標籤整理；若來源沒有提供版本、架構或效能數據，不推測或補造。"))
+    insight = (
+        "實務建議：先依影片提供的原始步驟做小範圍、可回復的測試，記錄成本、品質、耗時與失敗案例，再決定是否納入正式流程。"
+        if description and description != "來源未提供影片描述；需開啟原始影片或逐字稿補足事件背景。"
+        else "實務建議：先閱讀／觀看原始來源並確認其主張與證據，再評估是否值得試用；目前資料不足，不對效益作結論。"
+    )
+    blocks.extend(bullet_block("💡 影響評估與落地建議（Actionable Insights）", insight))
+    if comment_texts:
+        blocks.extend(bullet_block("💬 可取得的社群回饋（非代表性樣本）", "；".join(comment_texts)))
+    if url:
+        blocks.append(paragraph_block(f"🔗 原始參考連結／影片：{url}", url=url))
+    else:
+        blocks.append(paragraph_block("🔗 原始參考連結／影片：來源未提供可用網址。"))
+    blocks.append({"object": "block", "type": "divider", "divider": {}})
+    return blocks
+
+
+def build_deep_briefing_blocks(latest: dict, manifest: dict, execution_id: str) -> list[dict]:
+    """Build phone-friendly Notion blocks from available source evidence."""
+    recent = latest.get("recent_72h_sample", {}) if isinstance(latest, dict) else {}
+    videos = recent.get("videos", []) if isinstance(recent, dict) else []
+    if not isinstance(videos, list):
+        videos = []
+    videos = [v for v in videos if isinstance(v, dict)]
+    date_text = str(manifest.get("generated_at") or now_iso())[:10]
+    count = manifest.get("sample_count", len(videos))
+    titles = [str(v.get("title", "")).strip() for v in videos[:5] if v.get("title")]
+    overview = "；".join(titles) if titles else "本次來源資料未提供可用影片標題，請檢查原始資料。"
+    blocks = [{
+        "object": "block", "type": "callout",
+        "callout": {
+            "rich_text": rich_text(f"📱 每日 AI 情報雷達｜{date_text}\n採樣影片：{count} 筆\n當日動態一覽：{overview}\n執行識別：{execution_id}"),
+            "icon": {"type": "emoji", "emoji": "🧭"},
+        },
+    }]
+    buckets = {name: [] for name, _ in DIMENSIONS}
+    for video in videos:
+        buckets[classify_video(video)].append(video)
+    index = 0
+    for dimension, _keywords in DIMENSIONS:
+        blocks.append({"object": "block", "type": "heading_2", "heading_2": {"rich_text": rich_text(dimension)}})
+        blocks.append({"object": "block", "type": "divider", "divider": {}})
+        entries = buckets[dimension]
+        if not entries:
+            blocks.append(paragraph_block("本次樣本沒有可可靠歸入此維度的項目；不以推測補足。"))
+            continue
+        for video in entries:
+            index += 1
+            blocks.extend(video_blocks(video, index))
+    return blocks
+
+
+def list_page_blocks(page_id: str, token: str) -> list[dict]:
+    """Read all child blocks for an independent post-write verification."""
+    results = []
+    cursor = None
+    seen = set()
+    while True:
+        params = {"page_size": "100"}
+        if cursor:
+            params["start_cursor"] = cursor
+        listing = request_json("GET", f"/blocks/{page_id}/children?{urllib.parse.urlencode(params)}", token)
+        page_results = listing.get("results", [])
+        if not isinstance(page_results, list):
+            raise RuntimeError("Notion block response has an invalid results field.")
+        results.extend(x for x in page_results if isinstance(x, dict))
+        if not listing.get("has_more"):
+            return results
+        next_cursor = listing.get("next_cursor")
+        if not isinstance(next_cursor, str) or not next_cursor or next_cursor in seen:
+            raise RuntimeError("Notion block pagination returned an invalid cursor.")
+        seen.add(next_cursor)
+        cursor = next_cursor
+
+
+def ensure_deep_briefing(page_id: str, token: str, latest: dict, manifest: dict, execution_id: str) -> tuple[int, bool]:
+    """Append one briefing per execution; existing execution marker prevents duplicate pages."""
+    existing = list_page_blocks(page_id, token)
+    marker = f"執行識別：{execution_id}"
+    if any(marker in "".join(
+        item.get("plain_text", item.get("text", {}).get("content", ""))
+        for item in block.get(block.get("type", ""), {}).get("rich_text", [])
+    ) for block in existing):
+        return len(existing), True
+    blocks = build_deep_briefing_blocks(latest, manifest, execution_id)
+    for offset in range(0, len(blocks), 100):
+        request_json("PATCH", f"/blocks/{page_id}/children", token, {"children": blocks[offset:offset + 100]})
+    readback = list_page_blocks(page_id, token)
+    found = any(marker in "".join(
+        item.get("plain_text", item.get("text", {}).get("content", ""))
+        for item in block.get(block.get("type", ""), {}).get("rich_text", [])
+    ) for block in readback)
+    if not found:
+        # Callout may be nested in paginated response only as top-level; failure is explicit.
+        raise RuntimeError("Notion deep briefing block could not be verified by readback.")
+    return len(blocks), True
+
 def request_json(method: str, path: str, token: str, payload: dict | None = None) -> dict:
     body = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
@@ -194,6 +385,7 @@ def main() -> int:
     if latest.get("execution_id") != execution_id or manifest.get("execution_id") != execution_id:
         raise RuntimeError("Data and report manifest execution IDs do not match the current GitHub run.")
 
+    block_count, blocks_readback_verified = ensure_deep_briefing(page_id, token, latest, manifest, execution_id)
     text = comment_text(execution_id, manifest, state)
     comment_id = ensure_comment(page_id, token, execution_id, text)
     if not verify_comment(page_id, token, comment_id, execution_id, text):
@@ -207,6 +399,8 @@ def main() -> int:
         "comment_id": comment_id,
         "writeback_verified": True,
         "readback_verified": True,
+        "deep_briefing_blocks": block_count,
+        "deep_briefing_readback_verified": blocks_readback_verified,
         "readback_content_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
         "sample_count": manifest.get("sample_count"),
         "github_run_id": state.get("github_run_id", os.environ.get("GITHUB_RUN_ID")),

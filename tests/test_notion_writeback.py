@@ -1,4 +1,5 @@
 import unittest
+import json
 from unittest.mock import call, patch
 
 from scripts import notion_writeback
@@ -9,6 +10,9 @@ from scripts.notion_writeback import (
     text_from_comment,
     verify_comment,
     validate_target_page_id,
+    build_deep_briefing_blocks,
+    split_text,
+    video_blocks,
 )
 
 
@@ -140,6 +144,58 @@ class NotionWritebackTests(unittest.TestCase):
             ]
         }
         self.assertEqual(text_from_comment(comment), "execution_id: gh-123attempt-1")
+
+
+    def test_split_text_never_exceeds_notion_rich_text_limit(self):
+        chunks = split_text(("字" * 1999) + "\n" + ("長" * 2500))
+        self.assertTrue(chunks)
+        self.assertTrue(all(len(chunk) <= 2000 for chunk in chunks))
+        self.assertEqual("".join(chunks).replace("\n", ""), ("字" * 1999) + ("長" * 2500))
+
+    def test_deep_briefing_contains_mobile_navigation_and_five_dimensions(self):
+        blocks = build_deep_briefing_blocks(
+            {"recent_72h_sample": {"videos": [
+                {"title": "MCP agent workflow update", "channel_title": "Example Channel",
+                 "description": "A workflow update and implementation detail.", "published_at": "2026-10-22",
+                 "views": 1200, "likes": 80, "url": "https://example.com/video",
+                 "tags": ["MCP", "agent"], "comments": [{"text": "Useful demo"}]},
+            ]}},
+            {"sample_count": 1, "generated_at": "2026-10-22T04:00:00+00:00"},
+            "gh-test-attempt-1",
+        )
+        self.assertEqual(blocks[0]["type"], "callout")
+        self.assertIn("執行識別：gh-test-attempt-1",
+                      blocks[0]["callout"]["rich_text"][0]["text"]["content"])
+        headings = [
+            "".join(x["text"]["content"] for x in b["heading_2"]["rich_text"])
+            for b in blocks if b["type"] == "heading_2"
+        ]
+        self.assertEqual(headings, [
+            "🔥 熱門焦點", "🚀 技術突破", "💡 Agent/MCP 落地", "💬 社群熱議", "🛠️ 工具推薦"
+        ])
+        all_text = json.dumps(blocks, ensure_ascii=False)
+        for expected in ("📜 事件背景", "⚙️ 核心機制", "💡 影響評估", "https://example.com/video"):
+            self.assertIn(expected, all_text)
+
+    def test_deep_briefing_blocks_match_notion_block_schema_and_text_limits(self):
+        blocks = video_blocks({
+            "title": "A" * 2500,
+            "channel_title": "Example",
+            "description": "B" * 5000,
+            "url": "https://example.com/video",
+        }, 1)
+        self.assertEqual(blocks[0]["object"], "block")
+        for block in blocks:
+            self.assertIn("type", block)
+            self.assertIn(block["type"], {
+                "heading_3", "paragraph", "bulleted_list_item", "divider"
+            })
+            if block["type"] != "divider":
+                payload = block[block["type"]]
+                self.assertIn("rich_text", payload)
+                for item in payload["rich_text"]:
+                    self.assertLessEqual(len(item["text"]["content"]), 2000)
+                    self.assertEqual(item["type"], "text")
 
 
 if __name__ == "__main__":
