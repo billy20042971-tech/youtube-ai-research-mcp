@@ -74,3 +74,39 @@ class McpSseParserTests(unittest.TestCase):
         self.assertIn("<html>", message)
         self.assertIn("x" * 190, message)
         self.assertNotIn("x" * 201, message)
+
+    def test_ignores_ping_comments_at_start_middle_and_end(self):
+        payload = {"jsonrpc": "2.0", "id": 3, "result": {"structuredContent": {"ok": True}}}
+        raw = (
+            ": ping - start\n"
+            "data: " + json.dumps(payload) + "\n"
+            ": ping - middle\n"
+            "\n"
+            ": ping - end\n"
+        )
+        self.assertEqual(parse_mcp_response_text(raw), {"ok": True})
+
+    def test_ignores_unexpected_sse_event_headers(self):
+        payload = {"jsonrpc": "2.0", "id": 3, "result": {"structuredContent": {"ok": "header-safe"}}}
+        raw = (
+            "event: heartbeat\n"
+            "id: 123\n"
+            ": ping - timestamp\n"
+            "data: " + json.dumps(payload) + "\n\n"
+        )
+        self.assertEqual(parse_mcp_response_text(raw), {"ok": "header-safe"})
+
+    def test_parses_bom_before_ping_comment_and_data(self):
+        payload = {"jsonrpc": "2.0", "id": 3, "result": {"structuredContent": {"ok": "bom-safe"}}}
+        raw = "\ufeff: ping - timestamp\n\n" + "data: " + json.dumps(payload) + "\n\n"
+        self.assertEqual(parse_mcp_response_text(raw), {"ok": "bom-safe"})
+
+    def test_blank_line_ends_event_and_parser_uses_later_valid_event(self):
+        progress = {"jsonrpc": "2.0", "method": "notifications/progress", "params": {}}
+        final = {"jsonrpc": "2.0", "id": 3, "result": {"structuredContent": {"ok": "after-blank"}}}
+        raw = (
+            "event: heartbeat\ndata: " + json.dumps(progress) + "\n\n"
+            ": ping - between events\n"
+            "event: message\nid: 123\ndata: " + json.dumps(final) + "\n\n"
+        )
+        self.assertEqual(parse_mcp_response_text(raw), {"ok": "after-blank"})
