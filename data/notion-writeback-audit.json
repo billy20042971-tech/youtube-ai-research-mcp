@@ -1,11 +1,9 @@
 {
-  "execution_id": "gh-39526060053-attempt-1",
-  "status": "PASS",
-  "checked_at": "2026-10-21T01:14:43.749974+00:00",
-  "page_id": "3cc40065-15d9-806c-b196-f038cf8c5bc4",
-  "comment_id": "40040065-15d9-81d3-80e7-001d8cbbc656",
-  "writeback_verified": true,
-  "readback_verified": true,
-  "sample_count": 40,
-  "github_run_id": "39526060053"
+  "execution_id": "gh-39699098042-attempt-1",
+  "status": "NOT_RUN",
+  "checked_at": "2026-10-22T00:21:19.217128+00:00",
+  "github_run_id": "39699098042",
+  "writeback_verified": false,
+  "readback_verified": false,
+  "error": "Pipeline exited with code 1"
 }

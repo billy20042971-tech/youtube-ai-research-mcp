@@ -1,0 +1,13 @@
+{
+  "audits": [
+    {
+      "execution_id": "gh-39699098042-attempt-1",
+      "status": "NOT_RUN",
+      "checked_at": "2026-10-22T00:21:19.217128+00:00",
+      "github_run_id": "39699098042",
+      "writeback_verified": false,
+      "readback_verified": false,
+      "error": "Pipeline exited with code 1"
+    }
+  ]
+}
