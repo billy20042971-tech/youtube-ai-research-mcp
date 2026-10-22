@@ -153,7 +153,7 @@ def video_blocks(video: dict, index: int) -> list[dict]:
     if comment_texts:
         blocks.extend(bullet_block("💬 可取得的社群回饋（非代表性樣本）", "；".join(comment_texts)))
     if url:
-        blocks.append(paragraph_block("🔗 原始參考連結／影片", url, url=url))
+        blocks.append(paragraph_block(f"🔗 原始參考連結／影片：{url}", url=url))
     else:
         blocks.append(paragraph_block("🔗 原始參考連結／影片：來源未提供可用網址。"))
     blocks.append({"object": "block", "type": "divider", "divider": {}})
