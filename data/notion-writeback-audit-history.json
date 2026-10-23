@@ -8,6 +8,20 @@
       "writeback_verified": false,
       "readback_verified": false,
       "error": "Pipeline exited with code 1"
+    },
+    {
+      "execution_id": "gh-39877221034-attempt-1",
+      "status": "PASS",
+      "checked_at": "2026-10-23T00:19:02.020950+00:00",
+      "page_id": "3cc40065-15d9-806c-b196-f038cf8c5bc4",
+      "comment_id": "40240065-15d9-817f-b181-001df2cc92fc",
+      "writeback_verified": true,
+      "readback_verified": true,
+      "deep_briefing_blocks": 512,
+      "deep_briefing_readback_verified": true,
+      "readback_content_sha256": "087bbc84840110261fd20dbed848cd1431e6c5008b49d8ae6c7d4cad4362b486",
+      "sample_count": 40,
+      "github_run_id": "39877221034"
     }
   ]
 }

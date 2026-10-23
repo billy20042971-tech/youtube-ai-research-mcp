@@ -1,231 +1,205 @@
 {
-  "generated_at": "2026-10-21T01:14:20.280433+00:00",
+  "generated_at": "2026-10-23T00:18:11.130663+00:00",
   "recent_72h_sample": {
     "AI賺錢": [
-      {
-        "video_id": "-zADRXYAkaU",
-        "title": "滿手台股AI股，小心只賺到上半場！AI下半場獲利這邊看｜峰哥、超馬芭樂│Smart投資教室",
-        "channel_title": "Smart智富月刊",
-        "published_at": "2026-10-19T09:00:08Z",
-        "views": 22833,
-        "likes": 239,
-        "comments_count": 4,
-        "url": "https://www.youtube.com/watch?v=-zADRXYAkaU",
-        "query_rank": 1,
-        "comments_obtained_count": 4,
-        "comments": [
-          {
-            "text": "收益良多 感謝峰哥 超馬芭樂",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "感謝分享",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "統一全球創新科技基金呢？",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "",
-            "likes": 0,
-            "reply_count": 0
-          }
-        ]
-      },
-      {
-        "video_id": "8IOqkjte3no",
-        "title": "黄仁勋算账：AI收入撑得起几万亿美元的资本开支吗​ | 黄仁勋 | 英伟达 | AI泡沫 | 资本开支 | AI基建 | 数据中心 | OpenAI | Anthropic | 太空数据中心",
-        "channel_title": "最佳拍档",
-        "published_at": "2026-10-19T12:00:39Z",
-        "views": 19219,
-        "likes": 191,
-        "comments_count": 33,
-        "url": "https://www.youtube.com/watch?v=8IOqkjte3no",
-        "query_rank": 2,
-        "comments_obtained_count": 20,
-        "comments": [
-          {
-            "text": "老黄所有发言，都归结到：快来买我的卡",
-            "likes": 29,
-            "reply_count": 0
-          },
-          {
-            "text": "工作時間15小時是平均，很多人沒在工作😂😂😂😂😂",
-            "likes": 12,
-            "reply_count": 0
-          },
-          {
-            "text": "只可惜nvda体量太大，股票上升空间有限，这个有限不是这家公司估值上升有限，其实是市场装不下预期，股票一横就是半年",
-            "likes": 3,
-            "reply_count": 0
-          },
-          {
-            "text": "对工程师的描述扎心咯😂😂😂",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "jensen感覺回答的游刃有餘呀 , 這個大鬍子任何尖銳的問題都難不倒他",
-            "likes": 2,
-            "reply_count": 0
-          },
-          {
-            "text": "👍👍👍👍👏👏👏👏",
-            "likes": 2,
-            "reply_count": 0
-          },
-          {
-            "text": "今天的新闻，AI公司借债成本飙升，Anthropic以10%的利息承诺像Blackstone融资600亿美元",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "AI目前的發展障礙是金融體系，只不過這一個禮拜似乎也沒跌的重",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "看见老黄已经知道他要说什么了",
-            "likes": 9,
-            "reply_count": 2
-          },
-          {
-            "text": "你们这些人都是大傻，假如说所有的AI公司全部停止服务，哪怕只有一天，你就看看吧，这个损失是不是用户能够承担的？黄仁勋已经给了一点暗示了，只是不敢反复强调，我们也许很快会看到主流服务厂商AI涨价的那一天。",
-            "likes": 2,
-            "reply_count": 0
-          },
-          {
-            "text": "这怎么听着这么像……为A/上市失败打预防针",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "當年鐵路蓋一堆後鐵路公司倒一片，但鐵路留下來了，所以英偉達二十年後會不會在都還未知",
-            "likes": 1,
-            "reply_count": 1
-          },
-          {
-            "text": "怎麼感覺在陰陽A\\",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "AI和基础设施需求继续增长，sure; 基础设施成本80%来自英伟达，sure; 那么接下来老百姓自掏腰包供养如此昂贵的英伟达，大家钱包同意吗？😂",
-            "likes": 2,
-            "reply_count": 0
-          },
-          {
-            "text": "吹牛又不收税，吹呗！",
-            "likes": 3,
-            "reply_count": 0
-          },
-          {
-            "text": "黄仁勋的核心结论可以总结为一句话：“市场把账算错了，当前不是 AI 泡沫，而是全球计算基础设施从 CPU 向 GPU 加速计算的一次‘彻底且永久’的万亿级重构。”\n1. 为什么“万亿资本开支撑不起”是伪命题？\n * 别只盯着两家实验室：市场担忧 OpenAI 和 Anthropic 年收入能不能翻倍撑起算力投入，但英伟达的算力买家远不止它们：\n   * 1/3 来自传统加速计算替代（数据分析、物流模拟、金融反欺诈、推荐算法，年增速 30%~40%）；\n   * 1/3 来自数十家前沿实验室（包含 Meta、xAI 等，并非两家买单）；\n   * 1/3 来自数千家 vertical 行业垂直应用与物理 AI 创业公司（基于开源模型与自有数据落地）。\n * 摩尔定律已经终结：通用 CPU 无法再靠“等一年免费性能翻倍”，全球存量数据中心的自然替换与算力扩容本身就是一个每年数万亿美元的巨大刚需市场。\n2. 算力供需的真实瓶颈在哪里？\n * 瓶颈在“物理世界”，不在订单：真正的阻碍不是需求不够，而是拿地、审批、电力供应、厂房和熟练施工队伍等物理要素卡脖子。\n * 英伟达的护城河进一步加深：\n   * 每瓦产出（Tokens/Watt）最高：电力越紧缺，客户为了向股东交出业绩，越必须选择产出最高、最通用的英伟达方案。\n   * 单吉瓦价值跃升：英伟达不仅卖 GPU，还涵盖 CPU、网络、存储和安全，单吉瓦配套价值已从 180 亿美元升至 400 多亿美元。\n3. 黄仁勋给出的确定性（99%）\n * 未来规模预测：全球计算基础设施每年的软硬件更新与新建规模未来将达到 3~5 万亿美元，甚至迈向 10 万亿美元。\n * 对未来的把握：他对未来 5 年 AI 产业的发展有 99% 的把握；悲观派预言“泡沫破裂与末日”，本质上是低估了全球各行各业顶尖工程师与企业家的落地能力与真实需求。",
-            "likes": 7,
-            "reply_count": 3
-          },
-          {
-            "text": "他桌上放什麼蜜餞",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "老黄开始切割了",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "用ai到处攻击 为了防守 必须用更强的ai 必须大笔买他的卡",
-            "likes": 4,
-            "reply_count": 0
-          },
-          {
-            "text": "美国需要全球资本购买国债、欧洲需要资本继续给乌克兰输血，中东需要资本维持稳定，\n\n当次贷危机把资本虹吸干，无论是未来无限的AI 还是 香气宜人的郁金香，崩溃都是必然🤭",
-            "likes": 3,
-            "reply_count": 0
-          }
-        ]
-      },
-      {
-        "video_id": "4NWahVJPn3s",
-        "title": "SpaceX財報前瞻：AI營收超越Starlink？Grok Bot爆紅，股價為何反而可能大漲大跌？#SPCX",
-        "channel_title": "TradingKey 美股財經",
-        "published_at": "2026-10-20T09:57:03Z",
-        "views": 15540,
-        "likes": 147,
-        "comments_count": 5,
-        "url": "https://www.youtube.com/watch?v=4NWahVJPn3s",
-        "query_rank": 3,
-        "comments_obtained_count": 3,
-        "comments": [
-          {
-            "text": "這次SpaceX財報，你最關心哪一關：\n1.算力合約能否持續? \n2.Grok Bot的變現能力? \n3.解禁後股價能否守住？",
-            "likes": 2,
-            "reply_count": 0
-          },
-          {
-            "text": "果然  SpaceX現在真得按AI公司估值了  這樣更好理解",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "关心前瞻支出、三季度收入和盈利",
-            "likes": 0,
-            "reply_count": 0
-          }
-        ]
-      },
       {
         "video_id": "JxykT7jUlmQ",
         "title": "2026/10/21(三) SpaceX 真的靠AI賺錢了？#SPCX",
         "channel_title": "財女珍妮",
         "published_at": "2026-10-21T01:07:19Z",
-        "views": 3082,
-        "likes": 194,
-        "comments_count": 0,
+        "views": 37110,
+        "likes": 697,
+        "comments_count": 16,
         "url": "https://www.youtube.com/watch?v=JxykT7jUlmQ",
-        "query_rank": 4,
-        "comments_obtained_count": 0,
-        "comments": []
+        "query_rank": 1,
+        "comments_obtained_count": 13,
+        "comments": [
+          {
+            "text": "這集把自由現金流跟資本支出的內在矛盾講得非常透徹。不管是 SpaceX 龐大的算力基礎建設，還是 Netflix 廣告變現的執行落差，資本市場看的永遠不是帳面營收有多華麗，而是當高資本支出撞上高利率時，未來的動能能否撐起高估值。觀點很紮實！",
+            "likes": 4,
+            "reply_count": 0
+          },
+          {
+            "text": "谢谢你，让我们理性投资❤",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "支持財女珍妮",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "SPCX 流通股數跟解鎖部分 壓力還是會有吧. 另外,也需要確認雖然有加入納指但尚未納入S&P 也是有部分機構還沒大量加入的狀況，所以波動還是會比較大嗎?",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "珍妮大大好  為什麼 板塊圖沒有SpaceX 呢 市值已經很大了",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "13:35 公公偏頭痛",
+            "likes": 4,
+            "reply_count": 0
+          },
+          {
+            "text": "早安",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "SpaceX10/22要出籠1.7億鎖倉 手中要留要走呢？",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "為什麼賣晶片賺錢；租算力賺錢；花錢租算力的人有賺錢嗎；我一直覺得這個圈圈兜不起來",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "可以说说一下甲骨文吗😂",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "珍妮姐姐😂",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "SPCX : 我們現在是AI公司了喔！不！更厲害才對，是SI，Super的喔，很厲害的！！！\n問 ： 那你們厲害的super AI業務主要是做？\nSPCX : 出租算力！\n問 ： 那這業務跟core weave差別在於？\nSPCX : .....",
+            "likes": 1,
+            "reply_count": 1
+          },
+          {
+            "text": "SpaceX 靠AI賺錢 不是上一季財報就公佈了嗎?   SpaceX 已經不是太空股了 是AI股  純太空股只有RKLB (最近跌爛",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
       },
       {
-        "video_id": "N705-X7ah4g",
-        "title": "精彩片段》黃世聰:沒辦法證明你可以賺錢...【年代向錢看】2026.10.19",
-        "channel_title": "年代向錢看",
-        "published_at": "2026-10-19T14:20:57Z",
-        "views": 3789,
-        "likes": 0,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=N705-X7ah4g",
-        "query_rank": 5,
-        "comments_obtained_count": 0,
-        "comments": []
+        "video_id": "DymWqmUM0k8",
+        "title": "AI神話背後全是債? 華爾街憂科技巨頭陷財務黑洞? Nscale遇上缺電困局 AI兆元合約恐淪空頭支票?│【關我什麼事】陳斐娟 主持│20261020｜94要賺錢",
+        "channel_title": "94要賺錢",
+        "published_at": "2026-10-20T16:00:07Z",
+        "views": 10558,
+        "likes": 122,
+        "comments_count": 5,
+        "url": "https://www.youtube.com/watch?v=DymWqmUM0k8",
+        "query_rank": 2,
+        "comments_obtained_count": 1,
+        "comments": [
+          {
+            "text": "台灣只剩下炒房國家隊跟少子化世界第一\n其他都是媒體膨風、造神、自我感覺良好",
+            "likes": 7,
+            "reply_count": 4
+          }
+        ]
+      },
+      {
+        "video_id": "oys3fnArwbU",
+        "title": "SpaceX 財報拆解：賺了 44 億，為什麼華爾街還吵成兩派？",
+        "channel_title": "言究院",
+        "published_at": "2026-10-21T07:40:01Z",
+        "views": 21587,
+        "likes": 102,
+        "comments_count": 17,
+        "url": "https://www.youtube.com/watch?v=oys3fnArwbU",
+        "query_rank": 3,
+        "comments_obtained_count": 12,
+        "comments": [
+          {
+            "text": "跟各位翻譯：簡單的說就是建算力中心，是最賺錢的。硬體建設造發電機、散熱水冷、剛好都是本業強項，就算自己演算法不強。可以先把算力出租賺錢，算法模型強度自己再慢慢追上其他AI公司。",
+            "likes": 3,
+            "reply_count": 0
+          },
+          {
+            "text": "但凡一切所有馬斯克 無庸置疑力挺到底",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "只有政治才是龐氏國家 即將邁入科技企業頂替政府",
+            "likes": 4,
+            "reply_count": 0
+          },
+          {
+            "text": "喜歡馬斯克的有很多理由說賺，不喜歡馬斯克的只要有一個不滿意就是沒賺錢",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "火箭赚个嘚钱 准备合并 坑散户",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "如果是grok,不信",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "不被五角大廈戰爭部信任的AI公司，金融危機之後會被清算。\n\n2026年9月底，美國戰爭部長皮特·赫格塞斯（Pete Hegseth）宣布啟動一項為期120天的技術優勢研究計畫「經線計畫」（Project Meridian），並邀請了三位重量級顧問共同指導：\n\n• 伊隆·馬斯克（Elon Musk）：Tesla 與 SpaceX 執行長。\n• 帕爾默·拉奇（Palmer Luckey）：國防科技公司 Anduril 創辦人。\n• 紐特·金瑞契（Newt Gingrich）：前美國眾議院議長。",
+            "likes": 1,
+            "reply_count": 1
+          },
+          {
+            "text": "是一家庞式公司",
+            "likes": 3,
+            "reply_count": 0
+          },
+          {
+            "text": "我两个月前就视频说100买🎉不用卖了",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "星艦是底，是該虧還是要虧的項目，星鏈還是得靠它，但星艦還能在優化，到飛機空運價格跟擴點；以及未來月球太空殖民這塊。",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "金融海嘯之後再討論SpaceX 也不遲，目前做AI的公司太多了，供過於求。",
+            "likes": 2,
+            "reply_count": 1
+          },
+          {
+            "text": "AI晶片折舊很快，是不準確的。目前很多4-5年前的nvidia 卡還在賺很多錢，而且比幾年前還貴很多。其實並沒有折舊，反而升值。",
+            "likes": 1,
+            "reply_count": 1
+          }
+        ]
       },
       {
         "video_id": "duikxhtisq8",
         "title": "SpaceX发财报引起芯片股盘后大涨！AI到底赚不赚钱？SPCX：赚！",
         "channel_title": "Shepherd Capital Markets",
         "published_at": "2026-10-20T23:13:40Z",
-        "views": 1388,
-        "likes": 117,
-        "comments_count": 6,
+        "views": 10541,
+        "likes": 237,
+        "comments_count": 15,
         "url": "https://www.youtube.com/watch?v=duikxhtisq8",
-        "query_rank": 6,
-        "comments_obtained_count": 5,
+        "query_rank": 4,
+        "comments_obtained_count": 9,
         "comments": [
           {
             "text": "视频中有几个单位我说错了，比如44亿说成了44B其实是4.4B。但是整体意思不变。具体财报数据：https://s21.q4cdn.com/184289198/files/content_files/SpaceX-Reports-Third-Quarter-2026-Results.pdf\n好像还把Net Income（净利润）说成了总营收🤣",
-            "likes": 5,
+            "likes": 6,
             "reply_count": 0
           },
           {
-            "text": "盘后半导体的起点应该是 SMCI财报, 4点半发",
-            "likes": 4,
-            "reply_count": 1
+            "text": "感谢播主的财报讲解，这一块还真要听播主的分析，很专业很切实际很客观。👍",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "谢谢❤",
+            "likes": 0,
+            "reply_count": 0
           },
           {
             "text": "感謝分享觀點",
@@ -233,119 +207,247 @@
             "reply_count": 0
           },
           {
+            "text": "假如SPCX跟TSLA合併，散戶該如何部署re-balancing?",
+            "likes": 0,
+            "reply_count": 2
+          },
+          {
+            "text": "今天的声音听起来已经啃回来了",
+            "likes": 0,
+            "reply_count": 1
+          },
+          {
             "text": "其实有个问题，spcx的ai不是直接面向用户的吧，更多的是租借算力，还是在ai产业链的中游，不能就这样就说明ai能盈利",
             "likes": 0,
-            "reply_count": 0
+            "reply_count": 2
+          },
+          {
+            "text": "盘后半导体的起点应该是 SMCI财报, 4点半发",
+            "likes": 4,
+            "reply_count": 1
           },
           {
             "text": "民主黨上台後就是space X的末日審判 我是一股也不會買的 這家公司太依賴政府了",
-            "likes": 3,
+            "likes": 6,
             "reply_count": 0
           }
         ]
       },
       {
-        "video_id": "X9YAIUoHXog",
-        "title": "姐你賺錢不容易 #AI #AIGC #剪映 #貓箱跨次元相遇",
-        "channel_title": "Judy Richards",
-        "published_at": "2026-10-19T15:44:08Z",
-        "views": 3047,
-        "likes": 80,
+        "video_id": "2hOTblXxjU0",
+        "title": "唱衰 AI 不賺錢的，全被黃仁勳在GTC大會給打臉了！#紀緯明 #小明老師 #投資明明很簡單 #台股 #黃仁勳 #GTC #ai",
+        "channel_title": "投資明明很簡單 紀緯明分析師-永誠國際投顧",
+        "published_at": "2026-10-22T07:37:21Z",
+        "views": 9275,
+        "likes": 149,
         "comments_count": 3,
-        "url": "https://www.youtube.com/watch?v=X9YAIUoHXog",
-        "query_rank": 7,
+        "url": "https://www.youtube.com/watch?v=2hOTblXxjU0",
+        "query_rank": 5,
         "comments_obtained_count": 3,
         "comments": [
           {
-            "text": "都是話術",
-            "likes": 2,
+            "text": "黃先生是標準生意人\n眼神飄忽不定",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "有什麼用😢股市還是跌跌不休ㄚ😢",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "該換個理髮師了…",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "uObUJ9c5RH0",
+        "title": "賺錢三件套 #動物搞笑視頻 #AI萌寵 #貓咪 #寵物成精啦 #貓咪短劇",
+        "channel_title": "javier lakeley",
+        "published_at": "2026-10-20T12:06:32Z",
+        "views": 11438,
+        "likes": 277,
+        "comments_count": 3,
+        "url": "https://www.youtube.com/watch?v=uObUJ9c5RH0",
+        "query_rank": 6,
+        "comments_obtained_count": 3,
+        "comments": [
+          {
+            "text": "有才啊！",
+            "likes": 5,
+            "reply_count": 0
+          },
+          {
+            "text": "哈哈",
+            "likes": 1,
             "reply_count": 0
           },
           {
             "text": "😂",
             "likes": 1,
             "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "EHB3WndGYrg",
+        "title": "梁文峰是真想教你赚钱！前脚美国全面拉黑DeepSeek，后脚梁文峰直接开源推理框架 #ai #DeepSeek #梁文锋",
+        "channel_title": "杨竹筠",
+        "published_at": "2026-10-22T12:39:12Z",
+        "views": 2944,
+        "likes": 100,
+        "comments_count": 5,
+        "url": "https://www.youtube.com/watch?v=EHB3WndGYrg",
+        "query_rank": 7,
+        "comments_obtained_count": 2,
+        "comments": [
+          {
+            "text": "高成本聯盟必敗🎉🎉🎉🎉🎉",
+            "likes": 1,
+            "reply_count": 0
           },
           {
-            "text": "😳😳",
-            "likes": 1,
+            "text": "笑死人了。。😂 Deepseek 不是做AI的。真正是做偷技术的。。不用花钱训练，偷来的3流菜谱当然可以开源",
+            "likes": 0,
+            "reply_count": 3
+          }
+        ]
+      },
+      {
+        "video_id": "TC0OMDg1jls",
+        "title": "AI股大怒神? 輝達點金.SpaceX賺很大!【#賺錢放大術】20261021｜施雅棠、白昀霏",
+        "channel_title": "賺錢放大術",
+        "published_at": "2026-10-21T09:30:14Z",
+        "views": 2403,
+        "likes": 22,
+        "comments_count": 0,
+        "url": "https://www.youtube.com/watch?v=TC0OMDg1jls",
+        "query_rank": 8,
+        "comments_obtained_count": 0,
+        "comments": []
+      },
+      {
+        "video_id": "KLZ47KMjAfY",
+        "title": "SpaceX AI收入暴涨830%！算力不到1年回本，AI泡沫还成立吗？",
+        "channel_title": "天才交易员",
+        "published_at": "2026-10-21T10:30:10Z",
+        "views": 3426,
+        "likes": 60,
+        "comments_count": 3,
+        "url": "https://www.youtube.com/watch?v=KLZ47KMjAfY",
+        "query_rank": 9,
+        "comments_obtained_count": 3,
+        "comments": [
+          {
+            "text": "所有人都在喊泡沫只能说他们还没来得及上车。当所有人都说没有泡沫的时候才是真的危险的时候",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "谢谢分享🎉",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "大兄弟满仓NVDA, AVGO, DELL BE MRVL。今天损失超过 10% 啊。来，姐姐抱抱。。",
+            "likes": 0,
             "reply_count": 0
           }
         ]
       },
       {
-        "video_id": "S8kffCGxRQc",
-        "title": "AI卖电子书赚美金$704 【个人0成本网络赚钱】",
-        "channel_title": "外贸麦克",
-        "published_at": "2026-10-19T03:00:09Z",
-        "views": 1996,
-        "likes": 57,
-        "comments_count": 2,
-        "url": "https://www.youtube.com/watch?v=S8kffCGxRQc",
-        "query_rank": 8,
+        "video_id": "e3pDUJURt4o",
+        "title": "普通人也能做的AI生意？Sub2API自建号池卖Token｜Claude/GPT账号准备、部署、接入与收款完整教程｜红孩儿redman",
+        "channel_title": "红孩儿Redman",
+        "published_at": "2026-10-21T04:07:59Z",
+        "views": 2518,
+        "likes": 32,
+        "comments_count": 13,
+        "url": "https://www.youtube.com/watch?v=e3pDUJURt4o",
+        "query_rank": 10,
+        "comments_obtained_count": 7,
+        "comments": [
+          {
+            "text": "🔍 本期视频涉及的链接：\r\n✦完整文字教程▶https://redman.blog/index.php/2026/10/21/sub2api/ \r\n✦sub2api项目仓库▶https://github.com/DR-lin-eng/sub2api \r\n✦kakapay充值卡▶https://i.redman3721.com/kakapay  （前5张免开卡费）\r\n✦Claude / GPT代充平台▶https://i.redman3721.com/aiplus123  （优惠码：redman）\r\n✦9981proxy动态住宅IP▶https://i.redman3721.com/9981proxy  （可批量提取）\r\n✦Gmail成品账号▶https://i.redman3721.com/accountboy \r\n✦个人支付接口▶https://i.redman3721.com/kyrenpay \r\n✦AdsPower指纹浏览器▶https://share.adspower.net/redman \r\n✦VPS选购攻略▶ https://redman.blog/index.php/cn2vps/ \r\n✦中转站上游资源▶https://codex3721.com/ai-api-review  \r\n✦服务器ssh连接工具下载▶https://www.hostbuf.com/t/988.html \r\n✦CN2GIA线路VPS购买▶https://i.redman3721.com/banwagon   （视频同款）",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "为什么是升级chatgpt plus会员啊？这个plus会员是没有api额度的吧",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "这期太肝了",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "太牛了",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "还可以❤❤❤❤",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "能出cpa教程吗？谢谢",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "有人拼车不？",
+            "likes": 0,
+            "reply_count": 4
+          }
+        ]
+      },
+      {
+        "video_id": "FtVY-3ygdV0",
+        "title": "我找到我賺錢的動力了，我要買一個這樣的機器人！ #機器人#最強嘴替#搞笑#ai",
+        "channel_title": "小柒娱乐酱",
+        "published_at": "2026-10-20T10:33:51Z",
+        "views": 2399,
+        "likes": 73,
+        "comments_count": 1,
+        "url": "https://www.youtube.com/watch?v=FtVY-3ygdV0",
+        "query_rank": 11,
         "comments_obtained_count": 1,
         "comments": [
           {
-            "text": "注册好 根本登录不进去， 永远提示 登陆失败。",
-            "likes": 0,
-            "reply_count": 1
+            "text": "这机器人嘴好损啊",
+            "likes": 1,
+            "reply_count": 0
           }
         ]
       },
       {
-        "video_id": "7hs8Ef_DVjM",
-        "title": "SPCX超级智能收入飙升830%! AI股全面拉升因SMCI业绩预告! 奈飞财报让市场再度失望! SPCX SMCI CRWV NVDA NFLX STX WDC! 10202026 #美股 #股票",
-        "channel_title": "宝哥职业股民",
-        "published_at": "2026-10-20T23:58:23Z",
-        "views": 897,
-        "likes": 86,
-        "comments_count": 7,
-        "url": "https://www.youtube.com/watch?v=7hs8Ef_DVjM",
-        "query_rank": 9,
-        "comments_obtained_count": 6,
-        "comments": [
-          {
-            "text": "宝哥YOUTUBE美股会员订阅 : https://www.youtube.com/channel/UCdyJicllXSiJnE_NScLDsSg/join， \r\n或者直接支付宝哥个人：\r\n1. 微信人民币贴心真爱粉700，土豪真爱粉1050；\r\n2 Venmo, @baogeyoutube，美元贴心真爱粉99.99, 土豪真爱粉149.99. \r\n订购贴心真爱粉或土豪真爱粉. 完成付款后，评论区留下微信号，即可加入会员群。 \r\n美股会员共享福利：宝哥带盘，分享实盘交易，行情实时分析，\r\n赠送价值3000美元技术指标NX、CD！\r\n 土豪真爱粉专属福利：更多强势股和超跌蓝筹潜伏分享......\r\n\r\n美股富途证券开户(赠送价值3000美元技术指标NX、CD！限时领取免费英伟达股票！）\r\n【美国居民】moomoo开户链接：https://j.moomoo.com/006AST \r\n开户即享高达8.1%现金年化利息（3.35%+4.75% APY booster所有券商平台里最高）\r\n入金$2千可获得价值$100的英伟达股票\r\n入金$1万可获得价值$200的英伟达股票\r\n入金$10万可获得价值$1000的英伟达股票\r\n还可获得首笔转仓金额3%的现金券（最高$600）\r\n\r\n【加拿大居民】moomoo开户链接：https://start.moomoo.com/00AlBU \r\n新客奖励：💰入金$1000送10股免费股票，入金$8000送30股免费股票，包含微软，NVDA，SpaceX等热门股票随机领！\r\n加赠30天限时福利：1万现金的6% APY 年化收益 + 全品类免佣金交易(最高返$2,000)\r\n首次转仓CA$10K - $500K, 可获得CA$200 - 2300现金券\r\n入金和转仓奖励可以同享！",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "先赞后看发财不断！感谢宝哥股海指路！",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "光通信啊",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "🎉",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "❤❤❤",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "多谢分享❤",
-            "likes": 1,
-            "reply_count": 0
-          }
-        ]
+        "video_id": "EUbJ0DzusDw",
+        "title": "SpaceX财报揭开马斯克新帝国：AI收入首超星链，考虑合并特斯拉，上海工厂怎么办？｜热点深度",
+        "channel_title": "華爾街電視",
+        "published_at": "2026-10-21T21:15:09Z",
+        "views": 2416,
+        "likes": 13,
+        "comments_count": 0,
+        "url": "https://www.youtube.com/watch?v=EUbJ0DzusDw",
+        "query_rank": 12,
+        "comments_obtained_count": 0,
+        "comments": []
       },
       {
         "video_id": "_stSpj66js8",
         "title": "解析Tesla 賺錢邏輯！ #tesla #teslaroadster #ai #賺錢 #商業機會",
         "channel_title": "Hong Lab 洪爺專業精品鍍膜液",
         "published_at": "2026-10-20T13:50:18Z",
-        "views": 1188,
+        "views": 1212,
         "likes": 13,
         "comments_count": 2,
         "url": "https://www.youtube.com/watch?v=_stSpj66js8",
-        "query_rank": 10,
+        "query_rank": 13,
         "comments_obtained_count": 2,
         "comments": [
           {
@@ -361,41 +463,63 @@
         ]
       },
       {
-        "video_id": "iT-UtrElBls",
-        "title": "AI 不露臉頻道真的能賺錢？看完 4 個熱門案例，我發現最容易忽略的 5 個真相｜Eugenia叡一 ‪@EugeniaWu0‬",
-        "channel_title": "Eugenia叡一",
-        "published_at": "2026-10-18T12:00:29Z",
-        "views": 1120,
-        "likes": 20,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=iT-UtrElBls",
-        "query_rank": 11,
-        "comments_obtained_count": 0,
-        "comments": []
+        "video_id": "L4Nww0C_F4Q",
+        "title": "SpaceX首次盈利 马斯克放话年入万亿",
+        "channel_title": "AI壹号",
+        "published_at": "2026-10-20T23:15:28Z",
+        "views": 5377,
+        "likes": 42,
+        "comments_count": 3,
+        "url": "https://www.youtube.com/watch?v=L4Nww0C_F4Q",
+        "query_rank": 14,
+        "comments_obtained_count": 3,
+        "comments": [
+          {
+            "text": "第二季盈利真係能實現\nElon 真係神人",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "有极低价格获得几乎无上限能源的AI公司。",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "要毀滅地球",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
       },
       {
-        "video_id": "bkAKZkJjc7g",
-        "title": "察言觀色#ai工具 #ai教學 #ai賺錢 #ai",
-        "channel_title": "霹靂小牛",
-        "published_at": "2026-10-20T04:48:08Z",
-        "views": 970,
-        "likes": 14,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=bkAKZkJjc7g",
-        "query_rank": 12,
-        "comments_obtained_count": 0,
-        "comments": []
+        "video_id": "AWGWG4_K_M4",
+        "title": "荷兰小哥用AI做副业每月收入30万美金 #财商知识 #海外创业 #赚钱 #chatgpt #商业",
+        "channel_title": "Duke商业观察",
+        "published_at": "2026-10-21T08:00:03Z",
+        "views": 1165,
+        "likes": 21,
+        "comments_count": 4,
+        "url": "https://www.youtube.com/watch?v=AWGWG4_K_M4",
+        "query_rank": 15,
+        "comments_obtained_count": 1,
+        "comments": [
+          {
+            "text": "777",
+            "likes": 0,
+            "reply_count": 3
+          }
+        ]
       },
       {
         "video_id": "JTxtdbChqeY",
         "title": "輝達賣晶片賺翻了！買晶片的AI公司卻可能被債務壓垮？ #國際新聞 #金融 #晶片 #輝達 #ai #分享 #shorts #美國",
         "channel_title": "芓期說世界NOW很大",
         "published_at": "2026-10-20T04:00:13Z",
-        "views": 1159,
-        "likes": 9,
+        "views": 1200,
+        "likes": 10,
         "comments_count": 2,
         "url": "https://www.youtube.com/watch?v=JTxtdbChqeY",
-        "query_rank": 13,
+        "query_rank": 16,
         "comments_obtained_count": 1,
         "comments": [
           {
@@ -406,556 +530,159 @@
         ]
       },
       {
-        "video_id": "Fjurwlv9Lek",
-        "title": "AI都會畫圖了，設計師憑什麼賺錢？",
-        "channel_title": "巨匠電腦新竹認證中心",
-        "published_at": "2026-10-18T13:30:52Z",
-        "views": 251,
-        "likes": 3,
+        "video_id": "bkAKZkJjc7g",
+        "title": "察言觀色#ai工具 #ai教學 #ai賺錢 #ai",
+        "channel_title": "霹靂小牛",
+        "published_at": "2026-10-20T04:48:08Z",
+        "views": 982,
+        "likes": 17,
         "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=Fjurwlv9Lek",
-        "query_rank": 14,
-        "comments_obtained_count": 0,
-        "comments": []
-      },
-      {
-        "video_id": "zM-rLsuICJw",
-        "title": "别再刷视频了，用AI开始赚钱#ai #aitools #aitips #codex #openai",
-        "channel_title": "亚超AI超级玩家-AI出海",
-        "published_at": "2026-10-19T12:03:03Z",
-        "views": 193,
-        "likes": 2,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=zM-rLsuICJw",
-        "query_rank": 15,
-        "comments_obtained_count": 0,
-        "comments": []
-      },
-      {
-        "video_id": "L4Nww0C_F4Q",
-        "title": "SpaceX首次盈利 马斯克放话年入万亿",
-        "channel_title": "AI壹号",
-        "published_at": "2026-10-20T23:15:28Z",
-        "views": 89,
-        "likes": 7,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=L4Nww0C_F4Q",
-        "query_rank": 16,
-        "comments_obtained_count": 0,
-        "comments": []
-      },
-      {
-        "video_id": "AocNB10oitM",
-        "title": "【2026】AI不只让英伟达赚钱！我发现了另一个被忽略的行业｜BiyaPay",
-        "channel_title": "Jenny的数字生活",
-        "published_at": "2026-10-19T09:00:35Z",
-        "views": 231,
-        "likes": 4,
-        "comments_count": 2,
-        "url": "https://www.youtube.com/watch?v=AocNB10oitM",
+        "url": "https://www.youtube.com/watch?v=bkAKZkJjc7g",
         "query_rank": 17,
-        "comments_obtained_count": 1,
-        "comments": [
-          {
-            "text": "你这也太后知后觉了，这视频一年前发也许有点价值，希捷西数股票都涨一年了。",
-            "likes": 0,
-            "reply_count": 1
-          }
-        ]
+        "comments_obtained_count": 0,
+        "comments": []
       },
       {
-        "video_id": "CSSR5JD4ywg",
-        "title": "AI个人IP只是为了赚钱吗？50+真正拥有的是这些经验.                        #祥哥 #smartLIFE2u #AI个人IP #50Plus #个人品牌",
-        "channel_title": "祥哥",
-        "published_at": "2026-10-18T14:32:21Z",
-        "views": 192,
-        "likes": 3,
+        "video_id": "MoDP0NMZwt0",
+        "title": "SpaceX变了！AI收入反超星链，马斯克靠对手赚钱，万亿美元目标怎么来？",
+        "channel_title": "Vic TALK",
+        "published_at": "2026-10-21T03:25:51Z",
+        "views": 859,
+        "likes": 8,
         "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=CSSR5JD4ywg",
+        "url": "https://www.youtube.com/watch?v=MoDP0NMZwt0",
         "query_rank": 18,
         "comments_obtained_count": 0,
         "comments": []
       },
       {
-        "video_id": "Te5sTFqrYNE",
-        "title": "↓留言「學習」領免費笔记📚 #ai赚钱 #ai #流量",
-        "channel_title": "lg weiqi",
-        "published_at": "2026-10-18T09:45:24Z",
-        "views": 305,
+        "video_id": "lPTaub3ZgXc",
+        "title": "AI股大怒神? 輝達點金.SpaceX賺很大!【#賺錢放大術】20261021｜施雅棠、白昀霏｜#寰宇財經新聞",
+        "channel_title": "寰宇財經新聞",
+        "published_at": "2026-10-21T11:00:23Z",
+        "views": 1319,
         "likes": 1,
         "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=Te5sTFqrYNE",
+        "url": "https://www.youtube.com/watch?v=lPTaub3ZgXc",
         "query_rank": 19,
         "comments_obtained_count": 0,
         "comments": []
       },
       {
-        "video_id": "R1Blql6m1wo",
-        "title": "每日 AI 速報 2026-10-19｜最賺錢的時候押注下一步，黃仁勳帶領輝達再一次歷史 #Shorts",
-        "channel_title": "AI NEWS",
-        "published_at": "2026-10-19T01:03:53Z",
-        "views": 84,
-        "likes": 5,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=R1Blql6m1wo",
+        "video_id": "fD2vRF58Agk",
+        "title": "如何做一个长期的一人动画公司？用AI自动跑，现在赚钱已经是这样了吗？用Oii Oii跑通全流程",
+        "channel_title": "然冉创业说",
+        "published_at": "2026-10-22T07:21:45Z",
+        "views": 1192,
+        "likes": 15,
+        "comments_count": 1,
+        "url": "https://www.youtube.com/watch?v=fD2vRF58Agk",
         "query_rank": 20,
-        "comments_obtained_count": 0,
-        "comments": []
+        "comments_obtained_count": 1,
+        "comments": [
+          {
+            "text": "Oii Oii直连链接：https://oiioii.ai/?via=P2yN_NxzRi4xz8Hu",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
       }
     ],
     "AI副業": [
-      {
-        "video_id": "1dvM89NMK3s",
-        "title": "5 Best AI Side Hustles in 2026 (ft. Iman Gadzhi)",
-        "channel_title": "Higgsfield AI",
-        "published_at": "2026-10-19T17:18:19Z",
-        "views": 131208,
-        "likes": 3184,
-        "comments_count": 113,
-        "url": "https://www.youtube.com/watch?v=1dvM89NMK3s",
-        "query_rank": 1,
-        "comments_obtained_count": 20,
-        "comments": [
-          {
-            "text": "📖 All Skills, Prompts and Templates: https://higgsfield.ai/s/iman-gadzhi-higgsfieldai-rPdAKB\n🔗 Higgsfield MCP Setup: https://higgsfield.ai/s/iman-gadzhi-higgsfieldai-hcdNMe",
-            "likes": 17,
-            "reply_count": 0
-          },
-          {
-            "text": "Acting on this immediately, I have created AI videos, websites, images and all - The client outreach skill is my take-home here, thank you",
-            "likes": 19,
-            "reply_count": 0
-          },
-          {
-            "text": "I love how you guys mixed your content styles. Iman with the boards and Adil with the MacBook. Did anyone else notice?😅",
-            "likes": 15,
-            "reply_count": 0
-          },
-          {
-            "text": "Proof Adil is real 🤝",
-            "likes": 129,
-            "reply_count": 9
-          },
-          {
-            "text": "Different camera angel is a smart move, but you can't  beat my eyes🙂",
-            "likes": 13,
-            "reply_count": 0
-          },
-          {
-            "text": "Damn, we got Adil & Iman before GTA 6 💀 I like that!",
-            "likes": 3,
-            "reply_count": 0
-          },
-          {
-            "text": "Gran iman siempre creciendo brooo",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "This collaboration is pure gold for anyone trying to build digital products using AI.",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "From $25K to $110K in just one month. My goal is not just to grow my finances but to build enough wealth to enjoy retirement and secure a better future for my family. Generational wealth is about creating financial freedom, teaching the next generation how to build and preserve wealth, and making sure it lasts for years to come. That’s why I really love this video.",
-            "likes": 10,
-            "reply_count": 0
-          },
-          {
-            "text": "So informative",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "Two legends in one frame",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "Really excited to attend the ai challenge",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "Love u ❤",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "Truly Thank you  🙏🙏",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "I doubt that this video has been created with Higgs 😰🙏",
-            "likes": 8,
-            "reply_count": 0
-          },
-          {
-            "text": "Honestly the value you are dropping again and again is insane, thanks a lot Higgsfield team. This is awesome. Cooked up my first AI motion video clients this week. And even full on music video clients. Also build my first SaaS kind of around Genjutsu and Soul 2.0. All using Higgsfield.",
-            "likes": 3,
-            "reply_count": 0
-          },
-          {
-            "text": "Thanks alot guys for the clear and direct information , im gonna dive into this asap <3",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Love them, thanks for this info",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Love this",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "This complete tutorial and both of you are AI 🤖 omg",
-            "likes": 0,
-            "reply_count": 0
-          }
-        ]
-      },
-      {
-        "video_id": "kZJT0mOlr3Y",
-        "title": "AIで稼げる人と稼げない人の差｜1日で作ったゲームが月600万円になった理由",
-        "channel_title": "AIビジネス解剖学",
-        "published_at": "2026-10-18T02:30:15Z",
-        "views": 17767,
-        "likes": 315,
-        "comments_count": 22,
-        "url": "https://www.youtube.com/watch?v=kZJT0mOlr3Y",
-        "query_rank": 2,
-        "comments_obtained_count": 11,
-        "comments": [
-          {
-            "text": "めっちゃいい動画だと思います！\n投稿続けてくださいね！",
-            "likes": 5,
-            "reply_count": 1
-          },
-          {
-            "text": "とても質のいい動画です｡\r\n勉強になります｡",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "とても、良い動画でした。\n次回も見逃さず観たいので、チャンネル登録しました。次回も楽しみにしています",
-            "likes": 0,
-            "reply_count": 1
-          },
-          {
-            "text": "登録しました！\nAIを題材にした成功者を\nAIで編集してるチャンネル\n\n勉強になります。笑",
-            "likes": 1,
-            "reply_count": 1
-          },
-          {
-            "text": "良い動画ですね！！\nチャンネル登録しに行ったらまだ一本目…すばらしいです！！\n古参ファンになります！！笑",
-            "likes": 1,
-            "reply_count": 1
-          },
-          {
-            "text": "結局AIが提示したのは「誰でも成功できる夢の世界」なんかじゃなく「集客力という暴力を持っている奴がコストゼロのゴミを撒き散らして市場の金と注目を総取りする」という最低の現実だったというだけの話だ",
-            "likes": 3,
-            "reply_count": 1
-          },
-          {
-            "text": "パクリゲームを作るところが一番の壁かな。特許取られていた場合出ていくものの方が多くなる。",
-            "likes": 5,
-            "reply_count": 1
-          },
-          {
-            "text": "もっとAI過ぎる文章を直させたほうが良いかもね。",
-            "likes": 3,
-            "reply_count": 1
-          },
-          {
-            "text": "俺は今、全く同じことをやってる。\n毎日12〜20時間、開発してる。\n今年後半、来年は楽しくなるでしょうな✨",
-            "likes": 0,
-            "reply_count": 1
-          },
-          {
-            "text": "マーケティングのみ",
-            "likes": 1,
-            "reply_count": 1
-          },
-          {
-            "text": "この動画と全部aiで作ったものなのでしょうか？だとしたら凄いと思います",
-            "likes": 0,
-            "reply_count": 1
-          }
-        ]
-      },
-      {
-        "video_id": "mKzNPmIdJPk",
-        "title": "【AIで作った画像は本当に売れる？】副業初心者が写真販売サイトに出品してみた結果…【Adobe Stock】",
-        "channel_title": "カナトの副業全力チャレンジ",
-        "published_at": "2026-10-19T10:30:07Z",
-        "views": 9014,
-        "likes": 112,
-        "comments_count": 14,
-        "url": "https://www.youtube.com/watch?v=mKzNPmIdJPk",
-        "query_rank": 3,
-        "comments_obtained_count": 7,
-        "comments": [
-          {
-            "text": "こういう副業検証動画は本当にありがたいです。  \n\n「AIなら簡単に稼げる」「初心者でも月○万円を目指せる」みたいな理論だけではなく、実際に自分で試して、途中の失敗や審査落ち、修正の手間まで含めて見せてくれるのがすごく参考になりました。  \n\n特に、うまくいかなかった部分を都合よく隠さず、そのまま結果として出しているところに信頼感があります。  \n\n副業動画で本当に知りたいのは、「理論上できる」ではなく「実際にやったらどうなったか」なので、こういう実証型の動画は本当に価値があります。  \n\n成功談だけを並べるのではなく、手間や難しさも含めて検証してくれる姿勢が素晴らしいです。今後の検証も楽しみにしています。",
-            "likes": 3,
-            "reply_count": 1
-          },
-          {
-            "text": "待ってました！！\n忖度無しでやってくれるので(結果はともかく)見ていてめちゃくちゃ面白いです！！応援してます！！",
-            "likes": 1,
-            "reply_count": 1
-          },
-          {
-            "text": "カナトさん、今回も丁寧に解説してくださってありがとうございます！\n今までの中では一番、（慣れれば）段取りが単純で、しかも売れる可能性があるかも？と思いました。\nGeminiに画像を作ってもらうことは日常的にやっているので、これはやってみようかな？と思いました。\nいろんなサイトを見たりして、AIっぽい画像を使っていることが多いジャンルをリサーチするといいかも。\n次の動画も楽しみにしていますね。応援しています🌸",
-            "likes": 0,
-            "reply_count": 1
-          },
-          {
-            "text": "検証お疲れさまです！こういうサイトって報酬がちゃんと引き出せるのかが気になります…adobeなら知名度があるし大丈夫かなとも思うのですが。\n次回の動画も楽しみにしています✨",
-            "likes": 0,
-            "reply_count": 1
-          },
-          {
-            "text": "生成AIのおかげで\nまったく美術経験のない1円も稼げない人が300円この業界で稼げるようになったのはすごいこと。\n\nこういう素材提供は\n10年前までは美大を卒業した人を\n会社として何人も雇って\n食品とかをしっかり化粧して\n写真を撮っていたんだよ。\n\n会社をやってる人は人を雇うくらい儲かってはいた。年収1000万円級の職業だった。\n\n私の同級生がそんな会社をやっていた。\n\n\nつまり、そういう人たちは\n300円しか稼げなくなったのだろうね。\nその業界に参入した人が百倍になっても循環しているお金はまったく増えたわけではないから\n\nつまり百倍に増えた人々で\nお金を分け合ってる状態になる。\n\n\nつまりAIって\n稼ぎ0の人を少しだけ稼げるようにはできるけど\nいままで普通に稼いでいた人を生活保護に落としてもいる。\n\nみんなが300円を手に入れるために\n何人かの納税者を生活保護に落とすだけなのだとしたら\n社会全体としては効率が良いのか悪いのか分からなくなってくるね。",
-            "likes": 0,
-            "reply_count": 1
-          },
-          {
-            "text": "凄く正直な検証で良いと思います。他では儲かる儲かるの連発で、結局は自分のところに誘導してるってだけ(笑)世の中そんなに簡単に稼げたら苦労しないのよ。みんながやってない頃にやって稼げるのはわかるが知ってしまってからでは遅いの。",
-            "likes": 0,
-            "reply_count": 1
-          },
-          {
-            "text": "5回ダウンロードされただけで3.87ドルはかなり稼げてますね",
-            "likes": 0,
-            "reply_count": 1
-          }
-        ]
-      },
-      {
-        "video_id": "lKgkvoh89IU",
-        "title": "【衝撃】AI動画編集、やり方で約53万円変わりました　#ai副業 #ラッキーマイン #動画編集",
-        "channel_title": "あべむつき【ラッキーマイン】",
-        "published_at": "2026-10-18T11:00:19Z",
-        "views": 8739,
-        "likes": 43,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=lKgkvoh89IU",
-        "query_rank": 4,
-        "comments_obtained_count": 0,
-        "comments": []
-      },
-      {
-        "video_id": "ytRE9CIedUc",
-        "title": "【今日からできる】GPT image2.5で「画像1枚作るだけ」で稼ぐAI副業を大公開します！【AIアフィリエイト】",
-        "channel_title": "ルパン15世【在宅で稼ぐ顔出しなしアフィリエイト】",
-        "published_at": "2026-10-18T11:00:29Z",
-        "views": 7477,
-        "likes": 88,
-        "comments_count": 3,
-        "url": "https://www.youtube.com/watch?v=ytRE9CIedUc",
-        "query_rank": 5,
-        "comments_obtained_count": 3,
-        "comments": [
-          {
-            "text": "【AI×自動化アフィリエイト】\n↓0→100万稼ぐ完全マスター講義(0円)↓\nhttps://s.lmes.jp/landing-qr/2009669120-pKAjECBa?uLand=d78IE4",
-            "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "「ChatGPT images2.5画像生成」\nプロンプト受け取りキーワードはこちらに↓🎁\nhttps://s.lmes.jp/landing-qr/2009669120-pKAjECBa?uLand=d78IE4",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "何年前の手法だよ😂😂😂😂",
-            "likes": 0,
-            "reply_count": 0
-          }
-        ]
-      },
-      {
-        "video_id": "LzIWNmD_E1g",
-        "title": "7 Ways To Make Money With Claude AI (and ChatGPT)",
-        "channel_title": "Joshua Mayo",
-        "published_at": "2026-10-20T16:03:32Z",
-        "views": 4961,
-        "likes": 252,
-        "comments_count": 27,
-        "url": "https://www.youtube.com/watch?v=LzIWNmD_E1g",
-        "query_rank": 6,
-        "comments_obtained_count": 20,
-        "comments": [
-          {
-            "text": "An AI website video would be good",
-            "likes": 3,
-            "reply_count": 0
-          },
-          {
-            "text": "WOW,I am so impressed Joshua. I have been watching videos since forever & yours is the best by far. I am a 67 year old on a pension & looking to make some $$ to pay off my house & loans so I can enjoy the rest of my retirement without the headaches. Thank you for all the information I will try some of them for myself. THANK YOU & GOD BLESS!!",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "The 2 that I like most are \"AI Virtual Staging\" and \"AI Webstie in a Day\".",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Activity book!  Thank you.",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Great stuff , digital products more detailed 😊 \nThanks for the info!",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "I would like to see full tutorials for all 7 listed",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Activity book and digital products",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Great broadcast",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Please make video on Activity books",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Honestly I like all your ideas. No problem if you create tutorials about each one 😊",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "I believe in your process my brother",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Activity book along with how to promote them",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Great Video! Extremely Valuable Information. Thank you",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Activity book 🎉",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "I am a Veteran and need your help",
-            "likes": 2,
-            "reply_count": 0
-          },
-          {
-            "text": "Activity book",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "please detailed about website ,Thank you",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Activity book, please",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Activity Book",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Brandkit",
-            "likes": 0,
-            "reply_count": 0
-          }
-        ]
-      },
       {
         "video_id": "jCy8MaEInBk",
         "title": "【神機能】ChatGPTの最新機能「dots」がヤバすぎたので徹底解説しました【神アップデート】",
         "channel_title": "ここなのAI大学",
         "published_at": "2026-10-20T09:00:06Z",
-        "views": 26966,
-        "likes": 270,
-        "comments_count": 22,
+        "views": 55576,
+        "likes": 444,
+        "comments_count": 28,
         "url": "https://www.youtube.com/watch?v=jCy8MaEInBk",
-        "query_rank": 7,
-        "comments_obtained_count": 17,
+        "query_rank": 1,
+        "comments_obtained_count": 20,
         "comments": [
           {
-            "text": "AIの進化とともにここなちゃんの更新ペースが上がってる😅",
-            "likes": 0,
+            "text": "相変わらずくっそ可愛いし、勉強になるんだよな",
+            "likes": 9,
             "reply_count": 0
           },
           {
             "text": "dotsは凄いけど、結局勝手に作業をやめてしまう点は変わってない。\nこれが本当に難点。",
-            "likes": 0,
+            "likes": 3,
             "reply_count": 0
           },
           {
-            "text": "相変わらずくっそ可愛いし、勉強になるんだよな",
-            "likes": 0,
+            "text": "AIの進化とともにここなちゃんの更新ペースが上がってる😅",
+            "likes": 1,
             "reply_count": 0
           },
           {
-            "text": "dotsはかなり便利ですね！指示も会話形式でいいし、反復作業200件、みたいなのもやっておいてくれるし。",
-            "likes": 1,
-            "reply_count": 1
+            "text": "カエルキャラに吉付けたくなるのは「ど根性カエル」のビョン吉の影響力かな？",
+            "likes": 2,
+            "reply_count": 0
           },
           {
-            "text": "dotsのおかげで、埋もれてしまいがちな用事など見つけてくれるので助かってます！\nキャラクターも自身で変更して楽しんでます。\nなんか愛着がわきますよね、、、、\nお顔をくるくる回してみたり、あっちむいてほいしたり、、、、。\n\n定型の仕事で、任せられるものは、結構dotsで任せています。\nただし、送信したり、自分の手から離れるものは、やっぱり引き継いでもらったほうが、\n心理的にも、セキュリティー的にも、安心ですね。",
+            "text": "綺麗すぎるんですけど",
+            "likes": 4,
+            "reply_count": 0
+          },
+          {
+            "text": "自分で考える 思い出すことをしなくなる人間たち・・・",
             "likes": 1,
-            "reply_count": 1
+            "reply_count": 0
+          },
+          {
+            "text": "美しすぎる…食生活と美容が気になります😮✨",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "みんなdotsよりココナさんのことしか興味なくて🌱",
+            "likes": 1,
+            "reply_count": 0
           },
           {
             "text": "plusだけど、Proは課金額がボッタクリ💦",
+            "likes": 9,
+            "reply_count": 0
+          },
+          {
+            "text": "オレはここなさんに指示されたら1日30時間働きます🫡",
             "likes": 4,
             "reply_count": 0
           },
           {
             "text": "Googleの人間かどうかのチェックも、すり抜けちゃうんだ。\nすごい。ってか、大丈夫かいな。(^^;",
-            "likes": 0,
+            "likes": 1,
             "reply_count": 0
           },
           {
-            "text": "サムネ可愛すぎるだろＷ\n動画は....\n見てない",
+            "text": "dotsはかなり便利ですね！指示も会話形式でいいし、反復作業200件、みたいなのもやっておいてくれるし。",
+            "likes": 2,
+            "reply_count": 1
+          },
+          {
+            "text": "こんなに早く、またここなさんに出会えて嬉しいですっ！！\nボッツとかボットとか、ボッチの自分には全然分かりませんが、美しいここなさんが見られれば、もう何でもいいですっ！！",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "ChatGPT Plusでも使えるようになるといいですがね！",
             "likes": 5,
             "reply_count": 1
           },
           {
-            "text": "ChatGPT Plusでも使えるようになるといいですがね！",
-            "likes": 1,
+            "text": "サムネ可愛すぎるだろＷ\n動画は....\n見てない",
+            "likes": 8,
             "reply_count": 1
           },
           {
-            "text": "オレはここなさんに指示されたら1日30時間働きます🫡",
+            "text": "収録は朝の4時だったのですかね？早起き？！",
             "likes": 1,
             "reply_count": 0
           },
           {
-            "text": "dotsの良さがまだ分からない。。。",
+            "text": "コンサルを称して、今決めて下さい系だった。今決めてとか、今日中に決めてはやっぱりおかしいと思う。皆さんは、何を言われても、良いものは絶対に自分のタイミングで決めさせてくれることを信じてコンサルを受けてください。",
             "likes": 0,
             "reply_count": 0
           },
@@ -965,23 +692,8 @@
             "reply_count": 0
           },
           {
-            "text": "こんなに早く、またここなさんに出会えて嬉しいですっ！！\nボッツとかボットとか、ボッチの自分には全然分かりませんが、美しいここなさんが見られれば、もう何でもいいですっ！！",
+            "text": "dotsの良さがまだ分からない。。。",
             "likes": 1,
-            "reply_count": 0
-          },
-          {
-            "text": "めっちゃ良い女\nこれはAIか？",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "月100ドルは、個人的には、ちょいとね、、、",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "収録は朝の4時だったのですかね？早起き？！",
-            "likes": 0,
             "reply_count": 0
           },
           {
@@ -992,303 +704,256 @@
         ]
       },
       {
-        "video_id": "75fzetCbxNU",
-        "title": "【2026 AI搞钱实录】出口成片：爆款视频全流程复盘！你上你也行！",
-        "channel_title": "得鹿梦鱼",
-        "published_at": "2026-10-18T11:27:05Z",
-        "views": 4590,
-        "likes": 67,
-        "comments_count": 11,
-        "url": "https://www.youtube.com/watch?v=75fzetCbxNU",
-        "query_rank": 8,
+        "video_id": "LzIWNmD_E1g",
+        "title": "7 Ways To Make Money With Claude AI (and ChatGPT)",
+        "channel_title": "Joshua Mayo",
+        "published_at": "2026-10-20T16:03:32Z",
+        "views": 28209,
+        "likes": 968,
+        "comments_count": 129,
+        "url": "https://www.youtube.com/watch?v=LzIWNmD_E1g",
+        "query_rank": 2,
+        "comments_obtained_count": 20,
+        "comments": [
+          {
+            "text": "There’s this guy Ethan Caldwell who wrote a book called The Pattern They Missed. I picked it up out of curiosity, but I ended up taking notes on some of the things he explains about money and financial decisions. That almost never happens when I read a book.",
+            "likes": 28,
+            "reply_count": 0
+          },
+          {
+            "text": "I would like to see full tutorials for all 7 listed",
+            "likes": 5,
+            "reply_count": 0
+          },
+          {
+            "text": "The 2 that I like most are \"AI Virtual Staging\" and \"AI Website in a Day\".",
+            "likes": 4,
+            "reply_count": 0
+          },
+          {
+            "text": "Brand kit...\nActually, who am I kidding? I'd love to have copies of everything mentioned in this video! You are killing it!!!\n\nThank you for all the hard work that it took to put these together",
+            "likes": 8,
+            "reply_count": 2
+          },
+          {
+            "text": "Honestly I like all your ideas. No problem if you create tutorials about each one 😊",
+            "likes": 4,
+            "reply_count": 0
+          },
+          {
+            "text": "An AI website video would be good",
+            "likes": 6,
+            "reply_count": 0
+          },
+          {
+            "text": "AI websites and digital products are the ones that really caught my attention. I’ve been exploring some insane Claude workflows through Trent Calloway’s operator playbook lately. The gap between having an idea and actually building something sellable is getting smaller every month. 🔥",
+            "likes": 11,
+            "reply_count": 4
+          },
+          {
+            "text": "Activity Books!",
+            "likes": 5,
+            "reply_count": 0
+          },
+          {
+            "text": "I love how you are explaining with details!",
+            "likes": 2,
+            "reply_count": 1
+          },
+          {
+            "text": "Website design full tutorial! Excellent presentation Joshua 👌",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "WOW,I am so impressed Joshua. I have been watching videos since forever & yours is the best by far. I am a 67 year old on a pension & looking to make some $$ to pay off my house & loans so I can enjoy the rest of my retirement without the headaches. Thank you for all the information I will try some of them for myself. THANK YOU & GOD BLESS!!",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "Thanks Josh,you just demystified digital products",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "Great Video! Extremely Valuable Information. Thank you",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "I believe in your process my brother",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "Jo, that was really helpful with actually how to create something like a planner or a template, very few do that.",
+            "likes": 2,
+            "reply_count": 1
+          },
+          {
+            "text": "Activity book and digital products",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "Hi Josh!! I have been watching your videos for a few years now and kinda just wanted to say Thank you for sharing as much as you do, without holding things back. I actually feel encouraged and hopefully about my own financial hardships after watching. I would love to have full videos on ANY and Every One of the ideas you brought tonus in this video.. I am an older watcher and find myself in need of ideas that will help to supplement or replace my low wage income. Thank you in advance..Dawn",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "Great stuff , digital products more detailed 😊 \nThanks for the info!",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "This video was fantastic! Super informative. If you could make a tutorial on AI Influencer Affiliate Marketing and AI Website in a Day please 🙏",
+            "likes": 3,
+            "reply_count": 1
+          },
+          {
+            "text": "Love your video 😊",
+            "likes": 1,
+            "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "3vU78JqkKAg",
+        "title": "【簡単すぎるで！】最短で収益化して月20万までいけちゃう在宅副業はこれ一択です！【AI副業】【スマホ副業】",
+        "channel_title": "ゆら【在宅ワーク・AI副業でマイホームを目指す2児ママ】",
+        "published_at": "2026-10-21T11:00:11Z",
+        "views": 17753,
+        "likes": 240,
+        "comments_count": 29,
+        "url": "https://www.youtube.com/watch?v=3vU78JqkKAg",
+        "query_rank": 3,
+        "comments_obtained_count": 13,
+        "comments": [
+          {
+            "text": "フォロワーもいないし、私にもできるのかな…🥺\n\n動画を見て、そう感じた方もいるかもしれません。\n\nでも、その不安は「やってみたい」って気持ちがちゃんとある証拠です✨\n\nスレッズで大事なのは、フォロワーの数より、投稿の型。\n投稿そのものはAIに作ってもらって、伸びるかどうかを見る目だけ、自分で持っておけば大丈夫です🙆‍♀\n\nあとは、とにかく量を出して行動するだけ。\n……とはいえ、ひとりだと続けるのがいちばん難しいんですよね😅\n\nなので、動画の感想や質問など、ぜひお気軽にコメントで教えてください！\n👇にコメントしてみる、っていうのも立派な最初の一歩です💪\n\n一つひとつ、ちゃんと読ませて返信させていただきます😌\nこのチャンネルも、続けていくための環境の一つにしてもらえたらうれしいです🌷",
+            "likes": 7,
+            "reply_count": 0
+          },
+          {
+            "text": "前回の動画で挑戦したいとコメントした者です！\nゆらさんの動画を見ながら暮らし系でアカウントを作って始めてみましたが、なかなか難しくてうまくいきません😭\n今回の動画を参考にしてがんばってみます！\nLINEも登録しました✨",
+            "likes": 0,
+            "reply_count": 1
+          },
+          {
+            "text": "投稿楽しみにしておりました!\nゆらさんの動画がわかりやすくて、はじめて副業を始めてみたいと思いました😌\nわたしは育児はしていないためファッションや生活で使える便利グッズでthreadsをはじめてみたいと考えております。また自分が使ったものを映えさせて撮ったりする環境がないため、PRがメインになると思うのですが、そうなると難しいでしょうか、、",
+            "likes": 0,
+            "reply_count": 1
+          },
+          {
+            "text": "私も講座側に回りたいです！",
+            "likes": 1,
+            "reply_count": 1
+          },
+          {
+            "text": "ゆらさん、投稿楽しみにしていました！\nだいたい準備したのですが、ジャンルでまだ迷ってて踏み出せずにいます…\n私は育児したことがないため、\n猫アイテム+暮らし系でいきたいのですが、一つに絞ったほうがいいと聞いて迷ってて…アカウントは別々にしたほうがいいのでしょうか？あとプロフィールもAIに作ってもらったのはピンとこなくて。\n相談できる人がいなくて\nいろいろつまずいてます😢\n今日の動画では実際の投稿の文面まで見せてもらえて勉強になりました！\nLINEは嬉しいです！さっそく登録させていただきますね♡今後ともよろしくお願いします！",
+            "likes": 0,
+            "reply_count": 3
+          },
+          {
+            "text": "初めてコメントさせていただきます。\n平均で投稿開始からどれくらいの期間で、どれくらいの投稿本数で、どれくらい稼げてますか。",
+            "likes": 0,
+            "reply_count": 1
+          },
+          {
+            "text": "9月に収益が出た方を紹介してますが、最初の動画（10月7日投稿）以前から取り組んでいた方々ということですか？？",
+            "likes": 0,
+            "reply_count": 1
+          },
+          {
+            "text": "動画拝見し、直ぐスレッズ開始しましたが張り切りすぎたのか３日目にして停止のメールが、、、🥲\n\nほんとに初心者なので、その辺りのコツも知りたいです🥲",
+            "likes": 0,
+            "reply_count": 1
+          },
+          {
+            "text": "すごく勉強になりましたが、男性の興味を引くジャンルを調べたいと思いました。しかしながらどう見つければ良いかわかりません。",
+            "likes": 0,
+            "reply_count": 1
+          },
+          {
+            "text": "なぜThreadsなんでしょうか？🤔\nXとかインスタの方が見られる機会も多そうなのでThreadsにしてる理由が気になります！😆",
+            "likes": 0,
+            "reply_count": 1
+          },
+          {
+            "text": "2つとも登録して、プロフなど作りました。\n継続してやっていきます😊",
+            "likes": 1,
+            "reply_count": 1
+          },
+          {
+            "text": "動画楽しみにしていました❤\n昨日からThreadsと楽天アフリエイトの登録済ませ これから投稿に向けてゆっくり進めています\n今日拝見して「育児」と出ていて「え ぇ～」と叫んでしまいました（汗）\nお得情報＆便利グッズをジャンルで選びましたが‥‥‥‥\n退職してこれからのゆるっとした それでいて楽しい毎日の暮らしの中でをモットーにThreads投稿していこうと思っていますが大丈夫でしょうか？\nアカウント増やせるように 頑張ってやりたいと思っています🍀 少し不安ですが‥‥‥‥（汗）\nこれからもよろしくお願いします⭐️",
+            "likes": 0,
+            "reply_count": 1
+          },
+          {
+            "text": "質問です。\n40代独身子無しだとやはり育児系って無理がありますよね？\nそういう場合だと他のジャンルに行くべきですか？\nそれとも甥っ子姪っ子とかを引き合いに出してきてでも強引に育児系で行った方がいいですか？",
+            "likes": 0,
+            "reply_count": 1
+          }
+        ]
+      },
+      {
+        "video_id": "aA8aNjBUcEU",
+        "title": "【2026年10月】予算ごとに課金すべきAIを徹底解説します！",
+        "channel_title": "AI・副業教室【シロクマ】",
+        "published_at": "2026-10-21T09:00:03Z",
+        "views": 14152,
+        "likes": 93,
+        "comments_count": 14,
+        "url": "https://www.youtube.com/watch?v=aA8aNjBUcEU",
+        "query_rank": 4,
         "comments_obtained_count": 5,
         "comments": [
           {
-            "text": "感謝分享，有收穫。",
+            "text": "会社で最新の高いAIを誰が使うのか考えたらそりゃ使いこなせる人だからな…\n歩いて移動する人と車で移動する人くらいの差が出る\nこの差がさらに広がって行く",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "manusはどうなんでしょうか？",
             "likes": 0,
             "reply_count": 0
           },
           {
-            "text": "感谢博主的及时更新和分享，受教受教了，很棒~支持+点赞👍👍👍虽然只是理论的讲解和演示，但我会先跟着尝试一下，不懂再回来请教，再次拜谢~🙏🙏",
+            "text": "ChatGPT（無料）に愚痴言ったら逆に説教された😂",
             "likes": 0,
-            "reply_count": 1
+            "reply_count": 0
           },
           {
-            "text": "听着感觉codex更聪明啊，有用codex吗？",
-            "likes": 0,
-            "reply_count": 1
+            "text": "安易に課金せず一旦使わないってのもありかと思います。今は学びだけに留めておいた方が良い状況だと思ってます。ブラウザ操作やローカルのデータとも連携が進んでる中で迂闊に進むとかなり危険な状況になると思います。社内業務にメール連携やエージェントを勝手に導入してややこしい事になってると言う話を聞きました",
+            "likes": 2,
+            "reply_count": 4
           },
           {
-            "text": "请教一下，您这个视频是哪个ai做出来的。",
-            "likes": 1,
-            "reply_count": 2
-          },
-          {
-            "text": "claude好注册吗？大陆会不会容易封？用的哪个模式？你做这个视频需要消耗多少钱？有没有手把手的教程呀？太多不懂得了，你这视频做的很好，就是非技术流的小白懵懵的，无从下手😅",
-            "likes": 0,
-            "reply_count": 2
-          }
-        ]
-      },
-      {
-        "video_id": "mFl4AplPaFg",
-        "title": "AI Just Broke the T-Shirt Game",
-        "channel_title": "Krystal Lee ",
-        "published_at": "2026-10-19T23:45:30Z",
-        "views": 3504,
-        "likes": 188,
-        "comments_count": 23,
-        "url": "https://www.youtube.com/watch?v=mFl4AplPaFg",
-        "query_rank": 9,
-        "comments_obtained_count": 9,
-        "comments": [
-          {
-            "text": "Printify is absolutely amazing Krystal! I just started my pop up store and I am so excited. I enjoy your humor and enthusiasm, and thank you for creating great videos!❤️🙏🏼💯",
-            "likes": 6,
-            "reply_count": 1
-          },
-          {
-            "text": "Thanks sis! I'll be doing this with my 15yo when she gets out of school today. This will be a great way for us to fund the rest of her high school sports. Especially her club volleyball traveling ❤",
+            "text": "4万円程度しか払ってないのに評論家ぶれるの？",
             "likes": 2,
             "reply_count": 2
-          },
-          {
-            "text": "Thanks you!  I’m so excited.  I was just about to create my printfy account based off of another one of your videos.  I will now use this.  Thank you so much!❤❤❤",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Im gonna try this today, wow",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "Great info and demo, Queen.",
-            "likes": 0,
-            "reply_count": 1
-          },
-          {
-            "text": "Love this Krystal! I just used a new email to set up a new  Printify account,but I don't see the 'Discover what's already selling' feature on my account. Is it rolling out gradually, or is there somewhere specific to find it?\"",
-            "likes": 2,
-            "reply_count": 5
-          },
-          {
-            "text": "Will it work even if you have an account",
-            "likes": 0,
-            "reply_count": 2
-          },
-          {
-            "text": "Is Etsy the online l only option you had?",
-            "likes": 0,
-            "reply_count": 2
-          },
-          {
-            "text": "Printify",
-            "likes": 0,
-            "reply_count": 0
           }
         ]
-      },
-      {
-        "video_id": "wB_jpMzD9RQ",
-        "title": "broo what😭😭 #ai #sidehustle #job #losangeles #higgsfieldpartner @HiggsfieldAI",
-        "channel_title": "Sofi",
-        "published_at": "2026-10-18T12:56:03Z",
-        "views": 1990,
-        "likes": 18,
-        "comments_count": 2,
-        "url": "https://www.youtube.com/watch?v=wB_jpMzD9RQ",
-        "query_rank": 10,
-        "comments_obtained_count": 2,
-        "comments": [
-          {
-            "text": "vro u have 19 likes what are you advertising🥀",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "nah",
-            "likes": 1,
-            "reply_count": 0
-          }
-        ]
-      },
-      {
-        "video_id": "5OZnBXcjxJU",
-        "title": "テスラ新型車の映像を、AIで赤いバイクに入れ替えてみた",
-        "channel_title": "ゼロからAI副業チャンネル",
-        "published_at": "2026-10-19T09:15:12Z",
-        "views": 2338,
-        "likes": 15,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=5OZnBXcjxJU",
-        "query_rank": 11,
-        "comments_obtained_count": 0,
-        "comments": []
-      },
-      {
-        "video_id": "UBTE4kyTXYo",
-        "title": "These side hustles are getting out of hand",
-        "channel_title": "larpwithalvan",
-        "published_at": "2026-10-19T00:49:20Z",
-        "views": 1459,
-        "likes": 18,
-        "comments_count": 5,
-        "url": "https://www.youtube.com/watch?v=UBTE4kyTXYo",
-        "query_rank": 12,
-        "comments_obtained_count": 4,
-        "comments": [
-          {
-            "text": "i was bout to say stop biting your lips but i do the same. lmfao",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "AI",
-            "likes": 0,
-            "reply_count": 0
-          },
-          {
-            "text": "AI!!",
-            "likes": 2,
-            "reply_count": 1
-          },
-          {
-            "text": "Slop",
-            "likes": 0,
-            "reply_count": 0
-          }
-        ]
-      },
-      {
-        "video_id": "hC623Z7X_80",
-        "title": "【令和の虎】死者をAIで蘇らせるのはアリ？炎上した「故人AI復活サービス」の本当の問題点とは",
-        "channel_title": "やまもとりゅうけんの人生救済チャンネル。",
-        "published_at": "2026-10-19T09:00:33Z",
-        "views": 6342,
-        "likes": 14,
-        "comments_count": 2,
-        "url": "https://www.youtube.com/watch?v=hC623Z7X_80",
-        "query_rank": 13,
-        "comments_obtained_count": 1,
-        "comments": [
-          {
-            "text": "ブラックミラーっていうネトフリのドラマシリーズのエピソードに似てる",
-            "likes": 0,
-            "reply_count": 1
-          }
-        ]
-      },
-      {
-        "video_id": "3B-EBVX2-wU",
-        "title": "【2026年】副業の稼ぎ方が変わりました。SNSより先に始めたいAI×noteで月5万円を目指す方法",
-        "channel_title": "在宅ワーク講座〜会社に頼らない収入の作り方〜",
-        "published_at": "2026-10-19T09:00:36Z",
-        "views": 3276,
-        "likes": 27,
-        "comments_count": 4,
-        "url": "https://www.youtube.com/watch?v=3B-EBVX2-wU",
-        "query_rank": 14,
-        "comments_obtained_count": 1,
-        "comments": [
-          {
-            "text": "自分で商品をイチから作らなくてもOK。ねここさんの講座で、そのやり方を学ばせて頂いて、理解できるようになってきました。私も商品をリリースできて、これからは販売をメインにやっていける、これってすごく大きい事だなって実感できるようになりました😊まずは、結果出せるよう頑張っていきたいと思います、いつもありがとうございます！",
-            "likes": 2,
-            "reply_count": 3
-          }
-        ]
-      },
-      {
-        "video_id": "j3OyiuTlTe8",
-        "title": "AI動画で2ヶ月で10万人達成する裏側#ai副業 #ラッキーマイン #ふわっち 副業",
-        "channel_title": "あべむつき【ラッキーマイン】",
-        "published_at": "2026-10-19T11:00:05Z",
-        "views": 2069,
-        "likes": 14,
-        "comments_count": 3,
-        "url": "https://www.youtube.com/watch?v=j3OyiuTlTe8",
-        "query_rank": 15,
-        "comments_obtained_count": 1,
-        "comments": [
-          {
-            "text": "非常にちゃんとしてる\n「同じような事が出来ちゃうと思うんだけど…」じゃないんだよ\nその発言が相手の方に非常に失礼",
-            "likes": 1,
-            "reply_count": 1
-          }
-        ]
-      },
-      {
-        "video_id": "ILIvWv5uSNc",
-        "title": "2년 월 매출 100달러대 기능 빼자 1만 달러 가까이 #Shorts",
-        "channel_title": "AI 사업일지",
-        "published_at": "2026-10-19T10:00:21Z",
-        "views": 2245,
-        "likes": 28,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=ILIvWv5uSNc",
-        "query_rank": 16,
-        "comments_obtained_count": 0,
-        "comments": []
-      },
-      {
-        "video_id": "gz4qeZDUI1Q",
-        "title": "スキルなしAI副業の甘い罠！前提がないと稼げない理由",
-        "channel_title": "フリーランス攻略CH",
-        "published_at": "2026-10-18T08:00:32Z",
-        "views": 1671,
-        "likes": 8,
-        "comments_count": 1,
-        "url": "https://www.youtube.com/watch?v=gz4qeZDUI1Q",
-        "query_rank": 17,
-        "comments_obtained_count": 1,
-        "comments": [
-          {
-            "text": "フリーランスで月収100万円を達成したい人は▶から！\n必ず視聴下さい。",
-            "likes": 0,
-            "reply_count": 0
-          }
-        ]
-      },
-      {
-        "video_id": "1lv8FxLkU5g",
-        "title": "【AI×YouTubeで稼ぐ人は何が違う？】あなたが\"稼げない側\"にいる理由",
-        "channel_title": "AIまるわかりチャンネル【MINORI】",
-        "published_at": "2026-10-18T10:30:34Z",
-        "views": 4017,
-        "likes": 33,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=1lv8FxLkU5g",
-        "query_rank": 18,
-        "comments_obtained_count": 0,
-        "comments": []
-      },
-      {
-        "video_id": "a1oFl_FeVMw",
-        "title": "副業が会社にバレて上司に呼び出された。#英語学習 #ai語学学習 #praktika",
-        "channel_title": "Kana英語勉強中",
-        "published_at": "2026-10-18T01:35:24Z",
-        "views": 2044,
-        "likes": 9,
-        "comments_count": 0,
-        "url": "https://www.youtube.com/watch?v=a1oFl_FeVMw",
-        "query_rank": 19,
-        "comments_obtained_count": 0,
-        "comments": []
       },
       {
         "video_id": "49xJPH5IjsE",
         "title": "Ai is crazy 😲 #sidehustle  #toronto #higgsfieldpartner @HiggsfieldAI",
         "channel_title": "Kieran",
         "published_at": "2026-10-20T00:30:05Z",
-        "views": 1163,
-        "likes": 17,
-        "comments_count": 2,
+        "views": 2706,
+        "likes": 49,
+        "comments_count": 3,
         "url": "https://www.youtube.com/watch?v=49xJPH5IjsE",
-        "query_rank": 20,
-        "comments_obtained_count": 2,
+        "query_rank": 5,
+        "comments_obtained_count": 3,
         "comments": [
           {
             "text": "Bro you got 10 views",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "Jack d flim Is dumb we can never break bedrock",
             "likes": 0,
             "reply_count": 0
           },
@@ -1298,7 +963,287 @@
             "reply_count": 0
           }
         ]
+      },
+      {
+        "video_id": "-kRAblwpDOk",
+        "title": "【AI副業】Codexで稼げる方法TOP５をご紹介【AI副業・在宅ワーク】",
+        "channel_title": "AIを使ってYouTubeで稼ぐ道",
+        "published_at": "2026-10-20T10:06:01Z",
+        "views": 7672,
+        "likes": 45,
+        "comments_count": 1,
+        "url": "https://www.youtube.com/watch?v=-kRAblwpDOk",
+        "query_rank": 6,
+        "comments_obtained_count": 0,
+        "comments": []
+      },
+      {
+        "video_id": "p6ZR0adqYoM",
+        "title": "AI 툴 팔다 고객 절반 잃은 회사, AI 숏폼 대행으로 바꾸자 흑자 낸 이유",
+        "channel_title": "AI Biz PT",
+        "published_at": "2026-10-20T03:00:40Z",
+        "views": 2358,
+        "likes": 16,
+        "comments_count": 0,
+        "url": "https://www.youtube.com/watch?v=p6ZR0adqYoM",
+        "query_rank": 7,
+        "comments_obtained_count": 0,
+        "comments": []
+      },
+      {
+        "video_id": "RqHxkZr-8Jg",
+        "title": "you need to make ai brainrot",
+        "channel_title": "ben",
+        "published_at": "2026-10-21T04:36:45Z",
+        "views": 1480,
+        "likes": 21,
+        "comments_count": 1,
+        "url": "https://www.youtube.com/watch?v=RqHxkZr-8Jg",
+        "query_rank": 8,
+        "comments_obtained_count": 1,
+        "comments": [
+          {
+            "text": "I’m eraly",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "QwIsNWX4Xqs",
+        "title": "wow these poor girls omg #miami #higgsfieldpartner #sidehustle #ai #tutorial @higgsfield.ai",
+        "channel_title": "Keek Hustles",
+        "published_at": "2026-10-21T07:12:11Z",
+        "views": 1235,
+        "likes": 11,
+        "comments_count": 0,
+        "url": "https://www.youtube.com/watch?v=QwIsNWX4Xqs",
+        "query_rank": 9,
+        "comments_obtained_count": 0,
+        "comments": []
+      },
+      {
+        "video_id": "GOu37WfBfdY",
+        "title": "this lowkey may just be the method ‼️#ai #educational #reels #sidehustle #youtubeautomation",
+        "channel_title": "Jacob Perez",
+        "published_at": "2026-10-21T21:02:49Z",
+        "views": 1169,
+        "likes": 18,
+        "comments_count": 1,
+        "url": "https://www.youtube.com/watch?v=GOu37WfBfdY",
+        "query_rank": 10,
+        "comments_obtained_count": 1,
+        "comments": [
+          {
+            "text": "That is so not how stitches are done lol",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "TkKsS-z-DHg",
+        "title": "is this the best way to make money? #miami #higgsfieldpartner #sidehustle #ai #tutorial @higgsfield.",
+        "channel_title": "Keek Hustles",
+        "published_at": "2026-10-21T15:32:20Z",
+        "views": 1222,
+        "likes": 13,
+        "comments_count": 1,
+        "url": "https://www.youtube.com/watch?v=TkKsS-z-DHg",
+        "query_rank": 11,
+        "comments_obtained_count": 1,
+        "comments": [
+          {
+            "text": "Ofcource AI is being used to scam",
+            "likes": 1,
+            "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "4d6vdz6B87U",
+        "title": "AIで副業をうまくやるコツは？在宅ワークは何から始める？AI時代のキャリア相談室【デイトラ】",
+        "channel_title": "デイトラ",
+        "published_at": "2026-10-22T02:16:07Z",
+        "views": 3039,
+        "likes": 13,
+        "comments_count": 0,
+        "url": "https://www.youtube.com/watch?v=4d6vdz6B87U",
+        "query_rank": 12,
+        "comments_obtained_count": 0,
+        "comments": []
+      },
+      {
+        "video_id": "0pthg7AuwxE",
+        "title": "deleting later",
+        "channel_title": "ben",
+        "published_at": "2026-10-21T01:10:38Z",
+        "views": 1282,
+        "likes": 35,
+        "comments_count": 5,
+        "url": "https://www.youtube.com/watch?v=0pthg7AuwxE",
+        "query_rank": 13,
+        "comments_obtained_count": 5,
+        "comments": [
+          {
+            "text": "i'd be sat as hell too if I had to do this. Just to make money. Using some a I slot program to copy others' work",
+            "likes": 3,
+            "reply_count": 0
+          },
+          {
+            "text": "I didn't know Bigfoot had an asian son",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "Not doin allat ngl but good for you Ig",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "you good bro?",
+            "likes": 2,
+            "reply_count": 0
+          },
+          {
+            "text": "Holy scam",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "OtC91XmqTX4",
+        "title": "【麻雀 AI 副業】売れないから向いてない、と決める前に見てほしい。副業ド素人があっという間に月23.6万を達成した、秘密の究極案件を全部見せちゃう【おすすめ 在宅ワーク ChatGPT】",
+        "channel_title": "Haruto | AI自動化副業ラボ",
+        "published_at": "2026-10-22T09:00:16Z",
+        "views": 1529,
+        "likes": 18,
+        "comments_count": 4,
+        "url": "https://www.youtube.com/watch?v=OtC91XmqTX4",
+        "query_rank": 14,
+        "comments_obtained_count": 4,
+        "comments": [
+          {
+            "text": "「リスナーからの成果報告が多かった動画まとめました」\n▽見るだけで金運上がる！最強副業リスト▽\nhttps://www.youtube.com/playlist?list=PLBpnvpd4j5mI\n\n【\"本当に成果出た\"の声が多かった副業】結局何すれば成果を出せる？そう感じている人ほどこのリストに答え載ってます。",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "アメリカで麻雀が行われてるなんて初めまして知りました……！\n今から挑戦してみます……！",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "麻雀好きなんでやってみたいです！",
+            "likes": 0,
+            "reply_count": 0
+          },
+          {
+            "text": "アメリカの副業サイトで麻雀グループ向けのＴシャツを作ってるのがありました\n\n流行っているようです。",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "6vJscJU3b0M",
+        "title": "this was a fun one #startup #sidehustle #youtubeautomation #ai",
+        "channel_title": "henry",
+        "published_at": "2026-10-21T06:15:26Z",
+        "views": 1306,
+        "likes": 13,
+        "comments_count": 1,
+        "url": "https://www.youtube.com/watch?v=6vJscJU3b0M",
+        "query_rank": 15,
+        "comments_obtained_count": 0,
+        "comments": []
+      },
+      {
+        "video_id": "Nvr5huNge84",
+        "title": "#ai #ai #aiagent #ai工具 #副業收入",
+        "channel_title": "AItech_holic",
+        "published_at": "2026-10-22T09:40:32Z",
+        "views": 1332,
+        "likes": 10,
+        "comments_count": 0,
+        "url": "https://www.youtube.com/watch?v=Nvr5huNge84",
+        "query_rank": 16,
+        "comments_obtained_count": 0,
+        "comments": []
+      },
+      {
+        "video_id": "LWOW_i4Jcxc",
+        "title": "【副業 おすすめ】楽天ROOMで月60万超えた方法。最速でSランクにもなれる方法です【副業 おすすめ】【フリーランス】【AI副業】",
+        "channel_title": "副業ハンターの神谷さん",
+        "published_at": "2026-10-20T11:15:19Z",
+        "views": 2669,
+        "likes": 6,
+        "comments_count": 0,
+        "url": "https://www.youtube.com/watch?v=LWOW_i4Jcxc",
+        "query_rank": 17,
+        "comments_obtained_count": 0,
+        "comments": []
+      },
+      {
+        "video_id": "CtQoM7kIVnc",
+        "title": "Comment “AI” and I’ll send you the guide 👀🫵 #ai #sidehustle #aiinfluencer",
+        "channel_title": "Addy",
+        "published_at": "2026-10-21T21:00:24Z",
+        "views": 1119,
+        "likes": 8,
+        "comments_count": 1,
+        "url": "https://www.youtube.com/watch?v=CtQoM7kIVnc",
+        "query_rank": 18,
+        "comments_obtained_count": 1,
+        "comments": [
+          {
+            "text": "Ai",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "Xz9fnmAcMFc",
+        "title": "犬のAI動画で今月の家賃払えた..？！🤯",
+        "channel_title": "Rina",
+        "published_at": "2026-10-20T13:46:42Z",
+        "views": 1482,
+        "likes": 18,
+        "comments_count": 2,
+        "url": "https://www.youtube.com/watch?v=Xz9fnmAcMFc",
+        "query_rank": 19,
+        "comments_obtained_count": 2,
+        "comments": [
+          {
+            "text": "無理に決まってるでしょ、、",
+            "likes": 1,
+            "reply_count": 0
+          },
+          {
+            "text": "じゃあなんでやんないn…",
+            "likes": 0,
+            "reply_count": 0
+          }
+        ]
+      },
+      {
+        "video_id": "GsC_fV6dA1U",
+        "title": "consistency is key!! #miami #higgsfieldpartner #sidehustle #ai #tutorial @higgsfield.ai",
+        "channel_title": "Keek Hustles",
+        "published_at": "2026-10-21T18:41:19Z",
+        "views": 1114,
+        "likes": 9,
+        "comments_count": 0,
+        "url": "https://www.youtube.com/watch?v=GsC_fV6dA1U",
+        "query_rank": 20,
+        "comments_obtained_count": 0,
+        "comments": []
       }
     ]
-  }
+  },
+  "sample_count": 40,
+  "execution_id": "gh-39877221034-attempt-1",
+  "trigger": "schedule"
 }

@@ -16,6 +16,29 @@
       "verification": "FAIL",
       "failure_reason": "Pipeline exited with code 1",
       "recovery_action": "Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage."
+    },
+    {
+      "execution_id": "gh-39877221034-attempt-1",
+      "workflow": "Daily YouTube Research via MCP",
+      "status": "SUCCESS",
+      "started_at": "2026-10-23T00:17:29Z",
+      "completed_at": "2026-10-23T00:19:02.055978+00:00",
+      "github_run_id": "39877221034",
+      "github_run_attempt": "1",
+      "trigger": "schedule",
+      "recovery_attempt": false,
+      "mcp_endpoint": "https://youtube-ai-research-mcp.onrender.com/mcp",
+      "data": "PASS",
+      "reports": "PASS",
+      "verification": "PASS",
+      "failure_reason": null,
+      "recovery_action": null,
+      "data_generated_at": "2026-10-23T00:18:11.130663+00:00",
+      "data_verification": {
+        "fresh_videos": 40,
+        "stale_or_invalid_videos": 0,
+        "verified_72h": true
+      }
     }
   ]
 }
