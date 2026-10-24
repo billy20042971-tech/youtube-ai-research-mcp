@@ -11,6 +11,8 @@ from scripts.notion_writeback import (
     verify_comment,
     validate_target_page_id,
     build_deep_briefing_blocks,
+    block_signature,
+    verify_block_sequence,
     split_text,
     video_blocks,
 )
@@ -72,18 +74,48 @@ class NotionWritebackTests(unittest.TestCase):
         self.assertEqual(request.call_count, 2)
         self.assertIn("start_cursor=cursor-2", request.call_args_list[1].args[1])
 
-    def test_retry_reuses_existing_comment_without_posting_duplicate(self):
+    def test_retry_reuses_existing_comment_only_when_full_content_matches(self):
         execution_id = "gh-123-attempt-1"
+        expected = f"execution_id: {execution_id}\\nnew content"
+        existing = {"id": "existing-id", "rich_text": [{"plain_text": expected}]}
         with patch(
             "scripts.notion_writeback.request_json",
-            return_value={"results": [self.comment("existing-id", execution_id)],
-                          "has_more": False, "next_cursor": None},
+            return_value={"results": [existing], "has_more": False, "next_cursor": None},
         ) as request:
-            comment_id = ensure_comment("page", "token", execution_id, f"execution_id: {execution_id}\\nnew content")
+            comment_id = ensure_comment("page", "token", execution_id, expected)
 
         self.assertEqual(comment_id, "existing-id")
         self.assertTrue(all(args.args[0] == "GET" for args in request.call_args_list))
         self.assertFalse(any(args.args[0] == "POST" for args in request.call_args_list))
+
+    def test_existing_execution_comment_with_different_content_fails_closed(self):
+        execution_id = "gh-123-attempt-1"
+        existing = {"id": "existing-id", "rich_text": [{"plain_text": f"execution_id: {execution_id}\\nold content"}]}
+        with patch(
+            "scripts.notion_writeback.request_json",
+            return_value={"results": [existing], "has_more": False, "next_cursor": None},
+        ) as request:
+            with self.assertRaisesRegex(RuntimeError, "different content"):
+                ensure_comment("page", "token", execution_id, f"execution_id: {execution_id}\\nnew content")
+        self.assertTrue(all(args.args[0] == "GET" for args in request.call_args_list))
+
+    def test_long_comment_is_chunked_without_truncating_expected_content(self):
+        execution_id = "gh-127-attempt-1"
+        text = f"execution_id: {execution_id}\\n" + ("長" * 4500)
+        parts = split_text(text)
+        created = {"id": "created-id", "rich_text": [{"plain_text": part} for part in parts]}
+        with patch(
+            "scripts.notion_writeback.request_json",
+            side_effect=[
+                {"results": [], "has_more": False, "next_cursor": None},
+                created,
+            ],
+        ) as request:
+            comment_id = ensure_comment("page", "token", execution_id, text)
+        payload = request.call_args_list[1].args[3]["rich_text"]
+        self.assertEqual(comment_id, "created-id")
+        self.assertEqual("".join(item["text"]["content"] for item in payload), text)
+        self.assertTrue(all(len(item["text"]["content"]) <= 2000 for item in payload))
 
     def test_creates_comment_only_when_execution_marker_is_absent(self):
         execution_id = "gh-124-attempt-1"
@@ -125,8 +157,38 @@ class NotionWritebackTests(unittest.TestCase):
             "scripts.notion_writeback.request_json",
             return_value={"results": [self.comment("created-id", execution_id)],
                           "has_more": False, "next_cursor": None},
-        ):
+        ), patch("scripts.notion_writeback.time.sleep"):
             self.assertFalse(verify_comment("page", "token", "created-id", execution_id, expected))
+
+    def test_block_sequence_verification_requires_exact_complete_sequence(self):
+        execution_id = "gh-200-attempt-1"
+        expected = [
+            {"type": "callout", "callout": {"rich_text": [{"type": "text", "text": {"content": f"執行識別：{execution_id}"}}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"type": "text", "text": {"content": "技術突破"}}]}},
+            {"type": "divider", "divider": {}},
+        ]
+        exact_readback = [
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "older content"}]}},
+            {"type": "callout", "callout": {"rich_text": [{"plain_text": f"執行識別：{execution_id}"}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "技術突破"}]}},
+            {"type": "divider", "divider": {}},
+        ]
+        self.assertTrue(verify_block_sequence(exact_readback, expected, execution_id))
+        self.assertEqual(block_signature(exact_readback[2]), ("heading_2", "技術突破"))
+
+    def test_block_sequence_verification_rejects_partial_or_mismatched_content(self):
+        execution_id = "gh-201-attempt-1"
+        expected = [
+            {"type": "callout", "callout": {"rich_text": [{"type": "text", "text": {"content": f"執行識別：{execution_id}"}}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"type": "text", "text": {"content": "原始標題"}}]}},
+        ]
+        partial = [expected[0]]
+        mismatch = [
+            expected[0],
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "被修改的標題"}]}},
+        ]
+        self.assertFalse(verify_block_sequence(partial, expected, execution_id))
+        self.assertFalse(verify_block_sequence(mismatch, expected, execution_id))
 
     def test_rejects_repeated_pagination_cursor(self):
         with patch(
