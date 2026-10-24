@@ -218,26 +218,53 @@ def list_page_blocks(page_id: str, token: str) -> list[dict]:
         cursor = next_cursor
 
 
+def block_signature(block: dict) -> tuple[str, str]:
+    """Return stable type/text evidence from a Notion block response."""
+    block_type = str(block.get("type", ""))
+    payload = block.get(block_type, {})
+    rich_text = payload.get("rich_text", []) if isinstance(payload, dict) else []
+    text = "".join(
+        str(item.get("plain_text", item.get("text", {}).get("content", "")))
+        for item in rich_text if isinstance(item, dict)
+    )
+    return block_type, text
+
+
+def verify_block_sequence(existing: list[dict], expected: list[dict], execution_id: str) -> bool:
+    """Verify the complete contiguous block sequence for an execution, not just its marker."""
+    marker = f"執行識別：{execution_id}"
+    signatures = [block_signature(block) for block in existing]
+    expected_signatures = [block_signature(block) for block in expected]
+    starts = [i for i, (_, text) in enumerate(signatures) if marker in text]
+    if not starts:
+        return False
+    start = starts[0]
+    actual = signatures[start:start + len(expected_signatures)]
+    return len(actual) == len(expected_signatures) and actual == expected_signatures
+
+
 def ensure_deep_briefing(page_id: str, token: str, latest: dict, manifest: dict, execution_id: str) -> tuple[int, bool]:
-    """Append one briefing per execution; existing execution marker prevents duplicate pages."""
+    """Append one briefing per execution and verify every block by type and exact text."""
+    blocks = build_deep_briefing_blocks(latest, manifest, execution_id)
     existing = list_page_blocks(page_id, token)
     marker = f"執行識別：{execution_id}"
-    if any(marker in "".join(
-        item.get("plain_text", item.get("text", {}).get("content", ""))
-        for item in block.get(block.get("type", ""), {}).get("rich_text", [])
-    ) for block in existing):
-        return len(existing), True
-    blocks = build_deep_briefing_blocks(latest, manifest, execution_id)
+    marker_exists = any(marker in block_signature(block)[1] for block in existing)
+    if marker_exists:
+        if not verify_block_sequence(existing, blocks, execution_id):
+            raise RuntimeError(
+                "Notion already contains this execution marker but its complete block sequence differs; "
+                "refusing duplicate append or false PASS."
+            )
+        return len(blocks), True
+
     for offset in range(0, len(blocks), 100):
         request_json("PATCH", f"/blocks/{page_id}/children", token, {"children": blocks[offset:offset + 100]})
+
     readback = list_page_blocks(page_id, token)
-    found = any(marker in "".join(
-        item.get("plain_text", item.get("text", {}).get("content", ""))
-        for item in block.get(block.get("type", ""), {}).get("rich_text", [])
-    ) for block in readback)
-    if not found:
-        # Callout may be nested in paginated response only as top-level; failure is explicit.
-        raise RuntimeError("Notion deep briefing block could not be verified by readback.")
+    if not verify_block_sequence(readback, blocks, execution_id):
+        raise RuntimeError(
+            "Notion deep briefing readback failed: execution marker or full block sequence is missing/mismatched."
+        )
     return len(blocks), True
 
 def request_json(method: str, path: str, token: str, payload: dict | None = None) -> dict:
@@ -304,23 +331,35 @@ def find_existing_comment(page_id: str, token: str, execution_id: str) -> dict |
 
 
 def ensure_comment(page_id: str, token: str, execution_id: str, text: str) -> str:
-    """Reuse a prior execution comment, otherwise create it once."""
+    """Reuse only an exact prior write; fail closed on same-run content conflicts."""
     existing = find_existing_comment(page_id, token, execution_id)
     if existing:
+        if text_from_comment(existing) != text:
+            raise RuntimeError(
+                "An existing Notion comment for this execution_id has different content; "
+                "refusing to treat it as verified or create a duplicate."
+            )
         return existing["id"]
     created = request_json("POST", "/comments", token, {
         "parent": {"page_id": page_id},
-        "rich_text": [{"type": "text", "text": {"content": text[:1900]}}],
+        "rich_text": [
+            {"type": "text", "text": {"content": part}}
+            for part in split_text(text)
+        ],
     })
     comment_id = created.get("id")
     if not comment_id:
         raise RuntimeError("Notion comment creation response did not include an id.")
+    returned_text = text_from_comment(created)
+    if returned_text and returned_text != text:
+        raise RuntimeError("Notion comment creation response content differs from the requested audit text.")
     return comment_id
 
 
 def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str, expected_text: str | None = None) -> bool:
-    """Verify the exact comment ID and execution marker, retrying reads only."""
-    for attempt in range(2):
+    """Verify exact comment ID, execution marker, and content with bounded read-only backoff."""
+    delays = (1, 2, 4, 8)
+    for attempt in range(len(delays) + 1):
         found = next(
             (item for item in list_comments(page_id, token)
              if item.get("id") == comment_id
@@ -330,8 +369,8 @@ def verify_comment(page_id: str, token: str, comment_id: str, execution_id: str,
         )
         if found:
             return True
-        if attempt == 0:
-            time.sleep(1)
+        if attempt < len(delays):
+            time.sleep(delays[attempt])
     return False
 
 
@@ -389,11 +428,14 @@ def main() -> int:
     text = comment_text(execution_id, manifest, state)
     comment_id = ensure_comment(page_id, token, execution_id, text)
     if not verify_comment(page_id, token, comment_id, execution_id, text):
-        raise RuntimeError(f"Notion comment {comment_id} exists or was created but could not be verified by readback.")
+        raise RuntimeError(f"Notion comment {comment_id} exists or was created but could not be verified by exact readback.")
 
     write_audit({
         "execution_id": execution_id,
         "status": "PASS",
+        "page_block_verification": "PASS_FULL_SEQUENCE_TYPE_AND_TEXT",
+        "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
+        "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
         "checked_at": now_iso(),
         "page_id": page_id,
         "comment_id": comment_id,
