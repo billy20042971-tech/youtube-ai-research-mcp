@@ -34,6 +34,8 @@ class ExecutionEvidenceTests(unittest.TestCase):
             "execution_id": self.execution_id, "status": "PASS", "writeback_verified": True,
             "readback_verified": True, "page_id": "page-1", "comment_id": "comment-1",
             "readback_content_sha256": "abc123",
+            "page_block_verification": "PASS_FULL_SEQUENCE_TYPE_AND_TEXT",
+            "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
         }
 
     def tearDown(self):
@@ -111,6 +113,16 @@ class ExecutionEvidenceTests(unittest.TestCase):
         saved = json.loads((self.root / "data/latest-successful-execution.json").read_text())
         self.assertEqual(saved["trigger"], "workflow_dispatch")
         self.assertTrue(saved["recovery_attempt"])
+
+    def test_legacy_audit_pass_without_full_block_proof_fails(self):
+        audit = {key: value for key, value in self.audit.items() if key != "page_block_verification"}
+        with self.assertRaisesRegex(ValueError, "page-block full-sequence verification"):
+            validate_success_evidence(self.state, self.data, self.summary, self.manifest, audit)
+
+    def test_audit_without_exact_comment_content_proof_fails(self):
+        audit = {**self.audit, "comment_verification": "PASS_EXECUTION_ID_ONLY"}
+        with self.assertRaisesRegex(ValueError, "comment identity/content verification"):
+            validate_success_evidence(self.state, self.data, self.summary, self.manifest, audit)
 
     def test_audit_readback_false_fails(self):
         audit = {**self.audit, "readback_verified": False}
