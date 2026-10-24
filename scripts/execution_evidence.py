@@ -58,6 +58,10 @@ def validate_success_evidence(
         raise ValueError(f"Data/manifest timestamp consistency failed: {exc}") from None
     if audit.get("status") != "PASS" or audit.get("writeback_verified") is not True or audit.get("readback_verified") is not True:
         raise ValueError("Notion writeback/readback Audit is not PASS")
+    if audit.get("page_block_verification") != "PASS_FULL_SEQUENCE_TYPE_AND_TEXT":
+        raise ValueError("Notion page-block full-sequence verification is missing or failed")
+    if audit.get("comment_verification") != "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT":
+        raise ValueError("Notion comment identity/content verification is missing or failed")
     if not audit.get("page_id") or not audit.get("comment_id") or not audit.get("readback_content_sha256"):
         raise ValueError("Notion readback identity/content evidence is incomplete")
 
