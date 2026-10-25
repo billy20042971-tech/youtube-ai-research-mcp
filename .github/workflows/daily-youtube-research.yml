@@ -228,7 +228,6 @@ jobs:
           echo "=== 4. Dynamic 72h sample ==="
           PUBLISHED_AFTER="$(python - <<'PY'
           from datetime import datetime, timezone, timedelta
-          from zoneinfo import ZoneInfo
           print((datetime.now(timezone.utc) - timedelta(hours=72)).strftime("%Y-%m-%dT%H:%M:%SZ"))
           PY
           )"
@@ -241,6 +240,7 @@ jobs:
           import json, sys, os
           from pathlib import Path
           from datetime import datetime, timezone, timedelta
+          from zoneinfo import ZoneInfo
 
           from scripts.mcp_sse import parse_mcp_response_file
 
