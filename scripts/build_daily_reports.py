@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from collections import Counter
 import re
 
@@ -54,7 +55,7 @@ videos = list(seen.values())
 videos.sort(key=lambda x: safe_int(x.get("views")), reverse=True)
 
 now = datetime.now(timezone.utc)
-date = now.strftime("%Y-%m-%d")
+date = now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")
 out = Path("reports") / date
 out.mkdir(parents=True, exist_ok=True)
 
