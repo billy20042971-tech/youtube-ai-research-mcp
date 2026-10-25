@@ -66,5 +66,13 @@ class RemainingSafetyTests(unittest.TestCase):
         self.assertEqual(schedule_lateness_minutes(now), 125)
 
 
+    def test_report_paths_use_taipei_calendar_date(self):
+        workflow = (ROOT / ".github/workflows/daily-youtube-research.yml").read_text(encoding="utf-8")
+        report_builder = (ROOT / "scripts/build_daily_reports.py").read_text(encoding="utf-8")
+        self.assertIn('from zoneinfo import ZoneInfo', workflow)
+        self.assertIn('stamp=now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")', workflow)
+        self.assertIn('date = now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")', report_builder)
+
+
 if __name__ == "__main__":
     unittest.main()
