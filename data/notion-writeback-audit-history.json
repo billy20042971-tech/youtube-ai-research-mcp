@@ -53,6 +53,23 @@
       "readback_content_sha256": "90ed8ef926995623f2d4c04c377c5b18f03823ea62c1b09522c8bdc1a3f08d72",
       "sample_count": 40,
       "github_run_id": "40144537790"
+    },
+    {
+      "execution_id": "gh-40245922869-attempt-1",
+      "status": "PASS",
+      "page_block_verification": "PASS_FULL_SEQUENCE_TYPE_AND_TEXT",
+      "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
+      "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
+      "checked_at": "2026-10-25T23:43:45.687769+00:00",
+      "page_id": "3cc40065-15d9-806c-b196-f038cf8c5bc4",
+      "comment_id": "40440065-15d9-81b9-8044-001df4cccf9e",
+      "writeback_verified": true,
+      "readback_verified": true,
+      "deep_briefing_blocks": 487,
+      "deep_briefing_readback_verified": true,
+      "readback_content_sha256": "3039b172e2101fcd5719a46c706f62ee5bf4317bc340c9f7c44498eefd74b619",
+      "sample_count": 38,
+      "github_run_id": "40245922869"
     }
   ]
 }
