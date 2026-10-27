@@ -352,7 +352,7 @@ jobs:
           echo "=== 9. Pipeline complete ==="
 
       - name: Upload generated reports
-        if: success()
+        if: ${{ !cancelled() && hashFiles('reports/**') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: daily-ai-research-reports-${{ github.run_id }}-${{ github.run_attempt }}
