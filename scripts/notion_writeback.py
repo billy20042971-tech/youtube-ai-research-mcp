@@ -14,6 +14,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import time
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -218,54 +219,79 @@ def list_page_blocks(page_id: str, token: str) -> list[dict]:
         cursor = next_cursor
 
 
+def _normalize_block_text(value: str) -> str:
+    """Normalize representation-only differences without discarding meaningful content."""
+    value = unicodedata.normalize("NFC", value).replace("\r\n", "\n").replace("\r", "\n")
+    return value.replace("\u200b", "").replace("\ufeff", "")
+
+
 def block_signature(block: dict) -> tuple[str, str]:
-    """Return stable type/text evidence from a Notion block response."""
+    """Return stable type/text evidence from Notion block payloads."""
     block_type = str(block.get("type", ""))
     payload = block.get(block_type, {})
     rich_text = payload.get("rich_text", []) if isinstance(payload, dict) else []
-    text = "".join(
-        str(item.get("plain_text", item.get("text", {}).get("content", "")))
-        for item in rich_text if isinstance(item, dict)
-    )
-    return block_type, text
+    parts = []
+    for item in rich_text:
+        if not isinstance(item, dict):
+            continue
+        text_payload = item.get("text", {})
+        if not isinstance(text_payload, dict):
+            text_payload = {}
+        part = item.get("plain_text")
+        if not isinstance(part, str):
+            part = text_payload.get("content", "")
+        if isinstance(part, str):
+            parts.append(part)
+    return block_type, _normalize_block_text("".join(parts))
 
 
 def verify_block_sequence(existing: list[dict], expected: list[dict], execution_id: str) -> bool:
-    """Verify the complete contiguous block sequence for an execution, not just its marker."""
-    marker = f"執行識別：{execution_id}"
+    """Verify the complete contiguous block sequence; only representation noise is normalized."""
+    marker = _normalize_block_text(f"執行識別：{execution_id}")
     signatures = [block_signature(block) for block in existing]
     expected_signatures = [block_signature(block) for block in expected]
     starts = [i for i, (_, text) in enumerate(signatures) if marker in text]
-    if not starts:
-        return False
-    start = starts[0]
-    actual = signatures[start:start + len(expected_signatures)]
-    return len(actual) == len(expected_signatures) and actual == expected_signatures
+    for start in starts:
+        actual = signatures[start:start + len(expected_signatures)]
+        if len(actual) == len(expected_signatures) and actual == expected_signatures:
+            return True
+    return False
 
 
 def ensure_deep_briefing(page_id: str, token: str, latest: dict, manifest: dict, execution_id: str) -> tuple[int, bool]:
-    """Append one briefing per execution and verify every block by type and exact text."""
+    """Append one briefing per execution and verify the full sequence with bounded read retries."""
     blocks = build_deep_briefing_blocks(latest, manifest, execution_id)
-    existing = list_page_blocks(page_id, token)
     marker = f"執行識別：{execution_id}"
+    existing = list_page_blocks(page_id, token)
     marker_exists = any(marker in block_signature(block)[1] for block in existing)
     if marker_exists:
-        if not verify_block_sequence(existing, blocks, execution_id):
-            raise RuntimeError(
-                "Notion already contains this execution marker but its complete block sequence differs; "
-                "refusing duplicate append or false PASS."
-            )
-        return len(blocks), True
+        if _readback_block_sequence(page_id, token, blocks, execution_id):
+            return len(blocks), True
+        raise RuntimeError(
+            "Notion already contains this execution marker but its complete block sequence differs; "
+            "refusing duplicate append or false PASS."
+        )
 
     for offset in range(0, len(blocks), 100):
         request_json("PATCH", f"/blocks/{page_id}/children", token, {"children": blocks[offset:offset + 100]})
 
-    readback = list_page_blocks(page_id, token)
-    if not verify_block_sequence(readback, blocks, execution_id):
+    if not _readback_block_sequence(page_id, token, blocks, execution_id):
         raise RuntimeError(
             "Notion deep briefing readback failed: execution marker or full block sequence is missing/mismatched."
         )
     return len(blocks), True
+
+
+def _readback_block_sequence(page_id: str, token: str, expected: list[dict], execution_id: str) -> bool:
+    """Retry read-only verification for bounded eventual consistency; never bypass validation."""
+    delays = (0.5, 1.0, 2.0, 3.0)
+    for attempt in range(len(delays) + 1):
+        readback = list_page_blocks(page_id, token)
+        if verify_block_sequence(readback, expected, execution_id):
+            return True
+        if attempt < len(delays):
+            time.sleep(delays[attempt])
+    return False
 
 def request_json(method: str, path: str, token: str, payload: dict | None = None) -> dict:
     body = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")

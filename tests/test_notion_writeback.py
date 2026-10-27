@@ -15,6 +15,7 @@ from scripts.notion_writeback import (
     verify_block_sequence,
     split_text,
     video_blocks,
+    _readback_block_sequence,
 )
 
 
@@ -189,6 +190,30 @@ class NotionWritebackTests(unittest.TestCase):
         ]
         self.assertFalse(verify_block_sequence(partial, expected, execution_id))
         self.assertFalse(verify_block_sequence(mismatch, expected, execution_id))
+
+
+    def test_block_readback_retries_eventual_consistency_without_skipping_verification(self):
+        execution_id = "gh-retry-attempt-1"
+        expected = [
+            {"type": "callout", "callout": {"rich_text": [{"type": "text", "text": {"content": f"執行識別：{execution_id}"}}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"type": "text", "text": {"content": "技術突破"}}]}},
+        ]
+        delayed = [{"type": "callout", "callout": {"rich_text": [{"plain_text": f"執行識別：{execution_id}"}]}}]
+        verified = [
+            {"type": "callout", "callout": {"rich_text": [{"plain_text": f"執行識別：{execution_id}"}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "技術突破"}]}},
+        ]
+        with patch("scripts.notion_writeback.list_page_blocks", side_effect=[delayed, verified]) as read, \
+             patch("scripts.notion_writeback.time.sleep") as sleep:
+            self.assertTrue(_readback_block_sequence("page", "token", expected, execution_id))
+        self.assertEqual(read.call_count, 2)
+        sleep.assert_called_once_with(0.5)
+
+    def test_block_signature_normalizes_unicode_and_representation_noise_only(self):
+        block = {"type": "paragraph", "paragraph": {"rich_text": [
+            {"plain_text": "Cafe\u0301\u200b"}
+        ]}}
+        self.assertEqual(block_signature(block), ("paragraph", "Café"))
 
     def test_rejects_repeated_pagination_cursor(self):
         with patch(
