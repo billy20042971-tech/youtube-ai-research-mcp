@@ -1,17 +1,8 @@
 {
-  "execution_id": "gh-40245922869-attempt-1",
-  "status": "PASS",
-  "page_block_verification": "PASS_FULL_SEQUENCE_TYPE_AND_TEXT",
-  "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
-  "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
-  "checked_at": "2026-10-25T23:43:45.687769+00:00",
-  "page_id": "3cc40065-15d9-806c-b196-f038cf8c5bc4",
-  "comment_id": "40440065-15d9-81b9-8044-001df4cccf9e",
-  "writeback_verified": true,
-  "readback_verified": true,
-  "deep_briefing_blocks": 487,
-  "deep_briefing_readback_verified": true,
-  "readback_content_sha256": "3039b172e2101fcd5719a46c706f62ee5bf4317bc340c9f7c44498eefd74b619",
-  "sample_count": 38,
-  "github_run_id": "40245922869"
+  "execution_id": "gh-40430058714-attempt-1",
+  "status": "FAILED",
+  "checked_at": "2026-10-27T01:17:56.650934+00:00",
+  "writeback_verified": false,
+  "readback_verified": false,
+  "error": "Notion deep briefing readback failed: execution marker or full block sequence is missing/mismatched."
 }

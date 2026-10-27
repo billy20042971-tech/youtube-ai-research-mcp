@@ -70,6 +70,14 @@
       "readback_content_sha256": "3039b172e2101fcd5719a46c706f62ee5bf4317bc340c9f7c44498eefd74b619",
       "sample_count": 38,
       "github_run_id": "40245922869"
+    },
+    {
+      "execution_id": "gh-40430058714-attempt-1",
+      "status": "FAILED",
+      "checked_at": "2026-10-27T01:17:56.650934+00:00",
+      "writeback_verified": false,
+      "readback_verified": false,
+      "error": "Notion deep briefing readback failed: execution marker or full block sequence is missing/mismatched."
     }
   ]
 }

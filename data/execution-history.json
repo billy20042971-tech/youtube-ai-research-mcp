@@ -108,6 +108,23 @@
         "stale_or_invalid_videos": 0,
         "verified_72h": true
       }
+    },
+    {
+      "execution_id": "gh-40430058714-attempt-1",
+      "workflow": "Daily YouTube Research via MCP",
+      "status": "FAILED",
+      "started_at": "2026-10-27T01:01:33Z",
+      "completed_at": "2026-10-27T01:17:56.701499+00:00",
+      "github_run_id": "40430058714",
+      "github_run_attempt": "1",
+      "trigger": "schedule",
+      "recovery_attempt": false,
+      "mcp_endpoint": "https://youtube-ai-research-mcp.onrender.com/mcp",
+      "data": "UNKNOWN",
+      "reports": "UNKNOWN",
+      "verification": "FAIL",
+      "failure_reason": "Notion writeback/readback verification failed",
+      "recovery_action": "Check NOTION_API_KEY, NOTION_PAGE_ID, page sharing, and Notion API permissions."
     }
   ]
 }
