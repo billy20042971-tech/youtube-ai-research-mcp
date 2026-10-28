@@ -78,6 +78,15 @@
       "writeback_verified": false,
       "readback_verified": false,
       "error": "Notion deep briefing readback failed: execution marker or full block sequence is missing/mismatched."
+    },
+    {
+      "execution_id": "gh-40611394913-attempt-1",
+      "status": "NOT_RUN",
+      "checked_at": "2026-10-28T00:51:53.037807+00:00",
+      "github_run_id": "40611394913",
+      "writeback_verified": false,
+      "readback_verified": false,
+      "error": "Pipeline exited with code 1"
     }
   ]
 }

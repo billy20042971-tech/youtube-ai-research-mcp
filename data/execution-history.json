@@ -125,6 +125,23 @@
       "verification": "FAIL",
       "failure_reason": "Notion writeback/readback verification failed",
       "recovery_action": "Check NOTION_API_KEY, NOTION_PAGE_ID, page sharing, and Notion API permissions."
+    },
+    {
+      "execution_id": "gh-40611394913-attempt-1",
+      "workflow": "Daily YouTube Research via MCP",
+      "status": "FAILED",
+      "started_at": "2026-10-28T00:51:15Z",
+      "completed_at": "2026-10-28T00:51:53.027497+00:00",
+      "github_run_id": "40611394913",
+      "github_run_attempt": "1",
+      "trigger": "schedule",
+      "recovery_attempt": false,
+      "mcp_endpoint": "https://youtube-ai-research-mcp.onrender.com/mcp",
+      "data": "UNKNOWN",
+      "reports": "UNKNOWN",
+      "verification": "FAIL",
+      "failure_reason": "Pipeline exited with code 1",
+      "recovery_action": "Inspect execution-state.json and GitHub run logs; retry only after identifying the failed stage."
     }
   ]
 }
