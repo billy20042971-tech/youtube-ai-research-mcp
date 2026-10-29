@@ -11,7 +11,7 @@ on:
         default: "false"
         type: string
   schedule:
-    - cron: "0 22 * * *"  # 06:00 Asia/Taipei
+    - cron: "23 21 * * *"  # 05:23 Asia/Taipei; off-peak minute, pending natural-run validation
 
 permissions:
   contents: write
