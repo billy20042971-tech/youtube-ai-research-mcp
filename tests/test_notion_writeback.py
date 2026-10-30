@@ -9,7 +9,7 @@ from scripts.notion_writeback import (
     find_existing_comment,
     text_from_comment,
     verify_comment,
-    validate_target_page_id,
+    validate_target_database_id,
     build_deep_briefing_blocks,
     block_signature,
     verify_block_sequence,
@@ -20,13 +20,13 @@ from scripts.notion_writeback import (
 
 
 class NotionWritebackTests(unittest.TestCase):
-    def test_approved_target_page_id_accepts_hyphenated_and_compact_forms(self):
-        validate_target_page_id("3cc40065-15d9-806c-b196-f038cf8c5bc4")
-        validate_target_page_id("3cc4006515d9806cb196f038cf8c5bc4")
+    def test_approved_target_database_id_accepts_hyphenated_and_compact_forms(self):
+        validate_target_database_id("8eeeca64-4e1f-4687-a361-1f5124a0c5c8")
+        validate_target_database_id("8eeeca644e1f4687a3611f5124a0c5c8")
 
-    def test_unapproved_target_page_id_fails_closed(self):
-        with self.assertRaisesRegex(RuntimeError, "approved AI Lab page"):
-            validate_target_page_id("2a240065-15d9-8017-98c3-fee1659120ae")
+    def test_unapproved_target_database_id_fails_closed(self):
+        with self.assertRaisesRegex(RuntimeError, "approved.*AI 情報雷達 database"):
+            validate_target_database_id("2a240065-15d9-8017-98c3-fee1659120ae")
 
     def test_comment_contains_stable_execution_id_and_artifact_paths(self):
         text = comment_text(
