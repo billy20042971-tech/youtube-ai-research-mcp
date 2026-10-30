@@ -25,6 +25,7 @@ class RemainingSafetyTests(unittest.TestCase):
             env = os.environ.copy()
             env.pop("NOTION_API_KEY", None)
             env.pop("NOTION_PAGE_ID", None)
+            env.pop("NOTION_DATABASE_ID", None)
             env["GITHUB_RUN_ID"] = "test-run"
             env["GITHUB_RUN_ATTEMPT"] = "1"
             result = subprocess.run(
@@ -42,7 +43,7 @@ class RemainingSafetyTests(unittest.TestCase):
             self.assertEqual(audit["status"], "SKIPPED_MISSING_CREDENTIALS")
             self.assertFalse(audit["writeback_verified"])
             self.assertFalse(audit["token_configured"])
-            self.assertFalse(audit["page_id_configured"])
+            self.assertFalse(audit["database_id_configured"])
 
 
 if __name__ == "__main__":
