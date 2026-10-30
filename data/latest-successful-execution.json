@@ -1,10 +1,10 @@
 {
-  "execution_id": "gh-40800540377-attempt-1",
+  "execution_id": "gh-40983826068-attempt-1",
   "workflow": "Daily YouTube Research via MCP",
   "status": "SUCCESS",
-  "started_at": "2026-10-29T01:27:36Z",
-  "completed_at": "2026-10-29T01:29:19.422630+00:00",
-  "github_run_id": "40800540377",
+  "started_at": "2026-10-30T01:06:34Z",
+  "completed_at": "2026-10-30T01:08:15.229757+00:00",
+  "github_run_id": "40983826068",
   "github_run_attempt": "1",
   "trigger": "schedule",
   "recovery_attempt": false,
@@ -14,7 +14,7 @@
   "verification": "PASS",
   "failure_reason": null,
   "recovery_action": null,
-  "data_generated_at": "2026-10-29T01:28:18.922799+00:00",
+  "data_generated_at": "2026-10-30T01:07:17.909906+00:00",
   "data_verification": {
     "fresh_videos": 40,
     "stale_or_invalid_videos": 0,
