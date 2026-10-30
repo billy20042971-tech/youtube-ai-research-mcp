@@ -17,18 +17,22 @@ import time
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 API_BASE = "https://api.notion.com/v1"
 API_VERSION = "2022-06-28"
 AUDIT_PATH = Path("data/notion-writeback-audit.json")
-EXPECTED_NOTION_PAGE_ID = "3cc4006515d9806cb196f038cf8c5bc4"
+EXPECTED_NOTION_DATABASE_ID = "8eeeca644e1f4687a3611f5124a0c5c8"
 
 
-def validate_target_page_id(page_id: str) -> None:
-    """Fail closed if the configured secret points outside the approved AI Lab page."""
-    normalized = page_id.replace("-", "").strip().lower()
-    if normalized != EXPECTED_NOTION_PAGE_ID:
-        raise RuntimeError("NOTION_PAGE_ID does not match the approved AI Lab page; no Notion write was attempted.")
+def validate_target_database_id(database_id: str) -> None:
+    """Fail closed unless the configured destination is the approved AI 情報雷達 database."""
+    normalized = database_id.replace("-", "").strip().lower()
+    if normalized != EXPECTED_NOTION_DATABASE_ID:
+        raise RuntimeError(
+            "NOTION_DATABASE_ID (or legacy NOTION_PAGE_ID) does not match the approved "
+            "AI 情報雷達 database; no Notion write was attempted."
+        )
 
 
 def now_iso() -> str:
@@ -417,10 +421,64 @@ def write_audit(record: dict) -> None:
     history_path.write_text(json.dumps({"audits": records[-100:]}, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
 
 
+def report_date_from_manifest(manifest: dict) -> str:
+    """Use the Taipei calendar date for the report title and database date property."""
+    generated_at = manifest.get("generated_at")
+    if isinstance(generated_at, str) and generated_at.strip():
+        value = generated_at.strip().replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(value)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(ZoneInfo("Asia/Taipei")).date().isoformat()
+        except ValueError as exc:
+            raise RuntimeError("Report manifest generated_at is not a valid ISO-8601 timestamp.") from exc
+    return datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
+
+
+def find_daily_page(database_id: str, token: str, title: str, execution_id: str) -> str | None:
+    """Find the existing daily database row so retries do not create duplicate report pages."""
+    response = request_json("POST", f"/databases/{database_id}/query", token, {
+        "filter": {"property": "情報名稱", "title": {"equals": title}},
+        "page_size": 100,
+    })
+    rows = response.get("results", [])
+    if not isinstance(rows, list):
+        raise RuntimeError("Notion database query returned an invalid results field.")
+    valid_pages = [row for row in rows if isinstance(row, dict) and row.get("id")]
+    marker = f"執行識別：{execution_id}"
+    for row in valid_pages:
+        page_id = row["id"]
+        if any(marker in block_signature(block)[1] for block in list_page_blocks(page_id, token)):
+            return page_id
+    return valid_pages[0]["id"] if valid_pages else None
+
+
+def create_daily_page(database_id: str, token: str, report_date: str) -> str:
+    """Create the daily report as a database row using the database's actual schema."""
+    title = f"{report_date} | 每日 AI 情報雷達"
+    created = request_json("POST", "/pages", token, {
+        "parent": {"database_id": database_id},
+        "properties": {
+            "情報名稱": {"title": [{"type": "text", "text": {"content": title}}]},
+            "發現日期": {"date": {"start": report_date}},
+            # Notion's API creates a missing select option when a new option name is supplied.
+            "類型": {"select": {"name": "YouTube"}},
+        },
+    })
+    page_id = created.get("id")
+    if not isinstance(page_id, str) or not page_id:
+        raise RuntimeError("Notion database page creation response did not include a page id.")
+    return page_id
+
+
 def main() -> int:
     execution_id = f"gh-{os.environ.get('GITHUB_RUN_ID', 'local')}-attempt-{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
     token = os.environ.get("NOTION_API_KEY", "").strip()
-    page_id = os.environ.get("NOTION_PAGE_ID", "").strip()
+    database_id = (
+        os.environ.get("NOTION_DATABASE_ID", "").strip()
+        or os.environ.get("NOTION_PAGE_ID", "").strip()
+    )
     latest_path = Path("data/latest.json")
     manifest_path = Path("reports/latest-manifest.json")
     latest = json.loads(latest_path.read_text(encoding="utf-8")) if latest_path.exists() else {}
@@ -433,22 +491,28 @@ def main() -> int:
         "data_verification": latest.get("verification", {}),
     }
 
-    if not token or not page_id:
+    if not token or not database_id:
         write_audit({
             "execution_id": execution_id,
             "status": "SKIPPED_MISSING_CREDENTIALS",
             "checked_at": now_iso(),
-            "page_id_configured": bool(page_id),
+            "database_id_configured": bool(database_id),
             "token_configured": bool(token),
             "writeback_verified": False,
-            "note": "Set GitHub Actions secrets NOTION_API_KEY and NOTION_PAGE_ID to enable automatic Notion writeback.",
+            "note": "Set NOTION_API_KEY and NOTION_DATABASE_ID (or update legacy NOTION_PAGE_ID to the approved database ID) to enable automatic Notion writeback.",
         })
         return 1
 
-    validate_target_page_id(page_id)
+    validate_target_database_id(database_id)
 
     if latest.get("execution_id") != execution_id or manifest.get("execution_id") != execution_id:
         raise RuntimeError("Data and report manifest execution IDs do not match the current GitHub run.")
+
+    report_date = report_date_from_manifest(manifest)
+    page_title = f"{report_date} | 每日 AI 情報雷達"
+    page_id = find_daily_page(database_id, token, page_title, execution_id)
+    if page_id is None:
+        page_id = create_daily_page(database_id, token, report_date)
 
     block_count, blocks_readback_verified = ensure_deep_briefing(page_id, token, latest, manifest, execution_id)
     text = comment_text(execution_id, manifest, state)
@@ -463,7 +527,10 @@ def main() -> int:
         "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
         "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
         "checked_at": now_iso(),
+        "database_id": database_id,
         "page_id": page_id,
+        "report_date": report_date,
+        "page_title": page_title,
         "comment_id": comment_id,
         "writeback_verified": True,
         "readback_verified": True,
@@ -486,6 +553,7 @@ if __name__ == "__main__":
             "checked_at": now_iso(),
             "writeback_verified": False,
             "readback_verified": False,
+            "database_id": os.environ.get("NOTION_DATABASE_ID", "").strip() or os.environ.get("NOTION_PAGE_ID", "").strip(),
             "error": str(exc)[:1000],
         }
         write_audit(record)
