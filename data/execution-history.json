@@ -188,6 +188,29 @@
         "stale_or_invalid_videos": 0,
         "verified_72h": true
       }
+    },
+    {
+      "execution_id": "gh-41152420584-attempt-1",
+      "workflow": "Daily YouTube Research via MCP",
+      "status": "SUCCESS",
+      "started_at": "2026-10-31T00:51:33Z",
+      "completed_at": "2026-10-31T00:53:15.525916+00:00",
+      "github_run_id": "41152420584",
+      "github_run_attempt": "1",
+      "trigger": "schedule",
+      "recovery_attempt": false,
+      "mcp_endpoint": "https://youtube-ai-research-mcp.onrender.com/mcp",
+      "data": "PASS",
+      "reports": "PASS",
+      "verification": "PASS",
+      "failure_reason": null,
+      "recovery_action": null,
+      "data_generated_at": "2026-10-31T00:52:18.390237+00:00",
+      "data_verification": {
+        "fresh_videos": 39,
+        "stale_or_invalid_videos": 0,
+        "verified_72h": true
+      }
     }
   ]
 }

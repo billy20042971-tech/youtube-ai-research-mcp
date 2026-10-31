@@ -1,17 +1,17 @@
 {
-  "execution_id": "gh-40983826068-attempt-1",
+  "execution_id": "gh-41152420584-attempt-1",
   "status": "PASS",
   "page_block_verification": "PASS_FULL_SEQUENCE_TYPE_AND_TEXT",
   "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
   "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
-  "checked_at": "2026-10-30T01:08:15.203746+00:00",
+  "checked_at": "2026-10-31T00:53:15.487079+00:00",
   "page_id": "3cc40065-15d9-806c-b196-f038cf8c5bc4",
-  "comment_id": "40940065-15d9-81e0-8918-001da7d67428",
+  "comment_id": "40a40065-15d9-81d9-8a91-001d0e13dd54",
   "writeback_verified": true,
   "readback_verified": true,
-  "deep_briefing_blocks": 506,
+  "deep_briefing_blocks": 499,
   "deep_briefing_readback_verified": true,
-  "readback_content_sha256": "c60693c0e787f88b442777b1e3e2c90213e166f17fa2e58ff5fb9f6c62bd5c9b",
-  "sample_count": 40,
-  "github_run_id": "40983826068"
+  "readback_content_sha256": "079431b102bc9f15c869d2cf180559e235491ea1110493345d599c8f6c2d572d",
+  "sample_count": 39,
+  "github_run_id": "41152420584"
 }
