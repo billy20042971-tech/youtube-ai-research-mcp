@@ -119,7 +119,10 @@ queries = Counter(v.get("query", "") for v in videos if v.get("query"))
 # Word：以使用者決策與實際應用為中心，避免工程日誌。
 from docx import Document
 from docx.shared import Inches
-from report_analysis import analyze_sample, chinese_title, useful_comments
+try:
+    from scripts.report_analysis import analyze_sample, chinese_title, useful_comments
+except ModuleNotFoundError:  # Direct execution: python scripts/<file>.py
+    from report_analysis import analyze_sample, chinese_title, useful_comments
 
 analysis = analyze_sample(videos)
 doc = Document()
