@@ -132,7 +132,7 @@ def build_deep_briefing_blocks(latest: dict, manifest: dict, execution_id: str) 
     count = manifest.get("sample_count", len(videos))
     blocks = [{
         "object": "block", "type": "callout",
-        "callout": {"rich_text": rich_text(f"📱 每日 AI 情報雷達｜{date_text}\\n採樣影片：{count} 部\\n本報告聚焦商業應用、職場效率、內容創作與產業觀察。\\n報告識別碼：{execution_id}"),
+        "callout": {"rich_text": rich_text(f"📱 每日 AI 情報雷達｜{date_text}\\n採樣影片：{count} 部\\n本報告聚焦商業應用、職場效率、內容創作與產業觀察。\\n執行識別：{execution_id}"),
                     "icon": {"type": "emoji", "emoji": "🧭"}},
     }]
 
