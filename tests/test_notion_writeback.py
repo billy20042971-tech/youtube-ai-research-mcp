@@ -258,11 +258,17 @@ class NotionWritebackTests(unittest.TestCase):
             for b in blocks if b["type"] == "heading_2"
         ]
         self.assertEqual(headings, [
-            "🔥 熱門焦點", "🚀 技術突破", "💡 Agent/MCP 落地", "💬 社群熱議", "🛠️ 工具推薦"
+            "🚀 今日 3 分鐘核心趨勢摘要",
+            "📊 主題分類洞察",
+            "💡 精選高價值影片拆解",
+            "💬 社群觀眾反應與避坑指南",
         ])
         all_text = json.dumps(blocks, ensure_ascii=False)
-        for expected in ("📜 事件背景", "⚙️ 核心機制", "💡 影響評估", "https://example.com/video"):
+        for expected in ("核心洞察", "落地建議", "https://example.com/video"):
             self.assertIn(expected, all_text)
+        self.assertNotIn("AI OS 整合研究框架", all_text)
+        self.assertNotIn("今日自動化檢查", all_text)
+        self.assertNotIn("工程維護", all_text)
 
     def test_deep_briefing_blocks_match_notion_block_schema_and_text_limits(self):
         blocks = video_blocks({
