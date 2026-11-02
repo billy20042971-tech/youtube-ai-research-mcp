@@ -168,15 +168,15 @@ from pptx.util import Inches as PInches
 prs = Presentation()
 slides = [
     ("每日 AI 情報研究雷達", f"{date}｜近 72 小時樣本 {len(videos)} 部"),
-    ("🚀 今日 3 分鐘核心趨勢摘要", "\\n".join(f"{x['name']}：{x['count']} 部" for x in analysis["signals"])),
+    ("🚀 今日 3 分鐘核心趨勢摘要", "\n".join(f"{x['name']}：{x['count']} 部" for x in analysis["signals"])),
 ]
 for name, entries in analysis["buckets"].items():
     if entries:
-        sample_titles = "\\n".join(f"・{str(v.get('title') or '')[:42]}" for v in entries[:3])
+        sample_titles = "\n".join(f"・{str(v.get('title') or '')[:42]}" for v in entries[:3])
         slides.append((f"📊 {name}（{len(entries)} 部）", sample_titles))
 for idx, v in enumerate(analysis["top"][:5], 1):
-    slides.append((f"💡 精選 {idx}｜{chinese_title(v)}", f"原始標題：{v.get('title', '')}\\n頻道：{v.get('channel_title', '未提供')}\\n核心內容：{str(v.get('description') or '來源未提供足夠描述')[:450]}\\n落地：先用低風險小任務驗證效益。"))
-slides.append(("💬 社群反應與避坑", "過濾推廣與無關留言；檢查獲利承諾、平台政策、訂閱成本與實作門檻。\\n留言為自選樣本，不代表整體觀眾。"))
+    slides.append((f"💡 精選 {idx}｜{chinese_title(v)}", f"原始標題：{v.get('title', '')}\n頻道：{v.get('channel_title', '未提供')}\n核心內容：{str(v.get('description') or '來源未提供足夠描述')[:450]}\n落地：先用低風險小任務驗證效益。"))
+slides.append(("💬 社群反應與避坑", "過濾推廣與無關留言；檢查獲利承諾、平台政策、訂閱成本與實作門檻。\n留言為自選樣本，不代表整體觀眾。"))
 for title, body in slides:
     slide = prs.slides.add_slide(prs.slide_layouts[1])
     slide.shapes.title.text = title
