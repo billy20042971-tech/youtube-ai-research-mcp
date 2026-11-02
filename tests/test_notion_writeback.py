@@ -9,7 +9,7 @@ from scripts.notion_writeback import (
     find_existing_comment,
     text_from_comment,
     verify_comment,
-    validate_target_page_id,
+    validate_target_database_id,
     build_deep_briefing_blocks,
     block_signature,
     verify_block_sequence,
@@ -20,13 +20,13 @@ from scripts.notion_writeback import (
 
 
 class NotionWritebackTests(unittest.TestCase):
-    def test_approved_target_page_id_accepts_hyphenated_and_compact_forms(self):
-        validate_target_page_id("3cc40065-15d9-806c-b196-f038cf8c5bc4")
-        validate_target_page_id("3cc4006515d9806cb196f038cf8c5bc4")
+    def test_approved_target_database_id_accepts_hyphenated_and_compact_forms(self):
+        validate_target_database_id("8eeeca64-4e1f-4687-a361-1f5124a0c5c8")
+        validate_target_database_id("8eeeca644e1f4687a3611f5124a0c5c8")
 
-    def test_unapproved_target_page_id_fails_closed(self):
-        with self.assertRaisesRegex(RuntimeError, "approved AI Lab page"):
-            validate_target_page_id("2a240065-15d9-8017-98c3-fee1659120ae")
+    def test_unapproved_target_database_id_fails_closed(self):
+        with self.assertRaisesRegex(RuntimeError, "approved.*AI 情報雷達 database"):
+            validate_target_database_id("2a240065-15d9-8017-98c3-fee1659120ae")
 
     def test_comment_contains_stable_execution_id_and_artifact_paths(self):
         text = comment_text(
@@ -258,11 +258,17 @@ class NotionWritebackTests(unittest.TestCase):
             for b in blocks if b["type"] == "heading_2"
         ]
         self.assertEqual(headings, [
-            "🔥 熱門焦點", "🚀 技術突破", "💡 Agent/MCP 落地", "💬 社群熱議", "🛠️ 工具推薦"
+            "🚀 今日 3 分鐘核心趨勢摘要",
+            "📊 主題分類洞察",
+            "💡 精選高價值影片拆解",
+            "💬 社群觀眾反應與避坑指南",
         ])
         all_text = json.dumps(blocks, ensure_ascii=False)
-        for expected in ("📜 事件背景", "⚙️ 核心機制", "💡 影響評估", "https://example.com/video"):
+        for expected in ("核心洞察", "落地建議", "https://example.com/video"):
             self.assertIn(expected, all_text)
+        self.assertNotIn("AI OS 整合研究框架", all_text)
+        self.assertNotIn("今日自動化檢查", all_text)
+        self.assertNotIn("工程維護", all_text)
 
     def test_deep_briefing_blocks_match_notion_block_schema_and_text_limits(self):
         blocks = video_blocks({

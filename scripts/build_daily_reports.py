@@ -4,6 +4,11 @@ from datetime import datetime, timezone
 from collections import Counter
 import re
 
+try:
+    from scripts.report_analysis import chinese_title
+except ModuleNotFoundError:
+    from report_analysis import chinese_title
+
 def safe_int(v):
     try:
         return int(v or 0)
@@ -87,7 +92,7 @@ def chart_label(title):
         lines = [lines[0], lines[1][:15] + "…"]
     return "\n".join(lines)
 
-labels = [chart_label(v.get("title", "")) for v in top][::-1]
+labels = [chart_label(chinese_title(v)) for v in top][::-1]
 values = [safe_int(v.get("views")) for v in top][::-1]
 fig_height = max(7.0, 0.72 * len(labels) + 1.8)
 fig, ax = plt.subplots(figsize=(12, fig_height))
@@ -116,103 +121,81 @@ if chart_path.stat().st_size < 20_000:
 channels = Counter(v.get("channel_title", "") for v in videos if v.get("channel_title"))
 queries = Counter(v.get("query", "") for v in videos if v.get("query"))
 
-# Word
+# Word：以使用者決策與實際應用為中心，避免工程日誌。
 from docx import Document
 from docx.shared import Inches
+try:
+    from scripts.report_analysis import analyze_sample, chinese_title, useful_comments
+except ModuleNotFoundError:  # Direct execution: python scripts/<file>.py
+    from report_analysis import analyze_sample, chinese_title, useful_comments
 
+analysis = analyze_sample(videos)
 doc = Document()
-doc.add_heading(f"YouTube AI趨勢研究雷達｜{date}", 0)
-doc.add_paragraph(
-    f"自動產出時間：{now.isoformat()} | 資料來源：YouTube Research MCP | "
-    f"近72h去重樣本：{len(videos)}"
-)
-doc.add_heading("1. 一分鐘摘要", level=1)
-doc.add_paragraph(
-    "本報告由每日 MCP 固定採樣自動產生。排名主要反映觀看量，正式趨勢判定仍需結合發布時間、"
-    "跨頻道、留言、持續性與交叉驗證。"
-)
-doc.add_heading("2. 今日高訊號影片", level=1)
-for i, v in enumerate(videos[:10], 1):
+doc.add_heading(f"每日 AI 情報研究報告｜{date}", 0)
+doc.add_paragraph(f"資料範圍：近 72 小時｜去重影片：{len(videos)} 部｜資料來源：YouTube Research MCP")
+doc.add_heading("🚀 今日 3 分鐘核心趨勢摘要", level=1)
+doc.add_paragraph("今日最值得關注的變化：AI 應用正從單純展示工具，轉向可衡量的商業成果、內容產製與工作流程改善；以下判讀以本次影片樣本為限。")
+for idx, signal in enumerate(analysis["signals"], 1):
+    doc.add_heading(f"訊號 {idx}｜{signal['name']}（{signal['count']} 部）", level=2)
+    doc.add_paragraph(signal["summary"])
+doc.add_heading("📊 主題分類洞察", level=1)
+for name, entries in analysis["buckets"].items():
+    if not entries:
+        continue
+    examples = "；".join(str(v.get("title") or "未提供標題") for v in entries[:3])
+    doc.add_heading(f"{name}｜{len(entries)} 部", level=2)
     doc.add_paragraph(
-        f"{i}. {v.get('title')}｜{v.get('channel_title')}｜"
-        f"{safe_int(v.get('views')):,} views｜{v.get('published_at')}\n{v.get('url', '')}"
+        f"本主題在今日樣本中共 {len(entries)} 部，代表內容：{examples}。"
+        "閱讀時應區分影片展示、作者主張與可獨立驗證的成果；單一案例不能直接推論普遍成效。"
     )
-
-if (out / "top10_views.png").exists():
-    doc.add_picture(str(out / "top10_views.png"), width=Inches(6.4))
-
-doc.add_heading("3. 留言與證據", level=1)
-for v in videos[:8]:
-    comments = v.get("comments")
-    if not isinstance(comments, list):
-        comments = []
-    obtained = v.get("comments_obtained_count")
-    if obtained is None:
-        obtained = len(comments)
-    doc.add_paragraph(
-        f"{v.get('title')}｜實際取得留言 {safe_int(obtained)} 則"
-    )
-    for c in comments[:3]:
-        if isinstance(c, dict):
-            txt = str(c.get("text", "")).replace("\n", " ")
-        else:
-            txt = str(c).replace("\n", " ")
-        if txt:
-            doc.add_paragraph("・" + txt[:220])
-
-doc.add_heading("4. AI OS 整合研究框架", level=1)
-for s in [
-    "Agent：負責規劃、工具選擇、執行與停止條件；複雜任務採可恢復的多步驟 loop。",
-    "MCP：作為工具／資料連接層；工具輸入輸出採結構化資料，外部不可信文字不得直接驅動高風險寫入。",
-    "Verification：工具結果、輸入、輸出、寫回前後都設檢查點；必要時以第二次讀取驗證。",
-    "State：保存 task_id、step、input_hash、tool_result、checkpoint、last_success、next_step，讓 Context reset 不等於任務遺失。",
-    "Recovery：失敗從最近成功 checkpoint 繼續；可重試步驟與不可重試副作用分離，避免重複寫入。",
-    "Automation：排程層只負責叫醒流程；Agent 負責決策與執行；Notion 保存正式狀態與 Audit；GitHub 保存程式與產物。",
-    "本數位大腦優先採：Notion=State/Memory，MCP=Tool Bus，Agent=Orchestrator，GitHub Actions=Scheduler/Worker，Verification=Gate，Audit=Evidence。"
-]:
-    doc.add_paragraph("• " + s)
-
-doc.add_heading("5. 今日自動化檢查", level=1)
-doc.add_paragraph(
-    "固定採樣 → 原始資料保存 → 去重 → 報告產出 → 產物驗證 → 後續 AI 分析／Notion 寫回。"
-    "任何資料過期、MCP 失敗或產物缺失，應停止宣稱完成。"
-)
-doc.add_heading("6. 下一步", level=1)
-doc.add_paragraph(
-    "持續觀察跨頻道訊號；優先把可驗證的 Agent/MCP/State/Recovery/Verification/Automation "
-    "pattern 轉成可重複工作流程，而不是追逐單一熱門工具。"
-)
+doc.add_heading("💡 精選高價值影片拆解", level=1)
+doc.add_paragraph("依觀看數、按讚與留言量的對數加權排序；互動分數僅用於挑選閱讀順序，不代表內容品質或觀眾認同。")
+for idx, v in enumerate(analysis["top"][:10], 1):
+    original = str(v.get("title") or "（未提供標題）")
+    doc.add_heading(f"{idx}. {chinese_title(v)}", level=2)
+    doc.add_paragraph(f"原始標題：{original}｜頻道：{v.get('channel_title') or '未提供'}")
+    doc.add_paragraph(f"觀看數：{safe_int(v.get('views')):,}｜按讚：{safe_int(v.get('likes')):,}｜發布：{v.get('published_at') or '未提供'}")
+    description = str(v.get("description") or "").strip()
+    doc.add_paragraph("核心洞察：" + (description[:1800] if description else "來源未提供足夠描述，請開啟原始影片確認實際方法與工具；不臆測影片內容。"))
+    doc.add_paragraph("落地建議：先挑選一個低風險、可在 30 分鐘內驗證的小任務試做，記錄原本耗時、導入後耗時、品質差異與額外成本；確認有效再擴大使用。")
+    if v.get("url"):
+        doc.add_paragraph(f"原始影片：{v['url']}")
+doc.add_heading("💬 社群觀眾反應與避坑指南", level=1)
+for v in analysis["top"][:10]:
+    comments = useful_comments(v, 3)
+    if not comments:
+        continue
+    doc.add_heading(str(v.get("title") or "相關影片")[:120], level=2)
+    for comment in comments:
+        doc.add_paragraph("觀眾回饋：" + comment)
+doc.add_paragraph("避坑提醒：留言是自選樣本，不能視為整體觀眾民調。特別留意獲利／銷量承諾、平台政策變動、隱藏訂閱費、工具學習門檻，以及缺乏可重現步驟的成功案例。")
+doc.add_picture(str(chart_path), width=Inches(6.4))
 doc.save(out / f"YouTube_AI趨勢研究雷達_{date}_完整報告.docx")
 
-# PowerPoint
+# PowerPoint：與 Word 相同的四章結構，適合手機快速瀏覽。
 from pptx import Presentation
 from pptx.util import Inches as PInches
-
 prs = Presentation()
 slides = [
-    ("YouTube AI趨勢研究雷達", f"{date}｜MCP 自動採樣"),
-    ("一分鐘摘要", f"近72h去重樣本：{len(videos)}\n固定查詢：" + ", ".join(queries.keys())),
-    ("高訊號影片", "\n".join(
-        f"{i}. {v.get('title', '')[:55]}｜{safe_int(v.get('views')):,}"
-        for i, v in enumerate(videos[:7], 1)
-    )),
-    ("Agent × MCP", "Agent：規劃與執行\nMCP：工具／資料連接\n結構化輸入輸出，隔離不可信文字"),
-    ("Verification × State", "Verification：每個副作用前後設 Gate\nState：保存 checkpoint / next_step / evidence\nContext reset 不等於任務遺失"),
-    ("Recovery × Automation", "Recovery：從最近成功 checkpoint 繼續\nAutomation：排程叫醒；Agent 執行；Notion 保存狀態；GitHub 保存產物"),
-    ("今日結論", "目標不是每天抓更多資料，而是每天讓 AI OS 少一個人工步驟。")
+    ("每日 AI 情報研究雷達", f"{date}｜近 72 小時樣本 {len(videos)} 部"),
+    ("🚀 今日 3 分鐘核心趨勢摘要", "\n".join(f"{x['name']}：{x['count']} 部" for x in analysis["signals"])),
 ]
+for name, entries in analysis["buckets"].items():
+    if entries:
+        sample_titles = "\n".join(f"・{str(v.get('title') or '')[:42]}" for v in entries[:3])
+        slides.append((f"📊 {name}（{len(entries)} 部）", sample_titles))
+for idx, v in enumerate(analysis["top"][:5], 1):
+    slides.append((f"💡 精選 {idx}｜{chinese_title(v)}", f"原始標題：{v.get('title', '')}\n頻道：{v.get('channel_title', '未提供')}\n核心內容：{str(v.get('description') or '來源未提供足夠描述')[:450]}\n落地：先用低風險小任務驗證效益。"))
+slides.append(("💬 社群反應與避坑", "過濾推廣與無關留言；檢查獲利承諾、平台政策、訂閱成本與實作門檻。\n留言為自選樣本，不代表整體觀眾。"))
 for title, body in slides:
-    s = prs.slides.add_slide(prs.slide_layouts[1])
-    s.shapes.title.text = title
-    s.placeholders[1].text = body
-
-if (out / "top10_views.png").exists():
-    s = prs.slides.add_slide(prs.slide_layouts[5])
-    s.shapes.add_picture(
-        str(out / "top10_views.png"), PInches(0.6), PInches(1.1), width=PInches(8.8)
-    )
-
+    slide = prs.slides.add_slide(prs.slide_layouts[1])
+    slide.shapes.title.text = title
+    slide.placeholders[1].text = body
+slide = prs.slides.add_slide(prs.slide_layouts[5])
+slide.shapes.add_picture(str(chart_path), PInches(0.6), PInches(1.1), width=PInches(8.8))
 prs.save(out / f"YouTube_AI趨勢研究雷達_{date}_簡報.pptx")
+
+
 
 manifest = {
     "generated_at": now.isoformat(),

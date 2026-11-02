@@ -17,18 +17,22 @@ import time
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 API_BASE = "https://api.notion.com/v1"
 API_VERSION = "2022-06-28"
 AUDIT_PATH = Path("data/notion-writeback-audit.json")
-EXPECTED_NOTION_PAGE_ID = "3cc4006515d9806cb196f038cf8c5bc4"
+EXPECTED_NOTION_DATABASE_ID = "8eeeca644e1f4687a3611f5124a0c5c8"
 
 
-def validate_target_page_id(page_id: str) -> None:
-    """Fail closed if the configured secret points outside the approved AI Lab page."""
-    normalized = page_id.replace("-", "").strip().lower()
-    if normalized != EXPECTED_NOTION_PAGE_ID:
-        raise RuntimeError("NOTION_PAGE_ID does not match the approved AI Lab page; no Notion write was attempted.")
+def validate_target_database_id(database_id: str) -> None:
+    """Fail closed unless the configured destination is the approved AI 情報雷達 database."""
+    normalized = database_id.replace("-", "").strip().lower()
+    if normalized != EXPECTED_NOTION_DATABASE_ID:
+        raise RuntimeError(
+            "NOTION_DATABASE_ID (or legacy NOTION_PAGE_ID) does not match the approved "
+            "AI 情報雷達 database; no Notion write was attempted."
+        )
 
 
 def now_iso() -> str:
@@ -51,13 +55,11 @@ def comment_text(execution_id: str, manifest: dict, state: dict) -> str:
 
 
 
-DIMENSIONS = [
-    ("🔥 熱門焦點", ("viral", "trend", "popular", "views", "hot", "熱門", "趨勢", "爆紅")),
-    ("🚀 技術突破", ("model", "llm", "benchmark", "release", "sdk", "api", "模型", "發布", "技術", "突破")),
-    ("💡 Agent/MCP 落地", ("agent", "mcp", "workflow", "automation", "tool calling", "代理", "自動化", "工作流")),
-    ("💬 社群熱議", ("debate", "opinion", "problem", "issue", "cost", "controversy", "爭議", "問題", "成本", "踩坑")),
-    ("🛠️ 工具推薦", ("github", "open source", "repo", "tool", "prompt", "工具", "開源", "提示詞")),
-]
+try:
+    from scripts.report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments
+except ModuleNotFoundError:  # Direct execution: python scripts/<file>.py
+    from report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments
+
 NOTION_TEXT_LIMIT = 1800
 
 
@@ -68,26 +70,21 @@ def split_text(text: str, limit: int = NOTION_TEXT_LIMIT) -> list[str]:
         return [""]
     chunks = []
     while len(text) > limit:
-        cut = text.rfind("\n", 0, limit + 1)
+        cut = text.rfind("\\n", 0, limit + 1)
         if cut < limit // 2:
             cut = limit
         chunks.append(text[:cut])
-        text = text[cut:].lstrip("\n")
+        text = text[cut:].lstrip("\\n")
     if text:
         chunks.append(text)
     return chunks
 
 
 def rich_text(content: str, *, bold: bool = False, url: str | None = None) -> list[dict]:
-    """Build schema-valid Notion rich_text items with per-item text limits."""
     result = []
     for part in split_text(content):
-        item = {
-            "type": "text",
-            "text": {"content": part},
-            "annotations": {"bold": bold},
-        }
-        if url and len(result) == 0:
+        item = {"type": "text", "text": {"content": part}, "annotations": {"bold": bold}}
+        if url and not result:
             item["text"]["link"] = {"url": url}
         result.append(item)
     return result
@@ -97,6 +94,11 @@ def paragraph_block(text: str, *, bold: bool = False, url: str | None = None) ->
     return {"object": "block", "type": "paragraph", "paragraph": {"rich_text": rich_text(text, bold=bold, url=url)}}
 
 
+def heading_block(level: int, text: str) -> dict:
+    key = f"heading_{level}"
+    return {"object": "block", "type": key, key: {"rich_text": rich_text(text)}}
+
+
 def bullet_block(label: str, body: str) -> list[dict]:
     return [paragraph_block(label, bold=True)] + [
         {"object": "block", "type": "bulleted_list_item", "bulleted_list_item": {"rich_text": rich_text(part)}}
@@ -104,95 +106,80 @@ def bullet_block(label: str, body: str) -> list[dict]:
     ]
 
 
-def classify_video(video: dict) -> str:
-    text = " ".join(str(video.get(k, "")) for k in ("title", "description", "tags", "query", "channel_title")).lower()
-    for dimension, keywords in DIMENSIONS:
-        if any(word in text for word in keywords):
-            return dimension
-    return "🔥 熱門焦點"
-
-
 def video_blocks(video: dict, index: int) -> list[dict]:
-    """Render a source-grounded mobile briefing card; do not invent missing details."""
-    title = str(video.get("title") or "（影片未提供標題）").strip()
-    channel = str(video.get("channel_title") or "來源頻道未提供").strip()
-    url = str(video.get("url") or "").strip()
+    """Render one concise, source-grounded video card for mobile reading."""
+    title = str(video.get("title") or "（來源未提供標題）").strip()
     description = str(video.get("description") or "").strip()
-    if not description:
-        description = "來源未提供影片描述；需開啟原始影片或逐字稿補足事件背景。"
-    published = str(video.get("published_at") or "未提供")
-    views = video.get("views", "未提供")
-    likes = video.get("likes", "未提供")
-    comments = video.get("comments", [])
-    if not isinstance(comments, list):
-        comments = []
-    tags = video.get("tags", [])
-    if isinstance(tags, list):
-        tags_text = "、".join(str(x) for x in tags[:12]) or "未提供"
-    else:
-        tags_text = str(tags or "未提供")
-    comment_texts = []
-    for comment in comments[:3]:
-        value = comment.get("text", "") if isinstance(comment, dict) else str(comment)
-        value = " ".join(str(value).split())
-        if value:
-            comment_texts.append(value[:500])
-    blocks = [{
-        "object": "block", "type": "heading_3",
-        "heading_3": {"rich_text": rich_text(f"📌 {index}. {title}")},
-    }]
-    blocks.extend(bullet_block("📌 標題與事件來源", f"頻道／作者：{channel}；發布時間：{published}；觀看數：{views}；喜歡數：{likes}。"))
-    blocks.extend(bullet_block("📜 事件背景與來龍去脈（Context）", description))
-    blocks.extend(bullet_block("⚙️ 核心機制與技術動態（Technical Breakdown）",
-        f"影片標籤／檢索線索：{tags_text}。目前這是依來源中可取得的描述與標籤整理；若來源沒有提供版本、架構或效能數據，不推測或補造。"))
-    insight = (
-        "實務建議：先依影片提供的原始步驟做小範圍、可回復的測試，記錄成本、品質、耗時與失敗案例，再決定是否納入正式流程。"
-        if description and description != "來源未提供影片描述；需開啟原始影片或逐字稿補足事件背景。"
-        else "實務建議：先閱讀／觀看原始來源並確認其主張與證據，再評估是否值得試用；目前資料不足，不對效益作結論。"
-    )
-    blocks.extend(bullet_block("💡 影響評估與落地建議（Actionable Insights）", insight))
-    if comment_texts:
-        blocks.extend(bullet_block("💬 可取得的社群回饋（非代表性樣本）", "；".join(comment_texts)))
+    blocks = [heading_block(3, f"{index}. {chinese_title(video)}")]
+    blocks.extend(bullet_block("原始標題／頻道", f"{title}｜{video.get('channel_title') or '來源頻道未提供'}"))
+    blocks.extend(bullet_block("核心洞察", description[:1400] if description else "來源描述不足，請開啟原始影片或逐字稿確認實際方法；不臆測內容。"))
+    blocks.extend(bullet_block("落地建議", "先選一個低風險小任務試做，記錄原本耗時、導入後耗時、品質差異與額外成本，再決定是否擴大。"))
+    for comment in useful_comments(video, 3):
+        blocks.append(paragraph_block("觀眾回饋：" + comment))
+    url = str(video.get("url") or "").strip()
     if url:
-        blocks.append(paragraph_block(f"🔗 原始參考連結／影片：{url}", url=url))
-    else:
-        blocks.append(paragraph_block("🔗 原始參考連結／影片：來源未提供可用網址。"))
-    blocks.append({"object": "block", "type": "divider", "divider": {}})
+        blocks.append(paragraph_block(f"🔗 原始影片：{url}", url=url))
     return blocks
 
 
 def build_deep_briefing_blocks(latest: dict, manifest: dict, execution_id: str) -> list[dict]:
-    """Build phone-friendly Notion blocks from available source evidence."""
+    """Build the four-section, mobile-friendly Traditional Chinese research report."""
     recent = latest.get("recent_72h_sample", {}) if isinstance(latest, dict) else {}
     videos = recent.get("videos", []) if isinstance(recent, dict) else []
-    if not isinstance(videos, list):
-        videos = []
-    videos = [v for v in videos if isinstance(v, dict)]
+    videos = [v for v in videos if isinstance(v, dict)] if isinstance(videos, list) else []
+    analysis = analyze_sample(videos)
     date_text = str(manifest.get("generated_at") or now_iso())[:10]
     count = manifest.get("sample_count", len(videos))
-    titles = [str(v.get("title", "")).strip() for v in videos[:5] if v.get("title")]
-    overview = "；".join(titles) if titles else "本次來源資料未提供可用影片標題，請檢查原始資料。"
     blocks = [{
         "object": "block", "type": "callout",
-        "callout": {
-            "rich_text": rich_text(f"📱 每日 AI 情報雷達｜{date_text}\n採樣影片：{count} 筆\n當日動態一覽：{overview}\n執行識別：{execution_id}"),
-            "icon": {"type": "emoji", "emoji": "🧭"},
-        },
+        "callout": {"rich_text": rich_text(f"📱 每日 AI 情報雷達｜{date_text}\\n採樣影片：{count} 部\\n本報告聚焦商業應用、職場效率、內容創作與產業觀察。\\n執行識別：{execution_id}"),
+                    "icon": {"type": "emoji", "emoji": "🧭"}},
     }]
-    buckets = {name: [] for name, _ in DIMENSIONS}
-    for video in videos:
-        buckets[classify_video(video)].append(video)
-    index = 0
-    for dimension, _keywords in DIMENSIONS:
-        blocks.append({"object": "block", "type": "heading_2", "heading_2": {"rich_text": rich_text(dimension)}})
-        blocks.append({"object": "block", "type": "divider", "divider": {}})
-        entries = buckets[dimension]
+
+    blocks.append(heading_block(2, "🚀 今日 3 分鐘核心趨勢摘要"))
+    blocks.append(paragraph_block("今日最值得關注的 AI 變化：AI 應用正從工具展示，走向商業成果、內容產製與工作流程改善；以下判讀僅代表本次樣本，不等同整體市場結論。"))
+    for idx, signal in enumerate(analysis["signals"], 1):
+        blocks.extend(bullet_block(f"訊號 {idx}｜{signal['name']}（{signal['count']} 部）", signal["summary"]))
+
+    blocks.append(heading_block(2, "📊 主題分類洞察"))
+    for name, entries in analysis["buckets"].items():
         if not entries:
-            blocks.append(paragraph_block("本次樣本沒有可可靠歸入此維度的項目；不以推測補足。"))
             continue
-        for video in entries:
-            index += 1
-            blocks.extend(video_blocks(video, index))
+        examples = "；".join(str(v.get("title") or "未提供標題") for v in entries[:3])
+        summary = (f"本次樣本共 {len(entries)} 部，代表內容：{examples}。"
+                   "請區分影片作者主張與可驗證事實；單一案例不能直接推論普遍成效。")
+        blocks.extend(bullet_block(f"{name}｜{len(entries)} 部", summary))
+
+    blocks.append(heading_block(2, "💡 精選高價值影片拆解"))
+    blocks.append(paragraph_block("依觀看與互動訊號排序，排序僅作為閱讀參考，不代表內容品質或觀眾認同。"))
+    for idx, video in enumerate(analysis["top"][:10], 1):
+        title = str(video.get("title") or "（來源未提供標題）")
+        translated = chinese_title(video)
+        channel = str(video.get("channel_title") or "來源頻道未提供")
+        url = str(video.get("url") or "").strip()
+        description = str(video.get("description") or "").strip()
+        insight = description[:1400] if description else "來源描述不足，請開啟原始影片或逐字稿確認實際方法；不臆測內容。"
+        blocks.append(heading_block(3, f"{idx}. {translated}"))
+        blocks.extend(bullet_block("原始標題／頻道", f"{title}｜{channel}"))
+        blocks.extend(bullet_block("核心洞察", insight))
+        blocks.extend(bullet_block("落地建議", "選一個低風險、可在 30 分鐘內驗證的小任務試做，記錄原本耗時、導入後耗時、品質差異與額外成本；確認有效再擴大。"))
+        if url:
+            blocks.append(paragraph_block(f"🔗 原始影片：{url}", url=url))
+
+    blocks.append(heading_block(2, "💬 社群觀眾反應與避坑指南"))
+    comment_total = 0
+    for video in analysis["top"][:10]:
+        comments = useful_comments(video, 3)
+        if not comments:
+            continue
+        comment_total += len(comments)
+        blocks.append(heading_block(3, str(video.get("title") or "相關影片")[:120]))
+        for comment in comments:
+            blocks.append(paragraph_block("觀眾回饋：" + comment))
+    blocks.append(paragraph_block(
+        f"本節整理 {comment_total} 則經初步過濾的留言。留言為自選樣本，不代表全體觀眾。"
+        "避坑提醒：審慎看待獲利／銷量承諾、平台政策變動、隱藏訂閱費、軟體學習門檻，以及無法重現的成功案例。"
+    ))
     return blocks
 
 
@@ -417,10 +404,64 @@ def write_audit(record: dict) -> None:
     history_path.write_text(json.dumps({"audits": records[-100:]}, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
 
 
+def report_date_from_manifest(manifest: dict) -> str:
+    """Use the Taipei calendar date for the report title and database date property."""
+    generated_at = manifest.get("generated_at")
+    if isinstance(generated_at, str) and generated_at.strip():
+        value = generated_at.strip().replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(value)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(ZoneInfo("Asia/Taipei")).date().isoformat()
+        except ValueError as exc:
+            raise RuntimeError("Report manifest generated_at is not a valid ISO-8601 timestamp.") from exc
+    return datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
+
+
+def find_daily_page(database_id: str, token: str, title: str, execution_id: str) -> str | None:
+    """Find the existing daily database row so retries do not create duplicate report pages."""
+    response = request_json("POST", f"/databases/{database_id}/query", token, {
+        "filter": {"property": "情報名稱", "title": {"equals": title}},
+        "page_size": 100,
+    })
+    rows = response.get("results", [])
+    if not isinstance(rows, list):
+        raise RuntimeError("Notion database query returned an invalid results field.")
+    valid_pages = [row for row in rows if isinstance(row, dict) and row.get("id")]
+    marker = f"執行識別：{execution_id}"
+    for row in valid_pages:
+        page_id = row["id"]
+        if any(marker in block_signature(block)[1] for block in list_page_blocks(page_id, token)):
+            return page_id
+    return valid_pages[0]["id"] if valid_pages else None
+
+
+def create_daily_page(database_id: str, token: str, report_date: str) -> str:
+    """Create the daily report as a database row using the database's actual schema."""
+    title = f"{report_date} | 每日 AI 情報雷達"
+    created = request_json("POST", "/pages", token, {
+        "parent": {"database_id": database_id},
+        "properties": {
+            "情報名稱": {"title": [{"type": "text", "text": {"content": title}}]},
+            "發現日期": {"date": {"start": report_date}},
+            # Notion's API creates a missing select option when a new option name is supplied.
+            "類型": {"select": {"name": "YouTube"}},
+        },
+    })
+    page_id = created.get("id")
+    if not isinstance(page_id, str) or not page_id:
+        raise RuntimeError("Notion database page creation response did not include a page id.")
+    return page_id
+
+
 def main() -> int:
     execution_id = f"gh-{os.environ.get('GITHUB_RUN_ID', 'local')}-attempt-{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
     token = os.environ.get("NOTION_API_KEY", "").strip()
-    page_id = os.environ.get("NOTION_PAGE_ID", "").strip()
+    database_id = (
+        os.environ.get("NOTION_DATABASE_ID", "").strip()
+        or os.environ.get("NOTION_PAGE_ID", "").strip()
+    )
     latest_path = Path("data/latest.json")
     manifest_path = Path("reports/latest-manifest.json")
     latest = json.loads(latest_path.read_text(encoding="utf-8")) if latest_path.exists() else {}
@@ -433,22 +474,28 @@ def main() -> int:
         "data_verification": latest.get("verification", {}),
     }
 
-    if not token or not page_id:
+    if not token or not database_id:
         write_audit({
             "execution_id": execution_id,
             "status": "SKIPPED_MISSING_CREDENTIALS",
             "checked_at": now_iso(),
-            "page_id_configured": bool(page_id),
+            "database_id_configured": bool(database_id),
             "token_configured": bool(token),
             "writeback_verified": False,
-            "note": "Set GitHub Actions secrets NOTION_API_KEY and NOTION_PAGE_ID to enable automatic Notion writeback.",
+            "note": "Set NOTION_API_KEY and NOTION_DATABASE_ID (or update legacy NOTION_PAGE_ID to the approved database ID) to enable automatic Notion writeback.",
         })
         return 1
 
-    validate_target_page_id(page_id)
+    validate_target_database_id(database_id)
 
     if latest.get("execution_id") != execution_id or manifest.get("execution_id") != execution_id:
         raise RuntimeError("Data and report manifest execution IDs do not match the current GitHub run.")
+
+    report_date = report_date_from_manifest(manifest)
+    page_title = f"{report_date} | 每日 AI 情報雷達"
+    page_id = find_daily_page(database_id, token, page_title, execution_id)
+    if page_id is None:
+        page_id = create_daily_page(database_id, token, report_date)
 
     block_count, blocks_readback_verified = ensure_deep_briefing(page_id, token, latest, manifest, execution_id)
     text = comment_text(execution_id, manifest, state)
@@ -463,7 +510,10 @@ def main() -> int:
         "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
         "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
         "checked_at": now_iso(),
+        "database_id": database_id,
         "page_id": page_id,
+        "report_date": report_date,
+        "page_title": page_title,
         "comment_id": comment_id,
         "writeback_verified": True,
         "readback_verified": True,
@@ -486,6 +536,7 @@ if __name__ == "__main__":
             "checked_at": now_iso(),
             "writeback_verified": False,
             "readback_verified": False,
+            "database_id": os.environ.get("NOTION_DATABASE_ID", "").strip() or os.environ.get("NOTION_PAGE_ID", "").strip(),
             "error": str(exc)[:1000],
         }
         write_audit(record)
