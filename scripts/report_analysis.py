@@ -17,9 +17,9 @@ CATEGORIES = {
     "產業與投資觀點": ("投資", "股市", "台股", "半導體", "晶片", "產業", "營收", "黃仁勳", "台積電", "ai bubble", "stock", "finance", "market"),
 }
 PROMO_PATTERNS = (
-    r"https?://", r"www\\.", r"訂閱.{0,8}頻道", r"按讚", r"點擊.{0,8}連結",
+    r"https?://", r"www\.", r"訂閱.{0,8}頻道", r"按讚", r"點擊.{0,8}連結",
     r"加入.{0,8}(會員|社群|課程)", r"折扣碼", r"優惠碼", r"私訊", r"聯絡我",
-    r"telegram", r"whatsapp", r"discord\\.gg", r"affiliate", r"sponsor",
+    r"telegram", r"whatsapp", r"discord\.gg", r"affiliate", r"sponsor",
 )
 TITLE_TRANSLATIONS = {
     "the easiest claude ai side hustle everyone is overlooking": "多數人忽略的 Claude AI 簡易副業機會",
@@ -51,7 +51,7 @@ def chinese_title(video: dict) -> str:
     key = re.sub(r"[^a-z0-9 ]", "", title.lower()).strip()
     if key in TITLE_TRANSLATIONS:
         return TITLE_TRANSLATIONS[key]
-    if re.search(r"[\\u3400-\\u9fff]", title):
+    if re.search(r"[一-鿿]", title):
         return title
     # Never fabricate a translation when no translation model/output is present.
     return "中文意譯待確認：" + title
