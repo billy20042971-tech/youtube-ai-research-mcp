@@ -4,6 +4,11 @@ from datetime import datetime, timezone
 from collections import Counter
 import re
 
+try:
+    from scripts.report_analysis import chinese_title
+except ModuleNotFoundError:
+    from report_analysis import chinese_title
+
 def safe_int(v):
     try:
         return int(v or 0)
@@ -87,7 +92,7 @@ def chart_label(title):
         lines = [lines[0], lines[1][:15] + "…"]
     return "\n".join(lines)
 
-labels = [chart_label(v.get("title", "")) for v in top][::-1]
+labels = [chart_label(chinese_title(v)) for v in top][::-1]
 values = [safe_int(v.get("views")) for v in top][::-1]
 fig_height = max(7.0, 0.72 * len(labels) + 1.8)
 fig, ax = plt.subplots(figsize=(12, fig_height))
