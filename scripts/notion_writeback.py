@@ -55,7 +55,7 @@ def comment_text(execution_id: str, manifest: dict, state: dict) -> str:
 
 
 
-from scripts.report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments
+from report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments
 
 NOTION_TEXT_LIMIT = 1800
 
