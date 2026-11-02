@@ -106,6 +106,22 @@ def bullet_block(label: str, body: str) -> list[dict]:
     ]
 
 
+def video_blocks(video: dict, index: int) -> list[dict]:
+    """Render one concise, source-grounded video card for mobile reading."""
+    title = str(video.get("title") or "（來源未提供標題）").strip()
+    description = str(video.get("description") or "").strip()
+    blocks = [heading_block(3, f"{index}. {chinese_title(video)}")]
+    blocks.extend(bullet_block("原始標題／頻道", f"{title}｜{video.get('channel_title') or '來源頻道未提供'}"))
+    blocks.extend(bullet_block("核心洞察", description[:1400] if description else "來源描述不足，請開啟原始影片或逐字稿確認實際方法；不臆測內容。"))
+    blocks.extend(bullet_block("落地建議", "先選一個低風險小任務試做，記錄原本耗時、導入後耗時、品質差異與額外成本，再決定是否擴大。"))
+    for comment in useful_comments(video, 3):
+        blocks.append(paragraph_block("觀眾回饋：" + comment))
+    url = str(video.get("url") or "").strip()
+    if url:
+        blocks.append(paragraph_block(f"🔗 原始影片：{url}", url=url))
+    return blocks
+
+
 def build_deep_briefing_blocks(latest: dict, manifest: dict, execution_id: str) -> list[dict]:
     """Build the four-section, mobile-friendly Traditional Chinese research report."""
     recent = latest.get("recent_72h_sample", {}) if isinstance(latest, dict) else {}
