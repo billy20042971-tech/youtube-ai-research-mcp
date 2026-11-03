@@ -28,6 +28,16 @@ CREATOR_BIO_PATTERNS = (
     r"about me", r"welcome to my channel", r"subscribe to my channel",
     r"don't forget to subscribe", r"thanks for watching", r"感謝收看",
 )
+SIMPLIFIED_MARKERS = set("这们为与发后里时个来对说还会学过没开关问题点实业数体国经产务应变网软认让进远间长头东车马书门电云见听场万无从两边条优价请该种样现将并实务员组织办专术义条开关间应数进还变点时后发过没个来对说会学")
+
+def is_traditional_chinese(text: str) -> bool:
+    value = str(text or "")
+    if re.search(r"[ぁ-ゟ゠-ヿ]", value):
+        return False
+    if not re.search(r"[一-鿿]", value):
+        return False
+    return not any(char in SIMPLIFIED_MARKERS for char in value)
+
 TITLE_TRANSLATIONS = {
     "the easiest claude ai side hustle everyone is overlooking": "多數人忽略的 Claude AI 簡易副業機會",
     "websites in 2026": "2026 年的網站製作新樣貌",
@@ -96,7 +106,7 @@ def chinese_title(video: dict) -> str:
     key = re.sub(r"[^a-z0-9 ]", "", title.lower()).strip()
     if key in TITLE_TRANSLATIONS:
         return TITLE_TRANSLATIONS[key]
-    if re.search(r"[一-鿿]", title):
+    if is_traditional_chinese(title):
         return title
     return "中文意譯待確認（原始標題見附註）"
 
@@ -111,9 +121,7 @@ def clean_description(description: str, max_chars: int = 1800) -> str:
             continue
         # Strip standalone URLs and tracking fragments without discarding useful prose.
         line = re.sub(r"https?://\S+|www\.\S+", "", line, flags=re.I).strip(" |,，。")
-        if re.search(r"[ぁ-ゟ゠-ヿ]", line):
-            continue
-        if not re.search(r"[一-鿿]", line):
+        if not is_traditional_chinese(line):
             continue
         if len(line) >= 8:
             kept.append(line)
@@ -127,7 +135,7 @@ def useful_comments(video: dict, limit: int = 3) -> list[str]:
     for item in comments:
         text = (item.get("translated_text") or item.get("text", "")) if isinstance(item, dict) else str(item)
         text = " ".join(str(text).split()).strip()
-        if re.search(r"[ぁ-ゟ゠-ヿ]", text) or not re.search(r"[一-鿿]", text):
+        if not is_traditional_chinese(text):
             continue
         if len(text) < 12 or any(re.search(pattern, text, re.I) for pattern in PROMO_PATTERNS + CREATOR_BIO_PATTERNS):
             continue
