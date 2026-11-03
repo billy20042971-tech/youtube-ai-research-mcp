@@ -17,10 +17,10 @@ CATEGORIES = {
     "產業與投資觀點": ("投資", "股市", "台股", "半導體", "晶片", "產業", "營收", "黃仁勳", "台積電", "ai bubble", "stock", "finance", "market"),
 }
 PROMO_PATTERNS = (
-    r"https?://", r"www\\.", r"訂閱.{0,12}(頻道|通知)", r"按讚.{0,12}(分享|訂閱)?",
+    r"https?://", r"www\.", r"訂閱.{0,12}(頻道|通知)", r"按讚.{0,12}(分享|訂閱)?",
     r"點擊.{0,12}連結", r"加入.{0,12}(會員|社群|課程|line)", r"折扣碼", r"優惠碼",
-    r"私訊", r"聯絡我", r"telegram", r"whatsapp", r"discord\\.gg", r"affiliate",
-    r"sponsor", r"amazon\\.(com|co\\.jp)", r"line official", r"官方帳號",
+    r"私訊", r"聯絡我", r"telegram", r"whatsapp", r"discord\.gg", r"affiliate",
+    r"sponsor", r"amazon\.(com|co\.jp)", r"line official", r"官方帳號",
     r"下載.{0,20}(prompt|提示詞)", r"(prompt|提示詞).{0,20}(雲端|drive|下載)",
 )
 CREATOR_BIO_PATTERNS = (
@@ -110,14 +110,14 @@ def clean_description(description: str, max_chars: int = 1800) -> str:
         if any(re.search(pattern, line, re.I) for pattern in PROMO_PATTERNS + CREATOR_BIO_PATTERNS):
             continue
         # Strip standalone URLs and tracking fragments without discarding useful prose.
-        line = re.sub(r"https?://\\S+|www\\.\\S+", "", line, flags=re.I).strip(" |,，。")
+        line = re.sub(r"https?://\S+|www\.\S+", "", line, flags=re.I).strip(" |,，。")
         if re.search(r"[ぁ-ゟ゠-ヿ]", line):
             continue
         if not re.search(r"[一-鿿]", line):
             continue
         if len(line) >= 8:
             kept.append(line)
-    return "\\n".join(kept)[:max_chars].strip()
+    return "\n".join(kept)[:max_chars].strip()
 
 def useful_comments(video: dict, limit: int = 3) -> list[str]:
     comments = video.get("comments", [])
