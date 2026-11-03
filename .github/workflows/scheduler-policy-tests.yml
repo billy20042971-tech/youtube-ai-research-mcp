@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/daily-youtube-research.yml"
+      - ".github/workflows/notion-credentials-preflight.yml"
+      - "scripts/notion_credentials_preflight.py"
       - ".github/workflows/youtube-research-self-healing.yml"
       - ".github/workflows/scheduler-heartbeat.yml"
       - "tests/test_scheduler_policy.py"

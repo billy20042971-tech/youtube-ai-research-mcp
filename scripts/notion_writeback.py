@@ -30,7 +30,7 @@ def validate_target_database_id(database_id: str) -> None:
     normalized = database_id.replace("-", "").strip().lower()
     if normalized != EXPECTED_NOTION_DATABASE_ID:
         raise RuntimeError(
-            "NOTION_DATABASE_ID (or legacy NOTION_PAGE_ID) does not match the approved "
+            "NOTION_DATABASE_ID does not match the approved "
             "AI 情報雷達 database; no Notion write was attempted."
         )
 
@@ -458,10 +458,7 @@ def create_daily_page(database_id: str, token: str, report_date: str) -> str:
 def main() -> int:
     execution_id = f"gh-{os.environ.get('GITHUB_RUN_ID', 'local')}-attempt-{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
     token = os.environ.get("NOTION_API_KEY", "").strip()
-    database_id = (
-        os.environ.get("NOTION_DATABASE_ID", "").strip()
-        or os.environ.get("NOTION_PAGE_ID", "").strip()
-    )
+    database_id = os.environ.get("NOTION_DATABASE_ID", "").strip()
     latest_path = Path("data/latest.json")
     manifest_path = Path("reports/latest-manifest.json")
     latest = json.loads(latest_path.read_text(encoding="utf-8")) if latest_path.exists() else {}
@@ -482,7 +479,7 @@ def main() -> int:
             "database_id_configured": bool(database_id),
             "token_configured": bool(token),
             "writeback_verified": False,
-            "note": "Set NOTION_API_KEY and NOTION_DATABASE_ID (or update legacy NOTION_PAGE_ID to the approved database ID) to enable automatic Notion writeback.",
+            "note": "Set NOTION_API_KEY and NOTION_DATABASE_ID to enable automatic Notion writeback.",
         })
         return 1
 
@@ -536,7 +533,7 @@ if __name__ == "__main__":
             "checked_at": now_iso(),
             "writeback_verified": False,
             "readback_verified": False,
-            "database_id": os.environ.get("NOTION_DATABASE_ID", "").strip() or os.environ.get("NOTION_PAGE_ID", "").strip(),
+            "database_id": os.environ.get("NOTION_DATABASE_ID", "").strip(),
             "error": str(exc)[:1000],
         }
         write_audit(record)
