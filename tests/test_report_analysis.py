@@ -44,6 +44,14 @@ class ReportAnalysisTests(unittest.TestCase):
             chinese_title({"title": "A title", "title_zh": "繁體中文標題"}),
             "繁體中文標題",
         )
+        self.assertEqual(
+            chinese_title({"title": "这是一个简体中文标题"}),
+            "中文意譯待確認（原始標題見附註）",
+        )
+        self.assertEqual(
+            chinese_title({"title": "これは日本語のタイトルです"}),
+            "中文意譯待確認（原始標題見附註）",
+        )
 
     def test_description_filter_removes_channel_bio_and_ads(self):
         text = """這個工作流程可以將商品資料轉成刊登草稿，並減少重複輸入。
