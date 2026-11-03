@@ -7,7 +7,7 @@ import re
 try:
     from scripts.report_analysis import chinese_title, clean_description, tool_guidance, recommendation_reason
 except ModuleNotFoundError:
-    from report_analysis import chinese_title
+    from report_analysis import chinese_title, clean_description, tool_guidance, recommendation_reason
 
 def safe_int(v):
     try:
@@ -199,7 +199,7 @@ slides = [
 ]
 for name, entries in analysis["buckets"].items():
     if entries:
-        sample_titles = "\n".join(f"・{str(v.get('title') or '')[:42]}" for v in entries[:3])
+        sample_titles = "\n".join(f"・{chinese_title(v)}" for v in entries[:3])
         slides.append((f"📊 {name}（{len(entries)} 部）", sample_titles))
 for idx, v in enumerate(analysis["top"][:5], 1):
     guide = tool_guidance(v)
