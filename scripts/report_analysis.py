@@ -111,6 +111,10 @@ def clean_description(description: str, max_chars: int = 1800) -> str:
             continue
         # Strip standalone URLs and tracking fragments without discarding useful prose.
         line = re.sub(r"https?://\\S+|www\\.\\S+", "", line, flags=re.I).strip(" |,，。")
+        if re.search(r"[ぁ-ゟ゠-ヿ]", line):
+            continue
+        if not re.search(r"[一-鿿]", line):
+            continue
         if len(line) >= 8:
             kept.append(line)
     return "\\n".join(kept)[:max_chars].strip()
@@ -121,8 +125,10 @@ def useful_comments(video: dict, limit: int = 3) -> list[str]:
         return []
     kept = []
     for item in comments:
-        text = item.get("text", "") if isinstance(item, dict) else str(item)
+        text = (item.get("translated_text") or item.get("text", "")) if isinstance(item, dict) else str(item)
         text = " ".join(str(text).split()).strip()
+        if re.search(r"[ぁ-ゟ゠-ヿ]", text) or not re.search(r"[一-鿿]", text):
+            continue
         if len(text) < 12 or any(re.search(pattern, text, re.I) for pattern in PROMO_PATTERNS + CREATOR_BIO_PATTERNS):
             continue
         if text not in kept:
