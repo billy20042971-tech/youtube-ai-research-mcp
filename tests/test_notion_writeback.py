@@ -1,5 +1,7 @@
 import unittest
 import json
+import os
+import tempfile
 from unittest.mock import call, patch
 
 from scripts import notion_writeback
@@ -289,6 +291,42 @@ class NotionWritebackTests(unittest.TestCase):
                 for item in payload["rich_text"]:
                     self.assertLessEqual(len(item["text"]["content"]), 2000)
                     self.assertEqual(item["type"], "text")
+
+    def test_missing_database_id_fails_closed_even_when_token_exists(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous = os.getcwd()
+            try:
+                os.chdir(temp_dir)
+                with patch.dict(os.environ, {"NOTION_API_KEY": "test-token"}, clear=False):
+                    os.environ.pop("NOTION_DATABASE_ID", None)
+                    os.environ.pop("NOTION_PAGE_ID", None)
+                    self.assertEqual(notion_writeback.main(), 1)
+                with open("data/notion-writeback-audit.json", encoding="utf-8") as handle:
+                    audit = json.load(handle)
+                self.assertEqual(audit["status"], "SKIPPED_MISSING_CREDENTIALS")
+                self.assertFalse(audit["database_id_configured"])
+                self.assertFalse(audit["writeback_verified"])
+            finally:
+                os.chdir(previous)
+
+    def test_legacy_page_id_alone_is_ignored_and_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous = os.getcwd()
+            try:
+                os.chdir(temp_dir)
+                with patch.dict(os.environ, {
+                    "NOTION_API_KEY": "test-token",
+                    "NOTION_PAGE_ID": "8eeeca64-4e1f-4687-a361-1f5124a0c5c8",
+                }, clear=False):
+                    os.environ.pop("NOTION_DATABASE_ID", None)
+                    self.assertEqual(notion_writeback.main(), 1)
+                with open("data/notion-writeback-audit.json", encoding="utf-8") as handle:
+                    audit = json.load(handle)
+                self.assertEqual(audit["status"], "SKIPPED_MISSING_CREDENTIALS")
+                self.assertFalse(audit["database_id_configured"])
+                self.assertFalse(audit["writeback_verified"])
+            finally:
+                os.chdir(previous)
 
 
 if __name__ == "__main__":
