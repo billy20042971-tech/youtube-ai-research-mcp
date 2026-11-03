@@ -172,6 +172,15 @@
       "readback_content_sha256": "2e196b1586df1331bcd73de57291947488b90b744a12055bfa05320a9873c908",
       "sample_count": 40,
       "github_run_id": "41369185782"
+    },
+    {
+      "execution_id": "gh-41569175087-attempt-1",
+      "status": "FAILED",
+      "checked_at": "2026-11-03T02:57:38.207042+00:00",
+      "writeback_verified": false,
+      "readback_verified": false,
+      "database_id": "3cc40065-15d9-806c-b196-f038cf8c5bc4",
+      "error": "NOTION_DATABASE_ID (or legacy NOTION_PAGE_ID) does not match the approved AI 情報雷達 database; no Notion write was attempted."
     }
   ]
 }
