@@ -5,7 +5,7 @@ from collections import Counter
 import re
 
 try:
-    from scripts.report_analysis import chinese_title
+    from scripts.report_analysis import chinese_title, clean_description, tool_guidance, recommendation_reason
 except ModuleNotFoundError:
     from report_analysis import chinese_title
 
@@ -127,14 +127,23 @@ from docx.shared import Inches
 try:
     from scripts.report_analysis import analyze_sample, chinese_title, useful_comments
 except ModuleNotFoundError:  # Direct execution: python scripts/<file>.py
-    from report_analysis import analyze_sample, chinese_title, useful_comments
+    from report_analysis import analyze_sample, chinese_title, useful_comments, clean_description, tool_guidance, recommendation_reason
 
 analysis = analyze_sample(videos)
 doc = Document()
 doc.add_heading(f"每日 AI 情報研究報告｜{date}", 0)
 doc.add_paragraph(f"資料範圍：近 72 小時｜去重影片：{len(videos)} 部｜資料來源：YouTube Research MCP")
+doc.add_heading("⭐ 今日 Top 3 必看推薦", level=1)
+for idx, v in enumerate(analysis["top3"], 1):
+    doc.add_heading(f"{idx}. {chinese_title(v)}", level=2)
+    doc.add_paragraph(f"推薦原因：{recommendation_reason(v)}｜頻道：{v.get('channel_title') or '未提供'}")
+    summary_text = clean_description(v.get("description_zh") or v.get("translated_description") or v.get("description") or "")
+    doc.add_paragraph(f"閱讀收穫：{summary_text[:320] or '來源資訊不足；請先查看原始影片或逐字稿，再判斷實際價值。'}")
+    if v.get("url"):
+        doc.add_paragraph(f"影片連結：{v['url']}")
+    doc.add_paragraph(f"原始標題（核對用）：{str(v.get('title') or '未提供')}", style="Caption")
 doc.add_heading("🚀 今日 3 分鐘核心趨勢摘要", level=1)
-doc.add_paragraph("今日最值得關注的變化：AI 應用正從單純展示工具，轉向可衡量的商業成果、內容產製與工作流程改善；以下判讀以本次影片樣本為限。")
+doc.add_paragraph("今日最值得關注的 AI 變化，依有效樣本中的具體工具、商業模式與可驗證流程歸納；資料不足處明確標示，不以觀看數單獨推論趨勢。")
 for idx, signal in enumerate(analysis["signals"], 1):
     doc.add_heading(f"訊號 {idx}｜{signal['name']}（{signal['count']} 部）", level=2)
     doc.add_paragraph(signal["summary"])
@@ -142,7 +151,7 @@ doc.add_heading("📊 主題分類洞察", level=1)
 for name, entries in analysis["buckets"].items():
     if not entries:
         continue
-    examples = "；".join(str(v.get("title") or "未提供標題") for v in entries[:3])
+    examples = "；".join(chinese_title(v) for v in entries[:3])
     doc.add_heading(f"{name}｜{len(entries)} 部", level=2)
     doc.add_paragraph(
         f"本主題在今日樣本中共 {len(entries)} 部，代表內容：{examples}。"
@@ -153,19 +162,26 @@ doc.add_paragraph("依觀看數、按讚與留言量的對數加權排序；互�
 for idx, v in enumerate(analysis["top"][:10], 1):
     original = str(v.get("title") or "（未提供標題）")
     doc.add_heading(f"{idx}. {chinese_title(v)}", level=2)
-    doc.add_paragraph(f"原始標題：{original}｜頻道：{v.get('channel_title') or '未提供'}")
+    doc.add_paragraph(f"原始標題（小字附註）：{original}｜頻道：{v.get('channel_title') or '未提供'}", style="Caption")
     doc.add_paragraph(f"觀看數：{safe_int(v.get('views')):,}｜按讚：{safe_int(v.get('likes')):,}｜發布：{v.get('published_at') or '未提供'}")
-    description = str(v.get("description") or "").strip()
-    doc.add_paragraph("核心洞察：" + (description[:1800] if description else "來源未提供足夠描述，請開啟原始影片確認實際方法與工具；不臆測影片內容。"))
-    doc.add_paragraph("落地建議：先挑選一個低風險、可在 30 分鐘內驗證的小任務試做，記錄原本耗時、導入後耗時、品質差異與額外成本；確認有效再擴大使用。")
+    description = clean_description(v.get("description_zh") or v.get("translated_description") or v.get("description") or "")
+    guide = tool_guidance(v)
+    doc.add_heading("🎯 核心商業價值", level=3)
+    doc.add_paragraph(description[:700] if description else "來源資訊不足：目前未取得可確認的繁體中文內容摘要，不能推定商業成果或作者主張。")
+    doc.add_heading("🛠️ 使用的 AI 工具與工作流", level=3)
+    doc.add_paragraph(guide["label"] + "｜" + guide["workflow"])
+    doc.add_heading("💡 實操建議與注意事項", level=3)
+    for step in guide["steps"][:3]:
+        doc.add_paragraph(step, style="List Number")
     if v.get("url"):
-        doc.add_paragraph(f"原始影片：{v['url']}")
+        doc.add_paragraph(f"原始影片連結：{v['url']}")
+    doc.add_paragraph(f"推薦理由：{recommendation_reason(v)}；工具指引依可辨識線索提供，未經來源證實的內容不得視為影片示範。", style="Caption")
 doc.add_heading("💬 社群觀眾反應與避坑指南", level=1)
 for v in analysis["top"][:10]:
     comments = useful_comments(v, 3)
     if not comments:
         continue
-    doc.add_heading(str(v.get("title") or "相關影片")[:120], level=2)
+    doc.add_heading(chinese_title(v), level=2)
     for comment in comments:
         doc.add_paragraph("觀眾回饋：" + comment)
 doc.add_paragraph("避坑提醒：留言是自選樣本，不能視為整體觀眾民調。特別留意獲利／銷量承諾、平台政策變動、隱藏訂閱費、工具學習門檻，以及缺乏可重現步驟的成功案例。")
@@ -178,6 +194,7 @@ from pptx.util import Inches as PInches
 prs = Presentation()
 slides = [
     ("每日 AI 情報研究雷達", f"{date}｜近 72 小時樣本 {len(videos)} 部"),
+    ("⭐ 今日 Top 3 必看推薦", "\n".join(f"{i+1}. {chinese_title(v)}｜{recommendation_reason(v)}" for i, v in enumerate(analysis["top3"]))),
     ("🚀 今日 3 分鐘核心趨勢摘要", "\n".join(f"{x['name']}：{x['count']} 部" for x in analysis["signals"])),
 ]
 for name, entries in analysis["buckets"].items():
@@ -185,7 +202,9 @@ for name, entries in analysis["buckets"].items():
         sample_titles = "\n".join(f"・{str(v.get('title') or '')[:42]}" for v in entries[:3])
         slides.append((f"📊 {name}（{len(entries)} 部）", sample_titles))
 for idx, v in enumerate(analysis["top"][:5], 1):
-    slides.append((f"💡 精選 {idx}｜{chinese_title(v)}", f"原始標題：{v.get('title', '')}\n頻道：{v.get('channel_title', '未提供')}\n核心內容：{str(v.get('description') or '來源未提供足夠描述')[:450]}\n落地：先用低風險小任務驗證效益。"))
+    guide = tool_guidance(v)
+    detail = clean_description(v.get("description_zh") or v.get("translated_description") or v.get("description") or "")
+    slides.append((f"🎬 精選 {idx}｜{chinese_title(v)}", f"🎯 核心商業價值：{detail[:220] or '來源資訊不足'}\n🛠️ 工具與工作流：{guide['label']}｜{guide['workflow']}\n💡 實操建議：{guide['steps'][0]}\n原始標題：{v.get('title', '')}"))
 slides.append(("💬 社群反應與避坑", "過濾推廣與無關留言；檢查獲利承諾、平台政策、訂閱成本與實作門檻。\n留言為自選樣本，不代表整體觀眾。"))
 for title, body in slides:
     slide = prs.slides.add_slide(prs.slide_layouts[1])
