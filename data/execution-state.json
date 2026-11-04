@@ -1,17 +1,23 @@
 {
-  "execution_id": "gh-41569175087-attempt-1",
+  "execution_id": "gh-41754103238-attempt-1",
   "workflow": "Daily YouTube Research via MCP",
-  "status": "FAILED",
-  "started_at": "2026-11-03T02:56:41Z",
-  "completed_at": "2026-11-03T02:57:38.244647+00:00",
-  "github_run_id": "41569175087",
+  "status": "SUCCESS",
+  "started_at": "2026-11-04T01:26:52Z",
+  "completed_at": "2026-11-04T01:28:14.801407+00:00",
+  "github_run_id": "41754103238",
   "github_run_attempt": "1",
   "trigger": "schedule",
   "recovery_attempt": false,
   "mcp_endpoint": "https://youtube-ai-research-mcp.onrender.com/mcp",
-  "data": "UNKNOWN",
-  "reports": "UNKNOWN",
-  "verification": "FAIL",
-  "failure_reason": "Notion writeback/readback verification failed",
-  "recovery_action": "Check NOTION_API_KEY, NOTION_PAGE_ID, page sharing, and Notion API permissions."
+  "data": "PASS",
+  "reports": "PASS",
+  "verification": "PASS",
+  "failure_reason": null,
+  "recovery_action": null,
+  "data_generated_at": "2026-11-04T01:27:45.078674+00:00",
+  "data_verification": {
+    "fresh_videos": 39,
+    "stale_or_invalid_videos": 0,
+    "verified_72h": true
+  }
 }
