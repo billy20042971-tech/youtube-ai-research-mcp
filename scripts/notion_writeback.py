@@ -56,9 +56,9 @@ def comment_text(execution_id: str, manifest: dict, state: dict) -> str:
 
 
 try:
-    from scripts.report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments
+    from scripts.report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments, clean_description, actionable_guidance
 except ModuleNotFoundError:  # Direct execution: python scripts/<file>.py
-    from report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments
+    from report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments, clean_description, actionable_guidance
 
 NOTION_TEXT_LIMIT = 1800
 
@@ -109,11 +109,13 @@ def bullet_block(label: str, body: str) -> list[dict]:
 def video_blocks(video: dict, index: int) -> list[dict]:
     """Render one concise, source-grounded video card for mobile reading."""
     title = str(video.get("title") or "（來源未提供標題）").strip()
-    description = str(video.get("description") or "").strip()
+    description = clean_description(video.get("description_zh") or video.get("translated_description") or video.get("description") or "")
     blocks = [heading_block(3, f"{index}. {chinese_title(video)}")]
     blocks.extend(bullet_block("原始標題／頻道", f"{title}｜{video.get('channel_title') or '來源頻道未提供'}"))
-    blocks.extend(bullet_block("核心洞察", description[:1400] if description else "來源描述不足，請開啟原始影片或逐字稿確認實際方法；不臆測內容。"))
-    blocks.extend(bullet_block("落地建議", "先選一個低風險小任務試做，記錄原本耗時、導入後耗時、品質差異與額外成本，再決定是否擴大。"))
+    blocks.extend(bullet_block("核心洞察", description[:1400] if description else "來源資訊不足：目前沒有可確認的繁體中文內容摘要，請先核對原始影片或逐字稿。"))
+    guide = actionable_guidance(video)
+    blocks.extend(bullet_block("使用的 AI 工具與工作流", f"{guide['label']}｜{guide['workflow']}"))
+    blocks.extend(bullet_block("落地建議", "；".join(guide["steps"])))
     for comment in useful_comments(video, 3):
         blocks.append(paragraph_block("觀眾回饋：" + comment))
     url = str(video.get("url") or "").strip()
@@ -136,6 +138,10 @@ def build_deep_briefing_blocks(latest: dict, manifest: dict, execution_id: str) 
                     "icon": {"type": "emoji", "emoji": "🧭"}},
     }]
 
+    blocks.append(heading_block(2, "⭐ 今日 Top 3 必看推薦"))
+    for idx, video in enumerate(analysis["top3"], 1):
+        blocks.extend(video_blocks(video, idx))
+
     blocks.append(heading_block(2, "🚀 今日 3 分鐘核心趨勢摘要"))
     blocks.append(paragraph_block("今日最值得關注的 AI 變化：AI 應用正從工具展示，走向商業成果、內容產製與工作流程改善；以下判讀僅代表本次樣本，不等同整體市場結論。"))
     for idx, signal in enumerate(analysis["signals"], 1):
@@ -145,7 +151,7 @@ def build_deep_briefing_blocks(latest: dict, manifest: dict, execution_id: str) 
     for name, entries in analysis["buckets"].items():
         if not entries:
             continue
-        examples = "；".join(str(v.get("title") or "未提供標題") for v in entries[:3])
+        examples = "；".join(chinese_title(v) for v in entries[:3])
         summary = (f"本次樣本共 {len(entries)} 部，代表內容：{examples}。"
                    "請區分影片作者主張與可驗證事實；單一案例不能直接推論普遍成效。")
         blocks.extend(bullet_block(f"{name}｜{len(entries)} 部", summary))
@@ -157,12 +163,14 @@ def build_deep_briefing_blocks(latest: dict, manifest: dict, execution_id: str) 
         translated = chinese_title(video)
         channel = str(video.get("channel_title") or "來源頻道未提供")
         url = str(video.get("url") or "").strip()
-        description = str(video.get("description") or "").strip()
-        insight = description[:1400] if description else "來源描述不足，請開啟原始影片或逐字稿確認實際方法；不臆測內容。"
+        description = clean_description(video.get("description_zh") or video.get("translated_description") or video.get("description") or "")
+        insight = description[:1400] if description else "來源資訊不足：目前沒有可確認的繁體中文內容摘要，請先核對原始影片或逐字稿。"
         blocks.append(heading_block(3, f"{idx}. {translated}"))
         blocks.extend(bullet_block("原始標題／頻道", f"{title}｜{channel}"))
         blocks.extend(bullet_block("核心洞察", insight))
-        blocks.extend(bullet_block("落地建議", "選一個低風險、可在 30 分鐘內驗證的小任務試做，記錄原本耗時、導入後耗時、品質差異與額外成本；確認有效再擴大。"))
+        guide = actionable_guidance(video)
+        blocks.extend(bullet_block("使用的 AI 工具與工作流", f"{guide['label']}｜{guide['workflow']}"))
+        blocks.extend(bullet_block("落地建議", "；".join(guide["steps"])))
         if url:
             blocks.append(paragraph_block(f"🔗 原始影片：{url}", url=url))
 
