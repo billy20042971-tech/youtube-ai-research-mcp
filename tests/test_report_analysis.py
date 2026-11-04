@@ -3,6 +3,7 @@ import unittest
 from scripts.report_analysis import (
     analyze_sample, chinese_title, classify_video, useful_comments,
     clean_description, tool_guidance, recommendation_reason,
+    classify_language, actionable_guidance, LEGACY_GENERIC_ADVICE,
 )
 
 
@@ -94,6 +95,76 @@ The creator explains their personal journey."""
         self.assertEqual(len(result["signals"]), 3)
         self.assertEqual(len(result["top"]), 4)
         self.assertEqual(len(result["top3"]), 3)
+
+    def test_classifies_traditional_simplified_japanese_english_and_mixed(self):
+        self.assertEqual(classify_language("這個工作流程可以提升效率"), "traditional_chinese")
+        self.assertEqual(classify_language("这是一个简体中文标题"), "simplified_chinese")
+        self.assertEqual(classify_language("これは日本語の説明です"), "japanese")
+        self.assertEqual(classify_language("An English description"), "english")
+        self.assertEqual(classify_language("這是 English 混合內容"), "mixed")
+
+    def test_rejects_mixed_english_chinese_description(self):
+        self.assertFalse(__import__("scripts.report_analysis", fromlist=["is_traditional_chinese"]).is_traditional_chinese(
+            "這是 English description，包含完整英文句子"
+        ))
+
+    def test_rejects_japanese_kanji_and_ambiguous_text(self):
+        self.assertFalse(__import__("scripts.report_analysis", fromlist=["is_traditional_chinese"]).is_traditional_chinese("日本語漢字だけ"))
+        self.assertFalse(__import__("scripts.report_analysis", fromlist=["is_traditional_chinese"]).is_traditional_chinese("中文"))
+
+    def test_filters_line_and_wechat_promotions(self):
+        text = "這個工具可以整理資料並提升工作效率。\n加入 LINE 官方帳號領取免費提示詞。\n加我微信領取完整教學。"
+        cleaned = clean_description(text)
+        self.assertIn("整理資料", cleaned)
+        self.assertNotIn("LINE", cleaned)
+        self.assertNotIn("微信", cleaned)
+
+    def test_filters_course_webinar_and_affiliate_promotions(self):
+        text = "這個流程可以自動整理資料並產生報表。\n免費線上講座立即報名，席位有限。\n這是我的 affiliate link，購買可獲得優惠。"
+        cleaned = clean_description(text)
+        self.assertIn("自動整理資料", cleaned)
+        self.assertNotIn("講座", cleaned)
+        self.assertNotIn("affiliate", cleaned)
+
+    def test_normalizes_html_breaks_before_promo_filtering(self):
+        text = "這個工作流程可以減少重複輸入。<br /><br />免費課程報名：https://example.com<br>加我微信領取。"
+        cleaned = clean_description(text)
+        self.assertIn("工作流程", cleaned)
+        self.assertNotIn("免費課程", cleaned)
+        self.assertNotIn("微信", cleaned)
+
+    def test_preserves_legitimate_line_automation_teaching(self):
+        text = "這個案例說明 LINE 自動化客服如何串接表單與資料庫，並降低人工回覆時間。"
+        self.assertIn("LINE 自動化客服", clean_description(text))
+
+    def test_filters_purchase_and_download_calls_to_action(self):
+        text = "這個工具能將資料整理成可搜尋的知識庫。\n立即購買課程請點此連結。\n免費下載完整手冊。"
+        cleaned = clean_description(text)
+        self.assertIn("知識庫", cleaned)
+        self.assertNotIn("購買", cleaned)
+        self.assertNotIn("下載", cleaned)
+
+    def test_legacy_generic_advice_is_never_emitted(self):
+        for title in ("Build a project with Claude Code", "Create with Higgsfield", "Unknown AI topic"):
+            result = actionable_guidance({"title": title})
+            output = " ".join([result.get("workflow", ""), *result.get("steps", [])])
+            self.assertFalse(any(term in output for term in LEGACY_GENERIC_ADVICE))
+            self.assertNotIn("30 分鐘", output)
+
+    def test_unknown_tool_guidance_explicitly_requests_source(self):
+        result = actionable_guidance({"title": "An unknown AI discussion"})
+        self.assertIn("待補來源", result["workflow"])
+        self.assertIn("逐字稿", " ".join(result["steps"]))
+
+    def test_top3_matches_ranked_top_three(self):
+        videos = [
+            {"title": "這個工作流程有效", "views": 30},
+            {"title": "這個工具提升效率", "views": 100},
+            {"title": "這個方法改善工作", "views": 60},
+            {"title": "這個案例值得研究", "views": 10},
+        ]
+        result = analyze_sample(videos)
+        self.assertEqual(result["top3"], result["top"][:3])
 
 
 if __name__ == "__main__":

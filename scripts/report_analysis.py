@@ -22,21 +22,51 @@ PROMO_PATTERNS = (
     r"私訊", r"聯絡我", r"telegram", r"whatsapp", r"discord\.gg", r"affiliate",
     r"sponsor", r"amazon\.(com|co\.jp)", r"line official", r"官方帳號",
     r"下載.{0,20}(prompt|提示詞)", r"(prompt|提示詞).{0,20}(雲端|drive|下載)",
+    r"(加我|添加|搜尋|加入).{0,12}(微信|微\s*信|line\s*id|line)",
+    r"(官方)?line.{0,15}(領取|加入|聯絡|私訊|報名)",
+    r"(免費)?(線上)?(課程|講座|研討會|workshop).{0,20}(報名|預約|領取|加入)",
+    r"(報名|預約|立即參加).{0,20}(連結|網址|席位|講座|課程)",
+    r"(免費領取|免費下載|領取福利|領取贈品|加好友領取)",
+    r"(購買|下單|訂購|立即購買).{0,20}(連結|網址|商品|課程)",
+    r"(推薦連結|聯盟連結|affiliate link|佣金|返佣)",
+    r"(限時優惠|專屬優惠|立即領取|點此報名|點此購買)",
 )
+PROMO_CONTEXT_PATTERNS = (
+    r"(免費|優惠|折扣|報名|領取|下載|購買|下單|訂購|加入|加我|私訊|聯絡)",
+    r"(課程|講座|研討會|會員|社群|微信|line|商品|購物|推薦連結|affiliate)",
+)
+
 CREATOR_BIO_PATTERNS = (
     r"歡迎來到我的頻道", r"我是.{0,20}(youtuber|創作者|主持人)", r"關於我",
     r"about me", r"welcome to my channel", r"subscribe to my channel",
     r"don't forget to subscribe", r"thanks for watching", r"感謝收看",
 )
 SIMPLIFIED_MARKERS = set("这们为与发后里时个来对说还会学过没开关问题点实业数体国经产务应变网软认让进远间长头东车马书门电云见听场万无从两边条优价请该种样现将并实务员组织办专术义条开关间应数进还变点时后发过没个来对说会学")
+TRADITIONAL_MARKERS = set("這們為與發後裡時個來對說還會學過沒開關問題點實業數體國經產務應變網軟認讓進遠間長頭東車馬書門電雲見聽場萬無從兩邊條優價請該種樣現將並員組織辦專術義")
+LEGACY_GENERIC_ADVICE = ("選一個低風險、可在 30 分鐘內驗證", "記錄原本耗時、導入後耗時、品質差異與額外成本")
+
+def classify_language(text: str) -> str:
+    """Conservative script/language gate; mixed/ambiguous text is never accepted."""
+    value = str(text or "").strip()
+    if not value:
+        return "unknown"
+    if re.search(r"[ぁ-ゟ゠-ヿ]", value):
+        return "japanese"
+    han = re.findall(r"[\u3400-\u9fff]", value)
+    if not han:
+        return "english" if re.search(r"[A-Za-z]", value) else "unknown"
+    if any(char in SIMPLIFIED_MARKERS for char in han):
+        return "simplified_chinese"
+    latin = len(re.findall(r"[A-Za-z]", value))
+    meaningful = len(re.sub(r"[\s\W_0-9]", "", value, flags=re.UNICODE))
+    if latin and latin / max(1, meaningful) > 0.18:
+        return "mixed"
+    if any(char in TRADITIONAL_MARKERS for char in han):
+        return "traditional_chinese"
+    return "unknown"
 
 def is_traditional_chinese(text: str) -> bool:
-    value = str(text or "")
-    if re.search(r"[ぁ-ゟ゠-ヿ]", value):
-        return False
-    if not re.search(r"[一-鿿]", value):
-        return False
-    return not any(char in SIMPLIFIED_MARKERS for char in value)
+    return classify_language(text) == "traditional_chinese"
 
 TITLE_TRANSLATIONS = {
     "the easiest claude ai side hustle everyone is overlooking": "多數人忽略的 Claude AI 簡易副業機會",
@@ -110,22 +140,35 @@ def chinese_title(video: dict) -> str:
         return title
     return "中文意譯待確認（原始標題見附註）"
 
+def _normalize_description(text: str) -> str:
+    value = str(text or "")
+    value = re.sub(r"<br\s*/?>", "\n", value, flags=re.I)
+    value = re.sub(r"</?(?:p|div|li|h[1-6])\b[^>]*>", "\n", value, flags=re.I)
+    value = re.sub(r"<[^>]+>", " ", value)
+    value = value.replace("\\n", "\n")
+    return value
+
+def _is_promotional_line(line: str) -> bool:
+    if any(re.search(pattern, line, re.I) for pattern in PROMO_PATTERNS + CREATOR_BIO_PATTERNS):
+        return True
+    has_context = any(re.search(pattern, line, re.I) for pattern in PROMO_CONTEXT_PATTERNS)
+    has_action = bool(re.search(r"(點擊|點此|報名|預約|領取|下載|購買|下單|訂購|加入|加我|私訊|掃碼|立即)", line, re.I))
+    has_link = bool(re.search(r"https?://|www\.|短網址|連結如下|網址如下", line, re.I))
+    return has_context and (has_action or has_link)
+
 def clean_description(description: str, max_chars: int = 1800) -> str:
-    """Remove obvious channel boilerplate, ads and link-dump lines."""
+    """Normalize HTML and remove ads; only confirmed Traditional Chinese survives."""
     kept = []
-    for raw_line in str(description or "").splitlines():
+    for raw_line in _normalize_description(description).splitlines():
         line = " ".join(raw_line.split()).strip(" |•-")
-        if not line:
+        if not line or _is_promotional_line(line):
             continue
-        if any(re.search(pattern, line, re.I) for pattern in PROMO_PATTERNS + CREATOR_BIO_PATTERNS):
-            continue
-        # Strip standalone URLs and tracking fragments without discarding useful prose.
         line = re.sub(r"https?://\S+|www\.\S+", "", line, flags=re.I).strip(" |,，。")
-        if not is_traditional_chinese(line):
+        if classify_language(line) != "traditional_chinese":
             continue
         if len(line) >= 8:
             kept.append(line)
-    return "\n".join(kept)[:max_chars].strip()
+    return "\n".join(dict.fromkeys(kept))[:max_chars].strip()
 
 def useful_comments(video: dict, limit: int = 3) -> list[str]:
     comments = video.get("comments", [])
@@ -159,6 +202,22 @@ def tool_guidance(video: dict) -> dict:
             "補齊來源證據後再制定對應操作步驟；目前不推測影片未提供的做法。",
         ],
     }
+
+def actionable_guidance(video: dict) -> dict:
+    """Return tool-specific, evidence-bounded guidance; never emit legacy boilerplate."""
+    guide = tool_guidance(video)
+    if "來源未提供" in guide["label"]:
+        result = {
+            "label": guide["label"],
+            "workflow": "待補來源：目前沒有足夠證據確認影片使用的工具與實際操作。",
+            "steps": ["取得影片逐字稿或操作畫面。", "確認工具名稱、版本及實際輸入與輸出。"],
+        }
+    else:
+        result = dict(guide)
+    combined = " ".join([str(result.get("workflow", "")), *map(str, result.get("steps", []))])
+    if any(phrase in combined for phrase in LEGACY_GENERIC_ADVICE) or "30 分鐘" in combined:
+        raise ValueError("Legacy generic advice is prohibited")
+    return result
 
 def recommendation_reason(video: dict) -> str:
     text = _text(video)
