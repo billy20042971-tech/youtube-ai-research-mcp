@@ -113,14 +113,14 @@ The creator explains their personal journey."""
         self.assertFalse(__import__("scripts.report_analysis", fromlist=["is_traditional_chinese"]).is_traditional_chinese("中文"))
 
     def test_filters_line_and_wechat_promotions(self):
-        text = "這個工具可以整理資料並提升工作效率。\\n加入 LINE 官方帳號領取免費提示詞。\\n加我微信領取完整教學。"
+        text = "這個工具可以整理資料並提升工作效率。\n加入 LINE 官方帳號領取免費提示詞。\n加我微信領取完整教學。"
         cleaned = clean_description(text)
         self.assertIn("整理資料", cleaned)
         self.assertNotIn("LINE", cleaned)
         self.assertNotIn("微信", cleaned)
 
     def test_filters_course_webinar_and_affiliate_promotions(self):
-        text = "這個流程可以自動整理資料並產生報表。\\n免費線上講座立即報名，席位有限。\\n這是我的 affiliate link，購買可獲得優惠。"
+        text = "這個流程可以自動整理資料並產生報表。\n免費線上講座立即報名，席位有限。\n這是我的 affiliate link，購買可獲得優惠。"
         cleaned = clean_description(text)
         self.assertIn("自動整理資料", cleaned)
         self.assertNotIn("講座", cleaned)
@@ -138,7 +138,7 @@ The creator explains their personal journey."""
         self.assertIn("LINE 自動化客服", clean_description(text))
 
     def test_filters_purchase_and_download_calls_to_action(self):
-        text = "這個工具能將資料整理成可搜尋的知識庫。\\n立即購買課程請點此連結。\\n免費下載完整手冊。"
+        text = "這個工具能將資料整理成可搜尋的知識庫。\n立即購買課程請點此連結。\n免費下載完整手冊。"
         cleaned = clean_description(text)
         self.assertIn("知識庫", cleaned)
         self.assertNotIn("購買", cleaned)
