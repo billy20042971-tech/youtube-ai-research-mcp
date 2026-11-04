@@ -260,11 +260,14 @@ class NotionWritebackTests(unittest.TestCase):
             for b in blocks if b["type"] == "heading_2"
         ]
         self.assertEqual(headings, [
+            "⭐ 今日 Top 3 必看推薦",
             "🚀 今日 3 分鐘核心趨勢摘要",
             "📊 主題分類洞察",
             "💡 精選高價值影片拆解",
             "💬 社群觀眾反應與避坑指南",
         ])
+        self.assertLess(headings.index("⭐ 今日 Top 3 必看推薦"), headings.index("🚀 今日 3 分鐘核心趨勢摘要"))
+        self.assertLess(headings.index("🚀 今日 3 分鐘核心趨勢摘要"), headings.index("📊 主題分類洞察"))
         all_text = json.dumps(blocks, ensure_ascii=False)
         for expected in ("核心洞察", "落地建議", "https://example.com/video"):
             self.assertIn(expected, all_text)
@@ -272,6 +275,38 @@ class NotionWritebackTests(unittest.TestCase):
         self.assertNotIn("今日自動化檢查", all_text)
         self.assertNotIn("工程維護", all_text)
 
+    def test_top_three_is_first_section_and_legacy_advice_is_absent(self):
+        latest = {"recent_72h_sample": {"videos": [
+            {"title": "Claude Code workflow tutorial", "title_zh": "Claude Code 工作流程教學",
+             "description_zh": "這個工作流程可以整理資料並提升工作效率。", "views": 300, "likes": 30},
+            {"title": "Higgsfield tutorial", "title_zh": "Higgsfield 影片製作教學",
+             "description_zh": "這個工具可以改善影片製作流程。", "views": 200, "likes": 20},
+            {"title": "AI agent case study", "title_zh": "AI Agent 商業案例",
+             "description_zh": "這個案例展示自動化流程與實際應用。", "views": 100, "likes": 10},
+        ]}}
+        blocks = build_deep_briefing_blocks(latest, {"sample_count": 3}, "gh-top3-attempt-1")
+        headings = ["".join(x["text"]["content"] for x in b[b["type"]]["rich_text"])
+                    for b in blocks if b["type"] in ("heading_2", "heading_3")]
+        self.assertEqual(headings[0], "⭐ 今日 Top 3 必看推薦")
+        self.assertTrue(headings[1].startswith("1. "))
+        self.assertTrue(headings[2].startswith("2. "))
+        self.assertTrue(headings[3].startswith("3. "))
+        self.assertLess(headings.index("⭐ 今日 Top 3 必看推薦"), headings.index("🚀 今日 3 分鐘核心趨勢摘要"))
+        rendered = json.dumps(blocks, ensure_ascii=False)
+        self.assertNotIn("30 分鐘", rendered)
+        self.assertNotIn("選一個低風險", rendered)
+
+    def test_notion_descriptions_remove_promotional_lines_and_links(self):
+        blocks = video_blocks({
+            "title": "AI 工作流程案例",
+            "description_zh": "這個工作流程可以整理資料並提升工作效率。\\n加入 LINE 官方帳號領取免費提示詞。\\n加我微信領取完整教學。\\n立即購買課程 https://example.com/buy",
+        }, 1)
+        rendered = json.dumps(blocks, ensure_ascii=False)
+        self.assertIn("整理資料", rendered)
+        self.assertNotIn("LINE", rendered)
+        self.assertNotIn("微信", rendered)
+        self.assertNotIn("購買課程", rendered)
+        self.assertNotIn("example.com/buy", rendered)
     def test_deep_briefing_blocks_match_notion_block_schema_and_text_limits(self):
         blocks = video_blocks({
             "title": "A" * 2500,
