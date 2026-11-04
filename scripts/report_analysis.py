@@ -17,12 +17,12 @@ CATEGORIES = {
     "產業與投資觀點": ("投資", "股市", "台股", "半導體", "晶片", "產業", "營收", "黃仁勳", "台積電", "ai bubble", "stock", "finance", "market"),
 }
 PROMO_PATTERNS = (
-    r"https?://", r"www\\.", r"訂閱.{0,12}(頻道|通知)", r"按讚.{0,12}(分享|訂閱)?",
+    r"https?://", r"www\.", r"訂閱.{0,12}(頻道|通知)", r"按讚.{0,12}(分享|訂閱)?",
     r"點擊.{0,12}連結", r"加入.{0,12}(會員|社群|課程|line)", r"折扣碼", r"優惠碼",
-    r"私訊", r"聯絡我", r"telegram", r"whatsapp", r"discord\\.gg", r"affiliate",
-    r"sponsor", r"amazon\\.(com|co\\.jp)", r"line official", r"官方帳號",
+    r"私訊", r"聯絡我", r"telegram", r"whatsapp", r"discord\.gg", r"affiliate",
+    r"sponsor", r"amazon\.(com|co\.jp)", r"line official", r"官方帳號",
     r"下載.{0,20}(prompt|提示詞)", r"(prompt|提示詞).{0,20}(雲端|drive|下載)",
-    r"(加我|添加|搜尋|加入).{0,12}(微信|微\\s*信|line\\s*id|line)",
+    r"(加我|添加|搜尋|加入).{0,12}(微信|微\s*信|line\s*id|line)",
     r"(官方)?line.{0,15}(領取|加入|聯絡|私訊|報名)",
     r"(免費)?(線上)?(課程|講座|研討會|workshop).{0,20}(報名|預約|領取|加入)",
     r"(報名|預約|立即參加).{0,20}(連結|網址|席位|講座|課程)",
@@ -52,13 +52,13 @@ def classify_language(text: str) -> str:
         return "unknown"
     if re.search(r"[ぁ-ゟ゠-ヿ]", value):
         return "japanese"
-    han = re.findall(r"[\\u3400-\\u9fff]", value)
+    han = re.findall(r"[\u3400-\u9fff]", value)
     if not han:
         return "english" if re.search(r"[A-Za-z]", value) else "unknown"
     if any(char in SIMPLIFIED_MARKERS for char in han):
         return "simplified_chinese"
     latin = len(re.findall(r"[A-Za-z]", value))
-    meaningful = len(re.sub(r"[\\s\\W_0-9]", "", value, flags=re.UNICODE))
+    meaningful = len(re.sub(r"[\s\W_0-9]", "", value, flags=re.UNICODE))
     if latin and latin / max(1, meaningful) > 0.18:
         return "mixed"
     if any(char in TRADITIONAL_MARKERS for char in han):
@@ -142,10 +142,10 @@ def chinese_title(video: dict) -> str:
 
 def _normalize_description(text: str) -> str:
     value = str(text or "")
-    value = re.sub(r"<br\\s*/?>", "\\n", value, flags=re.I)
-    value = re.sub(r"</?(?:p|div|li|h[1-6])\\b[^>]*>", "\\n", value, flags=re.I)
+    value = re.sub(r"<br\s*/?>", "\n", value, flags=re.I)
+    value = re.sub(r"</?(?:p|div|li|h[1-6])\b[^>]*>", "\n", value, flags=re.I)
     value = re.sub(r"<[^>]+>", " ", value)
-    value = value.replace("\\\\n", "\\n")
+    value = value.replace("\\n", "\n")
     return value
 
 def _is_promotional_line(line: str) -> bool:
@@ -153,7 +153,7 @@ def _is_promotional_line(line: str) -> bool:
         return True
     has_context = any(re.search(pattern, line, re.I) for pattern in PROMO_CONTEXT_PATTERNS)
     has_action = bool(re.search(r"(點擊|點此|報名|預約|領取|下載|購買|下單|訂購|加入|加我|私訊|掃碼|立即)", line, re.I))
-    has_link = bool(re.search(r"https?://|www\\.|短網址|連結如下|網址如下", line, re.I))
+    has_link = bool(re.search(r"https?://|www\.|短網址|連結如下|網址如下", line, re.I))
     return has_context and (has_action or has_link)
 
 def clean_description(description: str, max_chars: int = 1800) -> str:
@@ -163,12 +163,12 @@ def clean_description(description: str, max_chars: int = 1800) -> str:
         line = " ".join(raw_line.split()).strip(" |•-")
         if not line or _is_promotional_line(line):
             continue
-        line = re.sub(r"https?://\\S+|www\\.\\S+", "", line, flags=re.I).strip(" |,，。")
+        line = re.sub(r"https?://\S+|www\.\S+", "", line, flags=re.I).strip(" |,，。")
         if classify_language(line) != "traditional_chinese":
             continue
         if len(line) >= 8:
             kept.append(line)
-    return "\\n".join(dict.fromkeys(kept))[:max_chars].strip()
+    return "\n".join(dict.fromkeys(kept))[:max_chars].strip()
 
 def useful_comments(video: dict, limit: int = 3) -> list[str]:
     comments = video.get("comments", [])
