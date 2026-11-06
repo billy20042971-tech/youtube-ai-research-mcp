@@ -37,22 +37,13 @@ class ReportAnalysisTests(unittest.TestCase):
             chinese_title({"title": "The Easiest Claude AI Side Hustle Everyone Is Overlooking"}),
             "多數人忽略的 Claude AI 簡易副業機會",
         )
-        self.assertEqual(
-            chinese_title({"title": "An unknown English title"}),
-            "中文意譯待確認（原始標題見附註）",
-        )
+        self.assertNotIn("待確認", chinese_title({"title": "An unknown English title"}))
         self.assertEqual(
             chinese_title({"title": "A title", "title_zh": "繁體中文標題"}),
             "繁體中文標題",
         )
-        self.assertEqual(
-            chinese_title({"title": "这是一个简体中文标题"}),
-            "中文意譯待確認（原始標題見附註）",
-        )
-        self.assertEqual(
-            chinese_title({"title": "これは日本語のタイトルです"}),
-            "中文意譯待確認（原始標題見附註）",
-        )
+        self.assertNotIn("待確認", chinese_title({"title": "这是一个简体中文标题"}))
+        self.assertNotIn("待確認", chinese_title({"title": "これは日本語のタイトルです"}))
 
     def test_description_filter_removes_channel_bio_and_ads(self):
         text = """這個工作流程可以將商品資料轉成刊登草稿，並減少重複輸入。
@@ -74,8 +65,8 @@ The creator explains their personal journey."""
 
     def test_unknown_tool_does_not_invent_video_workflow(self):
         guide = tool_guidance({"title": "A general AI discussion"})
-        self.assertIn("來源未提供", guide["label"])
-        self.assertIn("逐字稿", " ".join(guide["steps"]))
+        self.assertIn("通用 AI 工具", guide["label"])
+        self.assertIn("可重現測試", " ".join(guide["steps"]))
 
     def test_recommendation_reason_is_grounded_in_video_metadata(self):
         self.assertIn(
@@ -153,8 +144,8 @@ The creator explains their personal journey."""
 
     def test_unknown_tool_guidance_explicitly_requests_source(self):
         result = actionable_guidance({"title": "An unknown AI discussion"})
-        self.assertIn("待補來源", result["workflow"])
-        self.assertIn("逐字稿", " ".join(result["steps"]))
+        self.assertIn("通用 AI 工具辨識", result["label"])
+        self.assertIn("官方功能", " ".join(result["steps"]))
 
     def test_top3_matches_ranked_top_three(self):
         videos = [
@@ -165,6 +156,36 @@ The creator explains their personal journey."""
         ]
         result = analyze_sample(videos)
         self.assertEqual(result["top3"], result["top"][:3])
+
+    def test_dynamic_tool_extraction_covers_common_ai_platforms(self):
+        for title, expected in (
+            ("Build a knowledge base with NotebookLM", "NotebookLM"),
+            ("Create images with Midjourney", "Midjourney"),
+            ("Code faster using Cursor", "Cursor"),
+            ("ChatGPT workflow for teachers", "ChatGPT"),
+            ("Kimi long document analysis", "Kimi"),
+        ):
+            guide = actionable_guidance({"title": title})
+            self.assertIn(expected, guide["label"])
+            self.assertTrue(guide["steps"])
+
+    def test_core_insights_uses_transcript_and_chapter_evidence(self):
+        from scripts.report_analysis import core_insights
+        video = {
+            "title": "NotebookLM research workflow",
+            "transcript_zh": "這個流程先匯入研究文件，再透過來源引用確認每項結論。第二步是整理可追蹤的研究摘要。",
+            "chapters": ["匯入研究文件", "核對來源引用"],
+        }
+        insights = core_insights(video)
+        self.assertTrue(any("匯入研究文件" in item for item in insights))
+        self.assertLessEqual(len(insights), 3)
+
+    def test_old_degradation_phrases_are_absent_from_guidance(self):
+        for title in ("Unknown AI topic", "NotebookLM research", "ChatGPT tutorial"):
+            result = actionable_guidance({"title": title})
+            rendered = " ".join([result["label"], result["workflow"], *result["steps"]])
+            for forbidden in ("待補來源", "待確認", "資訊不足", "來源未提供"):
+                self.assertNotIn(forbidden, rendered)
 
 
 if __name__ == "__main__":
