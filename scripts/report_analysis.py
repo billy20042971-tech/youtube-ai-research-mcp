@@ -241,6 +241,39 @@ def actionable_guidance(video: dict) -> dict:
         raise ValueError("Legacy generic advice is prohibited")
     return guide
 
+def core_insights(video: dict, limit: int = 3) -> list[str]:
+    """Build concise insights from translated description, transcript, and chapter evidence."""
+    candidates = []
+    for key in ("description_zh", "translated_description", "transcript_zh", "transcript"):
+        value = str(video.get(key) or "").strip()
+        if value:
+            candidates.extend(re.split(r"(?<=[。！？.!?])\s+|[\r\n]+", value))
+    chapters = video.get("chapters") or []
+    if isinstance(chapters, list):
+        candidates.extend(str(item).strip() for item in chapters if str(item).strip())
+    cleaned = []
+    for item in candidates:
+        line = " ".join(item.split()).strip(" -•")
+        if len(line) < 12 or _is_promotional_line(line):
+            continue
+        if classify_language(line) != "traditional_chinese":
+            line = translate_to_traditional_chinese(line)
+        if line and classify_language(line) == "traditional_chinese" and line not in cleaned:
+            cleaned.append(line[:260])
+        if len(cleaned) >= limit:
+            break
+    if cleaned:
+        return cleaned
+    title = chinese_title(video)
+    category = classify_video(video)
+    tool = next((name for name in GENERIC_TOOL_GUIDES if name in _text(video)), "")
+    focus = f"內容線索指向 {tool.title()} 的應用" if tool else f"內容主題歸類為「{category}」"
+    return [
+        f"本片標題為「{title}」，{focus}；此處先作為研究線索，不將標題推論當成影片已證實的成果。",
+        "建議先核對影片中的實際操作、輸入資料與輸出結果，再判斷是否適合複製到工作流程。",
+    ]
+
+
 def recommendation_reason(video: dict) -> str:
     text = _text(video)
     if any(x in text for x in ("case study", "案例", "營收", "revenue", "sales", "成交", "賣出")):
