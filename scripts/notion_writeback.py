@@ -56,9 +56,9 @@ def comment_text(execution_id: str, manifest: dict, state: dict) -> str:
 
 
 try:
-    from scripts.report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments, clean_description, actionable_guidance
+    from scripts.report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments, clean_description, actionable_guidance, core_insights
 except ModuleNotFoundError:  # Direct execution: python scripts/<file>.py
-    from report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments, clean_description, actionable_guidance
+    from report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments, clean_description, actionable_guidance, core_insights, core_insights
 
 NOTION_TEXT_LIMIT = 1800
 
@@ -109,10 +109,14 @@ def bullet_block(label: str, body: str) -> list[dict]:
 def video_blocks(video: dict, index: int) -> list[dict]:
     """Render one concise, source-grounded video card for mobile reading."""
     title = str(video.get("title") or "（來源未提供標題）").strip()
-    description = clean_description(video.get("description_zh") or video.get("translated_description") or video.get("description") or "")
+    description = clean_description(video.get("description_zh") or video.get("translated_description") or video.get("transcript_zh") or video.get("transcript") or video.get("description") or "")
     blocks = [heading_block(3, f"{index}. {chinese_title(video)}")]
     blocks.extend(bullet_block("原始標題／頻道", f"{title}｜{video.get('channel_title') or '來源頻道未提供'}"))
-    blocks.extend(bullet_block("核心洞察", description[:1400] if description else "來源資訊不足：目前沒有可確認的繁體中文內容摘要，請先核對原始影片或逐字稿。"))
+    insight = description[:1400] if description else "；".join(core_insights(video))
+    blocks.extend(bullet_block("核心洞察", insight))
+    chapters = video.get("chapters_zh") or video.get("chapters") or []
+    if isinstance(chapters, list) and chapters:
+        blocks.extend(bullet_block("影片章節", "；".join(str(item) for item in chapters[:12])))
     guide = actionable_guidance(video)
     blocks.extend(bullet_block("使用的 AI 工具與工作流", f"{guide['label']}｜{guide['workflow']}"))
     blocks.extend(bullet_block("落地建議", "；".join(guide["steps"])))
@@ -164,7 +168,7 @@ def build_deep_briefing_blocks(latest: dict, manifest: dict, execution_id: str) 
         channel = str(video.get("channel_title") or "來源頻道未提供")
         url = str(video.get("url") or "").strip()
         description = clean_description(video.get("description_zh") or video.get("translated_description") or video.get("description") or "")
-        insight = description[:1400] if description else "來源資訊不足：目前沒有可確認的繁體中文內容摘要，請先核對原始影片或逐字稿。"
+        insight = description[:1400] if description else "；".join(core_insights(video))
         blocks.append(heading_block(3, f"{idx}. {translated}"))
         blocks.extend(bullet_block("原始標題／頻道", f"{title}｜{channel}"))
         blocks.extend(bullet_block("核心洞察", insight))

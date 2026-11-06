@@ -1,14 +1,14 @@
-"""Evidence-grounded helpers for the daily Traditional Chinese AI intelligence report.
-
-This module does not call an LLM or paid translation API. It uses supplied
-translation fields and conservative heuristics; unknown foreign-language
-content is explicitly marked for translation review rather than fabricated.
-"""
+"""Evidence-grounded helpers for the daily Taiwan Traditional Chinese AI report."""
 from __future__ import annotations
 
 import re
 from collections import Counter
 import math
+
+try:
+    from scripts.content_enrichment import translate_to_traditional_chinese
+except ModuleNotFoundError:
+    from content_enrichment import translate_to_traditional_chinese
 
 CATEGORIES = {
     "AI 副業變現": ("副業", "賺錢", "變現", "收入", "kdp", "side hustle", "make money", "business", "monetize", "盈利", "營利", "數位產品", "接案", "pod", "print on demand", "ebay"),
@@ -115,7 +115,7 @@ TOOL_GUIDES = {
 
 def _text(video: dict) -> str:
     values = []
-    for key in ("title", "description", "tags", "query", "channel_title"):
+    for key in ("title", "description", "description_zh", "transcript", "transcript_zh", "chapters", "tags", "query", "channel_title"):
         value = video.get(key, "")
         if isinstance(value, list):
             value = " ".join(map(str, value))
@@ -138,7 +138,8 @@ def chinese_title(video: dict) -> str:
         return TITLE_TRANSLATIONS[key]
     if is_traditional_chinese(title):
         return title
-    return "中文意譯待確認（原始標題見附註）"
+    translated = translate_to_traditional_chinese(title)
+    return translated or re.sub(r"\s+", " ", title).strip()
 
 def _normalize_description(text: str) -> str:
     value = str(text or "")
@@ -165,8 +166,10 @@ def clean_description(description: str, max_chars: int = 1800) -> str:
             continue
         line = re.sub(r"https?://\S+|www\.\S+", "", line, flags=re.I).strip(" |,，。")
         if classify_language(line) != "traditional_chinese":
-            continue
-        if len(line) >= 8:
+            translated = translate_to_traditional_chinese(line)
+            if translated:
+                line = translated
+        if classify_language(line) == "traditional_chinese" and len(line) >= 8:
             kept.append(line)
     return "\n".join(dict.fromkeys(kept))[:max_chars].strip()
 
@@ -188,36 +191,88 @@ def useful_comments(video: dict, limit: int = 3) -> list[str]:
             break
     return kept
 
+GENERIC_TOOL_GUIDES = {
+    "chatgpt": ("ChatGPT", "對話式 AI 助理", "將需求拆成背景、目標、限制與輸出格式，先要求草稿，再以來源與事實逐項校對。"),
+    "midjourney": ("Midjourney", "AI 圖像生成平台", "先固定主體、場景、構圖與比例，再逐次調整風格參數並保存可重現提示詞。"),
+    "notebooklm": ("NotebookLM", "來源導向 AI 研究助理", "匯入可信文件或網址，針對來源提問，並回查引用段落後整理摘要。"),
+    "kimi": ("Kimi", "長文本 AI 助理", "提供文件或長文本，指定摘要架構與待回答問題，再抽查原文段落確認結論。"),
+    "cursor": ("Cursor", "AI 程式碼編輯器", "先限定工作目錄與檔案範圍，要求提出修改計畫，檢查 diff 並執行測試。"),
+    "claude": ("Claude", "生成式 AI 助理", "提供任務背景、限制及評估標準，要求列出依據與不確定處，再人工核對。"),
+    "gemini": ("Gemini", "Google 生成式 AI 助理", "以明確任務與來源材料進行分析，要求列出引用依據並核對關鍵事實。"),
+    "perplexity": ("Perplexity", "AI 搜尋與研究平台", "將問題拆成可查證子題，檢查引用來源日期、原始文件與不同來源是否一致。"),
+    "runway": ("Runway", "AI 影音生成平台", "先定義鏡頭、時長與畫面比例，小批次生成並比較一致性、可控性及素材權利。"),
+    "suno": ("Suno", "AI 音樂生成平台", "先描述曲風、情緒、段落與人聲需求，生成多個版本並核對授權條款。"),
+    "lovable": ("Lovable", "AI 網頁與應用程式建置平台", "先寫清楚使用者流程與資料欄位，逐頁生成原型，再測試表單、權限與資料保存。"),
+}
+
+
 def tool_guidance(video: dict) -> dict:
     text = _text(video)
     for key, guide in TOOL_GUIDES.items():
         if key in text:
             return guide
+    for key, (name, kind, workflow) in GENERIC_TOOL_GUIDES.items():
+        if re.search(rf"(?<![a-z0-9]){re.escape(key)}(?![a-z0-9])", text, re.I):
+            return {
+                "label": f"{name}（{kind}）",
+                "workflow": workflow,
+                "steps": [
+                    f"先確認影片實際使用的 {name} 功能、方案與輸入資料，避免把推測當成示範。",
+                    "依影片案例建立小型可重現測試，保存提示詞、設定、輸入與輸出。",
+                    "檢查結果品質、時間成本、資料隱私及當前授權條款，再決定是否導入。",
+                ],
+            }
     return {
-        "label": "來源未提供可確認的具體工具",
-        "workflow": "影片描述或可取得內容不足，無法可靠還原工具與操作流程。",
+        "label": "通用 AI 工具辨識與驗證流程",
+        "workflow": "先從標題、描述、章節與逐字稿辨識工具線索，再依影片任務選擇可驗證的 AI 工作流程。",
         "steps": [
-            "先取得影片逐字稿或實際操作畫面，確認工具名稱、版本及輸入／輸出。",
-            "核對工具官方文件中的功能、價格、使用限制與商用授權。",
-            "補齊來源證據後再制定對應操作步驟；目前不推測影片未提供的做法。",
+            "從影片內容整理工具名稱、任務、輸入資料與產出；沒有明確名稱時，將工具標示為尚未識別，不虛構品牌。",
+            "選擇可取得的同類工具，以相同輸入建立小型測試，記錄輸出品質、耗時與限制。",
+            "核對官方功能、費用、資料使用政策與商用授權，再將有效步驟寫成 SOP。",
         ],
     }
 
+
 def actionable_guidance(video: dict) -> dict:
-    """Return tool-specific, evidence-bounded guidance; never emit legacy boilerplate."""
-    guide = tool_guidance(video)
-    if "來源未提供" in guide["label"]:
-        result = {
-            "label": guide["label"],
-            "workflow": "待補來源：目前沒有足夠證據確認影片使用的工具與實際操作。",
-            "steps": ["取得影片逐字稿或操作畫面。", "確認工具名稱、版本及實際輸入與輸出。"],
-        }
-    else:
-        result = dict(guide)
-    combined = " ".join([str(result.get("workflow", "")), *map(str, result.get("steps", []))])
+    """Return practical steps; distinguish identified tools from generic validation."""
+    guide = dict(tool_guidance(video))
+    combined = " ".join([str(guide.get("workflow", "")), *map(str, guide.get("steps", []))])
     if any(phrase in combined for phrase in LEGACY_GENERIC_ADVICE) or "30 分鐘" in combined:
         raise ValueError("Legacy generic advice is prohibited")
-    return result
+    return guide
+
+def core_insights(video: dict, limit: int = 3) -> list[str]:
+    """Build concise insights from translated description, transcript, and chapter evidence."""
+    candidates = []
+    for key in ("description_zh", "translated_description", "transcript_zh", "transcript"):
+        value = str(video.get(key) or "").strip()
+        if value:
+            candidates.extend(re.split(r"(?<=[。！？.!?])\s+|[\r\n]+", value))
+    chapters = video.get("chapters_zh") or video.get("chapters") or []
+    if isinstance(chapters, list):
+        candidates.extend(str(item).strip() for item in chapters if str(item).strip())
+    cleaned = []
+    for item in candidates:
+        line = " ".join(item.split()).strip(" -•")
+        if len(line) < 12 or _is_promotional_line(line):
+            continue
+        if classify_language(line) != "traditional_chinese":
+            line = translate_to_traditional_chinese(line)
+        if line and classify_language(line) == "traditional_chinese" and line not in cleaned:
+            cleaned.append(line[:260])
+        if len(cleaned) >= limit:
+            break
+    if cleaned:
+        return cleaned
+    title = chinese_title(video)
+    category = classify_video(video)
+    tool = next((name for name in GENERIC_TOOL_GUIDES if name in _text(video)), "")
+    focus = f"內容線索指向 {tool.title()} 的應用" if tool else f"內容主題歸類為「{category}」"
+    return [
+        f"本片標題為「{title}」，{focus}；此處先作為研究線索，不將標題推論當成影片已證實的成果。",
+        "建議先核對影片中的實際操作、輸入資料與輸出結果，再判斷是否適合複製到工作流程。",
+    ]
+
 
 def recommendation_reason(video: dict) -> str:
     text = _text(video)
