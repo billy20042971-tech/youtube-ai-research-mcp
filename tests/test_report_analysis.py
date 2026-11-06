@@ -66,7 +66,7 @@ The creator explains their personal journey."""
     def test_unknown_tool_does_not_invent_video_workflow(self):
         guide = tool_guidance({"title": "A general AI discussion"})
         self.assertIn("通用 AI 工具", guide["label"])
-        self.assertIn("可重現測試", " ".join(guide["steps"]))
+        self.assertIn("小型測試", " ".join(guide["steps"]))
 
     def test_recommendation_reason_is_grounded_in_video_metadata(self):
         self.assertIn(
