@@ -1,4 +1,5 @@
 import unittest
+import json
 from unittest.mock import patch
 
 from scripts import content_enrichment
@@ -6,7 +7,7 @@ from scripts import content_enrichment
 
 class ContentEnrichmentTests(unittest.TestCase):
     def test_translation_uses_taiwan_traditional_chinese_locale(self):
-        payload = b'[[["\\u9019\\u662f\\u7e41\\u9ad4\\u4e2d\\u6587", "This is Chinese"]], null, "en"]'
+        payload = json.dumps([[["這是繁體中文", "This is Chinese"]], None, "en"], ensure_ascii=False).encode("utf-8")
         with patch.object(content_enrichment, "_get", return_value=payload) as get:
             translated = content_enrichment.translate_to_traditional_chinese("This is Chinese")
         self.assertEqual(translated, "這是繁體中文")
