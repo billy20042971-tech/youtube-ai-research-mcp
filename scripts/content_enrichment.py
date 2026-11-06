@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 import re
-import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -40,8 +39,18 @@ def translate_to_traditional_chinese(text: str) -> str:
             query = urllib.parse.urlencode({
                 "client": "gtx", "sl": "auto", "tl": "zh-TW", "dt": "t", "q": chunk,
             })
-            payload = json.loads(_get("https://translate.googleapis.com/translate_a/single?" + query))
-            translated.append("".join(part[0] for part in payload[0] if part and part[0]))
+            url = "https://translate.googleapis.com/translate_a/single?" + query
+            last_error = None
+            for attempt in range(2):
+                try:
+                    payload = json.loads(_get(url))
+                    translated.append("".join(part[0] for part in payload[0] if part and part[0]))
+                    last_error = None
+                    break
+                except Exception as exc:
+                    last_error = exc
+            if last_error is not None:
+                raise last_error
         result = " ".join(translated).strip()
         _TRANSLATION_CACHE[value] = result
         return result
@@ -103,6 +112,10 @@ def enrich_video_content(video: dict, fetch_transcript: bool = True) -> dict:
     chapters = result.get("chapters") or extract_chapters(description)
     if chapters:
         result["chapters"] = chapters
+        result["chapters_zh"] = [
+            translate_to_traditional_chinese(str(item)) or str(item)
+            for item in chapters[:30]
+        ]
     source = result.get("description_zh") or result.get("translated_description") or result.get("description") or ""
     if not result.get("description_zh") and source:
         result["description_zh"] = translate_to_traditional_chinese(str(source)) or ""
