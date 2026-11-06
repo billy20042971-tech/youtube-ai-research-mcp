@@ -115,7 +115,7 @@ TOOL_GUIDES = {
 
 def _text(video: dict) -> str:
     values = []
-    for key in ("title", "description", "tags", "query", "channel_title"):
+    for key in ("title", "description", "description_zh", "transcript", "transcript_zh", "chapters", "tags", "query", "channel_title"):
         value = video.get(key, "")
         if isinstance(value, list):
             value = " ".join(map(str, value))
