@@ -114,7 +114,7 @@ def video_blocks(video: dict, index: int) -> list[dict]:
     blocks.extend(bullet_block("原始標題／頻道", f"{title}｜{video.get('channel_title') or '來源頻道未提供'}"))
     insight = description[:1400] if description else "；".join(core_insights(video))
     blocks.extend(bullet_block("核心洞察", insight))
-    chapters = video.get("chapters") or []
+    chapters = video.get("chapters_zh") or video.get("chapters") or []
     if isinstance(chapters, list) and chapters:
         blocks.extend(bullet_block("影片章節", "；".join(str(item) for item in chapters[:12])))
     guide = actionable_guidance(video)
