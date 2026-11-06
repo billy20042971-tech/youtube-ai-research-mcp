@@ -363,6 +363,24 @@ class NotionWritebackTests(unittest.TestCase):
             finally:
                 os.chdir(previous)
 
+    def test_notion_video_blocks_use_transcript_insights_and_localized_chapters(self):
+        blocks = video_blocks({
+            "title": "NotebookLM research workflow",
+            "transcript_zh": "這個流程先匯入研究文件，再透過來源引用確認每項結論。",
+            "chapters_zh": ["匯入研究文件", "核對來源引用"],
+        }, 1)
+        rendered = json.dumps(blocks, ensure_ascii=False)
+        self.assertIn("匯入研究文件", rendered)
+        self.assertIn("核對來源引用", rendered)
+        self.assertNotIn("來源資訊不足", rendered)
+        self.assertNotIn("待補來源", rendered)
+
+    def test_notion_renderer_has_no_legacy_degradation_phrases(self):
+        from pathlib import Path
+        source = Path("scripts/notion_writeback.py").read_text(encoding="utf-8")
+        for phrase in ("中文意譯待確認", "來源資訊不足", "待補來源", "待確認"):
+            self.assertNotIn(phrase, source)
+
 
 if __name__ == "__main__":
     unittest.main()
