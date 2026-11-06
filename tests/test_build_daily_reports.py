@@ -36,6 +36,15 @@ class DailyReportRenderingTests(unittest.TestCase):
             self.assertFalse(any(phrase in rendered for phrase in LEGACY_GENERIC_ADVICE))
             self.assertNotIn("30 分鐘", rendered)
 
+    def test_renderer_has_no_degradation_placeholders(self):
+        for phrase in ("中文意譯待確認", "來源資訊不足", "待補來源", "待確認"):
+            self.assertNotIn(phrase, self.source)
+
+    def test_renderer_integrates_transcript_translation_and_insight_extraction(self):
+        self.assertIn("enrich_video_content", self.source)
+        self.assertIn("core_insights(v)", self.source)
+        self.assertIn("transcript_zh", self.source)
+
 
 if __name__ == "__main__":
     unittest.main()
