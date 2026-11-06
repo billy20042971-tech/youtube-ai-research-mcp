@@ -7,7 +7,7 @@ import re
 try:
     from scripts.report_analysis import chinese_title, clean_description, actionable_guidance, recommendation_reason, core_insights
 except ModuleNotFoundError:
-    from report_analysis import chinese_title, clean_description, actionable_guidance, recommendation_reason, core_insights
+    from report_analysis import chinese_title, clean_description, actionable_guidance, recommendation_reason, core_insights, core_insights
 
 def safe_int(v):
     try:
