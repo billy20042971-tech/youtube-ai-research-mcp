@@ -5,9 +5,9 @@ from collections import Counter
 import re
 
 try:
-    from scripts.report_analysis import chinese_title, clean_description, actionable_guidance, recommendation_reason
+    from scripts.report_analysis import chinese_title, clean_description, actionable_guidance, recommendation_reason, core_insights
 except ModuleNotFoundError:
-    from report_analysis import chinese_title, clean_description, actionable_guidance, recommendation_reason
+    from report_analysis import chinese_title, clean_description, actionable_guidance, recommendation_reason, core_insights
 
 def safe_int(v):
     try:
@@ -57,6 +57,27 @@ for v in videos:
     seen[v.get("video_id")] = v
 videos = list(seen.values())
 videos.sort(key=lambda x: safe_int(x.get("views")), reverse=True)
+
+# Enrich the highest-priority videos with public captions, chapter metadata and
+# Taiwan Traditional Chinese translation. Network failures are bounded and non-fatal.
+try:
+    from scripts.content_enrichment import enrich_video_content
+except ModuleNotFoundError:
+    from content_enrichment import enrich_video_content
+videos = [
+    enrich_video_content(video) if index < 10 else video
+    for index, video in enumerate(videos)
+]
+enriched_by_id = {v.get("video_id"): v for v in videos if v.get("video_id")}
+if enriched_by_id:
+    recent["videos"] = [
+        enriched_by_id.get(v.get("video_id"), v)
+        for v in recent.get("videos", [])
+    ]
+    src["recent_72h_sample"] = recent
+    Path("data/latest.json").write_text(
+        json.dumps(src, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 now = datetime.now(timezone.utc)
 date = now.strftime("%Y-%m-%d")
@@ -137,8 +158,8 @@ doc.add_heading("⭐ 今日 Top 3 必看推薦", level=1)
 for idx, v in enumerate(analysis["top3"], 1):
     doc.add_heading(f"{idx}. {chinese_title(v)}", level=2)
     doc.add_paragraph(f"推薦原因：{recommendation_reason(v)}｜頻道：{v.get('channel_title') or '未提供'}")
-    summary_text = clean_description(v.get("description_zh") or v.get("translated_description") or v.get("description") or "")
-    doc.add_paragraph(f"閱讀收穫：{summary_text[:320] or '來源資訊不足；請先查看原始影片或逐字稿，再判斷實際價值。'}")
+    summary_text = clean_description(v.get("description_zh") or v.get("translated_description") or v.get("transcript_zh") or v.get("transcript") or v.get("description") or "")
+    doc.add_paragraph(f"閱讀收穫：{summary_text[:320] or '；'.join(core_insights(v))}")
     if v.get("url"):
         doc.add_paragraph(f"影片連結：{v['url']}")
     doc.add_paragraph(f"原始標題（核對用）：{str(v.get('title') or '未提供')}", style="Caption")
@@ -167,7 +188,7 @@ for idx, v in enumerate(analysis["top"][:10], 1):
     description = clean_description(v.get("description_zh") or v.get("translated_description") or v.get("description") or "")
     guide = actionable_guidance(v)
     doc.add_heading("🎯 核心商業價值", level=3)
-    doc.add_paragraph(description[:700] if description else "來源資訊不足：目前未取得可確認的繁體中文內容摘要，不能推定商業成果或作者主張。")
+    doc.add_paragraph(description[:700] if description else "；".join(core_insights(v)))
     doc.add_heading("🛠️ 使用的 AI 工具與工作流", level=3)
     doc.add_paragraph(guide["label"] + "｜" + guide["workflow"])
     doc.add_heading("💡 實操建議與注意事項", level=3)
@@ -204,7 +225,7 @@ for name, entries in analysis["buckets"].items():
 for idx, v in enumerate(analysis["top"][:5], 1):
     guide = actionable_guidance(v)
     detail = clean_description(v.get("description_zh") or v.get("translated_description") or v.get("description") or "")
-    slides.append((f"🎬 精選 {idx}｜{chinese_title(v)}", f"🎯 核心商業價值：{detail[:220] or '來源資訊不足'}\n🛠️ 工具與工作流：{guide['label']}｜{guide['workflow']}\n💡 實操建議：{guide['steps'][0]}\n原始標題：{v.get('title', '')}"))
+    slides.append((f"🎬 精選 {idx}｜{chinese_title(v)}", f"🎯 核心商業價值：{detail[:220] or '；'.join(core_insights(v))}\n🛠️ 工具與工作流：{guide['label']}｜{guide['workflow']}\n💡 實操建議：{guide['steps'][0]}\n原始標題：{v.get('title', '')}"))
 slides.append(("💬 社群反應與避坑", "過濾推廣與無關留言；檢查獲利承諾、平台政策、訂閱成本與實作門檻。\n留言為自選樣本，不代表整體觀眾。"))
 for title, body in slides:
     slide = prs.slides.add_slide(prs.slide_layouts[1])
@@ -229,7 +250,7 @@ manifest = {
 markdown_lines = [f"# 每日 AI 情報研究報告｜{date}", "", f"資料範圍：近 72 小時｜去重影片：{len(videos)} 部", "", "## ⭐ 今日 Top 3 必看推薦", ""]
 for idx, v in enumerate(analysis["top3"], 1):
     summary_text = clean_description(v.get("description_zh") or v.get("translated_description") or v.get("description") or "")
-    markdown_lines.extend([f"### {idx}. {chinese_title(v)}", "", f"推薦原因：{recommendation_reason(v)}", "", f"閱讀收穫：{summary_text[:320] or '來源資訊不足；請先查看原始影片或逐字稿。'}", "", f"影片連結：{v.get('url') or '未提供'}", ""])
+    markdown_lines.extend([f"### {idx}. {chinese_title(v)}", "", f"推薦原因：{recommendation_reason(v)}", "", f"閱讀收穫：{summary_text[:320] or '；'.join(core_insights(v))}", "", f"影片連結：{v.get('url') or '未提供'}", ""])
 markdown_lines.extend(["## 🚀 今日 3 分鐘核心趨勢摘要", ""])
 for signal in analysis["signals"]:
     markdown_lines.append(f"- **{signal['name']}**（{signal['count']} 部）：{signal['summary']}")
