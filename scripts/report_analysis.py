@@ -248,7 +248,7 @@ def core_insights(video: dict, limit: int = 3) -> list[str]:
         value = str(video.get(key) or "").strip()
         if value:
             candidates.extend(re.split(r"(?<=[。！？.!?])\s+|[\r\n]+", value))
-    chapters = video.get("chapters") or []
+    chapters = video.get("chapters_zh") or video.get("chapters") or []
     if isinstance(chapters, list):
         candidates.extend(str(item).strip() for item in chapters if str(item).strip())
     cleaned = []
