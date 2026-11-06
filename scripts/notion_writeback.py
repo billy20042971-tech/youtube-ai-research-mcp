@@ -58,7 +58,7 @@ def comment_text(execution_id: str, manifest: dict, state: dict) -> str:
 try:
     from scripts.report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments, clean_description, actionable_guidance, core_insights
 except ModuleNotFoundError:  # Direct execution: python scripts/<file>.py
-    from report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments, clean_description, actionable_guidance, core_insights
+    from report_analysis import CATEGORIES, analyze_sample, chinese_title, useful_comments, clean_description, actionable_guidance, core_insights, core_insights
 
 NOTION_TEXT_LIMIT = 1800
 
