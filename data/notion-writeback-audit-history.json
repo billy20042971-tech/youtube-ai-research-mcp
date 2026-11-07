@@ -241,6 +241,26 @@
       "readback_content_sha256": "6cf9a49f425a6786cfa87952c1e2da82a311a1ab846a1fc60e9e3aa776b367ef",
       "sample_count": 40,
       "github_run_id": "42144908257"
+    },
+    {
+      "execution_id": "gh-42321350389-attempt-1",
+      "status": "PASS",
+      "page_block_verification": "PASS_FULL_SEQUENCE_TYPE_AND_TEXT",
+      "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
+      "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
+      "checked_at": "2026-11-07T01:13:58.971163+00:00",
+      "database_id": "8eeeca64-4e1f-4687-a361-1f5124a0c5c8",
+      "page_id": "41140065-15d9-817f-be85-f6fdc0a12fa3",
+      "report_date": "2026-11-07",
+      "page_title": "2026-11-07 | 每日 AI 情報雷達",
+      "comment_id": "41140065-15d9-81ab-a7c4-001d1cc99f70",
+      "writeback_verified": true,
+      "readback_verified": true,
+      "deep_briefing_blocks": 155,
+      "deep_briefing_readback_verified": true,
+      "readback_content_sha256": "8ba3490ec834b0839705613e803fea211364150d1176c708e9a4d30611a2271d",
+      "sample_count": 40,
+      "github_run_id": "42321350389"
     }
   ]
 }
