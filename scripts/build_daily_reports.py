@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from collections import Counter
 import re
 
@@ -80,7 +81,7 @@ if enriched_by_id:
     )
 
 now = datetime.now(timezone.utc)
-date = now.strftime("%Y-%m-%d")
+date = now.astimezone(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d")
 out = Path("reports") / date
 out.mkdir(parents=True, exist_ok=True)
 
