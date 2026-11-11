@@ -182,8 +182,18 @@ jobs:
             exit 1
           }
 
-          echo "=== 1. MCP initialize ==="
-          curl --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 120 -sS --fail-with-body \
+          echo "=== 1. MCP warm-up ping ==="
+          # A lightweight GET wakes a sleeping Render instance. A non-2xx response
+          # is acceptable here: reaching the service is the purpose of this ping.
+          curl --connect-timeout 10 --max-time 60 -sS -o /dev/null "$MCP_URL" \
+            || echo "::notice::Render warm-up ping did not complete; continuing with MCP initialize retries."
+          echo "Waiting 15 seconds for Render spin-up..."
+          sleep 15
+
+          echo "=== 2. MCP initialize ==="
+          # Retry transient connection/time-out failures with a longer connection
+          # window so a cold Render instance can finish starting.
+          curl --retry 4 --retry-delay 15 --connect-timeout 30 --max-time 120 -sS --fail-with-body \
             -D init.headers -o init.body -X POST "$MCP_URL" \
             -H "Content-Type: application/json" \
             -H "Accept: application/json, text/event-stream" \
