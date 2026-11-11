@@ -435,6 +435,23 @@
         "stale_or_invalid_videos": 0,
         "verified_72h": true
       }
+    },
+    {
+      "execution_id": "gh-42937763823-attempt-1",
+      "workflow": "Daily YouTube Research via MCP",
+      "status": "FAILED",
+      "started_at": "2026-11-11T01:16:46Z",
+      "completed_at": "2026-11-11T01:24:55.416290+00:00",
+      "github_run_id": "42937763823",
+      "github_run_attempt": "1",
+      "trigger": "schedule",
+      "recovery_attempt": false,
+      "mcp_endpoint": "https://youtube-ai-research-mcp.onrender.com/mcp",
+      "data": "UNKNOWN",
+      "reports": "UNKNOWN",
+      "verification": "FAIL",
+      "failure_reason": "MCP initialize failed",
+      "recovery_action": "Check Render MCP health/endpoint and retry."
     }
   ]
 }

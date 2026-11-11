@@ -321,6 +321,15 @@
       "readback_content_sha256": "f6cfab4a32b59f950d577727bf92e95bc6a2cd716d79bbcc599f213187f93956",
       "sample_count": 40,
       "github_run_id": "42750650382"
+    },
+    {
+      "execution_id": "gh-42937763823-attempt-1",
+      "status": "NOT_RUN",
+      "checked_at": "2026-11-11T01:24:55.425176+00:00",
+      "github_run_id": "42937763823",
+      "writeback_verified": false,
+      "readback_verified": false,
+      "error": "MCP initialize failed"
     }
   ]
 }
