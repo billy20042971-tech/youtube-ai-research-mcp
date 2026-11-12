@@ -1,9 +1,20 @@
 {
-  "execution_id": "gh-42937763823-attempt-1",
-  "status": "NOT_RUN",
-  "checked_at": "2026-11-11T01:24:55.425176+00:00",
-  "github_run_id": "42937763823",
-  "writeback_verified": false,
-  "readback_verified": false,
-  "error": "MCP initialize failed"
+  "execution_id": "gh-43140431850-attempt-1",
+  "status": "PASS",
+  "page_block_verification": "PASS_FULL_SEQUENCE_TYPE_AND_TEXT",
+  "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
+  "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
+  "checked_at": "2026-11-12T02:24:06.504958+00:00",
+  "database_id": "8eeeca64-4e1f-4687-a361-1f5124a0c5c8",
+  "page_id": "41640065-15d9-8146-b737-fdfbdb4ad828",
+  "report_date": "2026-11-12",
+  "page_title": "2026-11-12 | 每日 AI 情報雷達",
+  "comment_id": "41640065-15d9-8182-b438-001dfe8cfef3",
+  "writeback_verified": true,
+  "readback_verified": true,
+  "deep_briefing_blocks": 167,
+  "deep_briefing_readback_verified": true,
+  "readback_content_sha256": "1a55368c8f82085b711a7a5bfc51434566201ae2079e1e8ec5fae71e56a75f89",
+  "sample_count": 39,
+  "github_run_id": "43140431850"
 }
