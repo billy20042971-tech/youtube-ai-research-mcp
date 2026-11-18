@@ -382,5 +382,101 @@ class NotionWritebackTests(unittest.TestCase):
             self.assertNotIn(phrase, source)
 
 
+    def test_daily_properties_map_top1_url_value_next_step_and_conservative_decision(self):
+        latest = {"recent_72h_sample": {"videos": [{
+            "title": "NotebookLM tutorial demo",
+            "title_zh": "NotebookLM 研究流程實作示範",
+            "description_zh": "透過來源文件整理研究內容並核對引用，能改善研究流程。",
+            "transcript_zh": ("示範如何匯入研究文件、建立摘要並逐項核對來源引用。" * 12),
+            "url": "https://www.youtube.com/watch?v=abc123",
+            "views": 9000000, "likes": 500000,
+        }]}}
+        props = notion_writeback.build_daily_properties(latest, "2026-11-18")
+        self.assertEqual(props["來源"]["url"]["url"], "https://www.youtube.com/watch?v=abc123")
+        value = "".join(x["text"]["content"] for x in props["實際價值"]["rich_text"])
+        self.assertLessEqual(len(value), 100)
+        self.assertTrue(props["下一步"]["rich_text"])
+        self.assertEqual(props["判定"]["select"]["name"], "🚀 立即實驗")
+        self.assertEqual(props["最後評估"]["date"]["start"], "2026-11-18")
+
+    def test_interaction_score_alone_never_marks_immediate_experiment(self):
+        latest = {"recent_72h_sample": {"videos": [{
+            "title": "AI tool update",
+            "description_zh": "這是一則工具更新資訊，值得進一步確認。",
+            "url": "https://youtu.be/abc123",
+            "views": 999999999, "likes": 99999999,
+        }]}}
+        props = notion_writeback.build_daily_properties(latest, "2026-11-18")
+        self.assertNotEqual(props["判定"]["select"]["name"], "🚀 立即實驗")
+
+    def test_invalid_or_missing_youtube_url_is_left_blank(self):
+        for url in ("", "Example Channel", "https://example.com/video", "javascript:alert(1)"):
+            with self.subTest(url=url):
+                latest = {"recent_72h_sample": {"videos": [{
+                    "title": "AI update", "description_zh": "這是一段足夠長的說明文字，供系統進行初步判斷。",
+                    "url": url,
+                }]}}
+                props = notion_writeback.build_daily_properties(latest, "2026-11-18")
+                self.assertIsNone(props["來源"]["url"]["url"])
+
+    def test_missing_top1_leaves_text_and_url_blank_with_allowed_select(self):
+        props = notion_writeback.build_daily_properties({}, "2026-11-18")
+        self.assertEqual(props["來源"]["url"]["url"], None)
+        self.assertEqual(props["下一步"]["rich_text"], [])
+        self.assertEqual(props["實際價值"]["rich_text"], [])
+        self.assertIn(props["判定"]["select"]["name"], notion_writeback.NOTION_DECISIONS)
+
+    def test_select_decision_is_always_from_existing_allowlist(self):
+        latest = {"recent_72h_sample": {"videos": [
+            {"title": "Unclear AI topic", "description": "A short description."}
+        ]}}
+        props = notion_writeback.build_daily_properties(latest, "2026-11-18")
+        self.assertIn(props["判定"]["select"]["name"], {
+            "🚀 立即實驗", "👀 值得追蹤", "需交叉驗證", "💤 暫時忽略"
+        })
+
+    def test_checkbox_true_is_preserved_when_updating_existing_page(self):
+        expected = notion_writeback.build_daily_properties({}, "2026-11-18")
+        existing = {"id": "page-id", "properties": {"已轉實驗": {"checkbox": True}}}
+        readback = {"id": "page-id", "properties": {
+            "來源": {"url": None},
+            "下一步": {"rich_text": []},
+            "實際價值": {"rich_text": []},
+            "判定": {"select": {"name": "需交叉驗證"}},
+            "最後評估": {"date": {"start": "2026-11-18"}},
+            "已轉實驗": {"checkbox": True},
+        }}
+        with patch("scripts.notion_writeback.request_json", side_effect=[existing, {}, readback]) as request:
+            self.assertTrue(notion_writeback.write_daily_properties(
+                "page-id", "token", {}, "2026-11-18", is_new=False
+            ))
+        patch_payload = request.call_args_list[1].args[3]["properties"]
+        self.assertIs(patch_payload["已轉實驗"]["checkbox"], True)
+        self.assertEqual([x.args[0] for x in request.call_args_list], ["GET", "PATCH", "GET"])
+
+    def test_new_page_checkbox_defaults_false(self):
+        expected = notion_writeback.build_daily_properties({}, "2026-11-18")
+        readback = {"properties": {
+            "來源": {"url": None}, "下一步": {"rich_text": []},
+            "實際價值": {"rich_text": []}, "判定": {"select": {"name": "需交叉驗證"}},
+            "最後評估": {"date": {"start": "2026-11-18"}}, "已轉實驗": {"checkbox": False},
+        }}
+        with patch("scripts.notion_writeback.request_json", side_effect=[{}, {}, readback]) as request:
+            self.assertTrue(notion_writeback.write_daily_properties(
+                "new-page", "token", {}, "2026-11-18", is_new=True
+            ))
+        patch_payload = request.call_args_list[0].args[3]["properties"]
+        self.assertIs(patch_payload["已轉實驗"]["checkbox"], False)
+
+    def test_properties_readback_rejects_type_or_value_mismatch(self):
+        expected = notion_writeback.build_daily_properties({}, "2026-11-18")
+        wrong = {"properties": {
+            "來源": {"rich_text": []}, "下一步": {"rich_text": []},
+            "實際價值": {"rich_text": []}, "判定": {"select": {"name": "需交叉驗證"}},
+            "最後評估": {"date": {"start": "2026-11-18"}}, "已轉實驗": {"checkbox": False},
+        }}
+        self.assertFalse(notion_writeback._verify_daily_properties(wrong, expected, False))
+
+
 if __name__ == "__main__":
     unittest.main()

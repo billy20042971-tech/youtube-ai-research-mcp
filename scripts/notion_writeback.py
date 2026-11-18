@@ -459,6 +459,8 @@ def create_daily_page(database_id: str, token: str, report_date: str) -> str:
             "發現日期": {"date": {"start": report_date}},
             # Notion's API creates a missing select option when a new option name is supplied.
             "類型": {"select": {"name": "YouTube"}},
+            **build_daily_properties({}, report_date),
+            "已轉實驗": {"checkbox": False},
         },
     })
     page_id = created.get("id")
@@ -466,6 +468,165 @@ def create_daily_page(database_id: str, token: str, report_date: str) -> str:
         raise RuntimeError("Notion database page creation response did not include a page id.")
     return page_id
 
+
+
+NOTION_DECISIONS = {
+    "🚀 立即實驗",
+    "👀 值得追蹤",
+    "需交叉驗證",
+    "💤 暫時忽略",
+}
+
+
+def valid_youtube_url(value: object) -> str | None:
+    """Accept only absolute YouTube watch/short URLs; never substitute channel text."""
+    from urllib.parse import urlparse, parse_qs
+
+    raw = str(value or "").strip()
+    try:
+        parsed = urlparse(raw)
+    except ValueError:
+        return None
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme not in ("http", "https") or parsed.username or parsed.password:
+        return None
+    if host in ("youtu.be", "www.youtu.be"):
+        return raw if parsed.path.strip("/") else None
+    if host in ("youtube.com", "www.youtube.com", "m.youtube.com"):
+        if parsed.path == "/watch" and parse_qs(parsed.query).get("v"):
+            return raw
+        if parsed.path.startswith(("/shorts/", "/live/", "/embed/")) and parsed.path.strip("/").count("/") >= 1:
+            return raw
+    return None
+
+
+def _recognized_tool(video: dict) -> bool:
+    text = _text_for_decision(video)
+    try:
+        from scripts.report_analysis import TOOL_GUIDES, GENERIC_TOOL_GUIDES
+    except ModuleNotFoundError:
+        from report_analysis import TOOL_GUIDES, GENERIC_TOOL_GUIDES
+    return any(key.lower() in text for key in TOOL_GUIDES) or any(
+        __import__("re").search(rf"(?<![a-z0-9]){__import__('re').escape(key)}(?![a-z0-9])", text)
+        for key in GENERIC_TOOL_GUIDES
+    )
+
+
+def _text_for_decision(video: dict) -> str:
+    return " ".join(str(video.get(key) or "") for key in (
+        "title", "description", "description_zh", "translated_description",
+        "transcript", "transcript_zh", "chapters", "chapters_zh"
+    )).lower()
+
+
+def initial_decision(video: dict) -> str:
+    """Conservative evidence-based triage; engagement scores are deliberately not consulted."""
+    transcript = str(video.get("transcript_zh") or video.get("transcript") or "").strip()
+    description = str(video.get("description_zh") or video.get("translated_description") or video.get("description") or "").strip()
+    evidence = transcript or description
+    if not evidence or len(evidence) < 40:
+        return "需交叉驗證"
+    if transcript and len(transcript) >= 200 and _recognized_tool(video):
+        import re
+        demonstration = re.search(
+            r"示範|實作|操作|逐步|教學|demo|walkthrough|tutorial|step.by.step",
+            evidence, re.I
+        )
+        if demonstration:
+            return "🚀 立即實驗"
+    return "👀 值得追蹤"
+
+
+def build_daily_properties(latest: dict, report_date: str) -> dict:
+    """Map the day's Top 1 evidence to the six approved Notion database properties."""
+    recent = latest.get("recent_72h_sample", {}) if isinstance(latest, dict) else {}
+    videos = recent.get("videos", []) if isinstance(recent, dict) else []
+    videos = [v for v in videos if isinstance(v, dict)] if isinstance(videos, list) else []
+    top = analyze_sample(videos).get("top", []) if videos else []
+    top1 = top[0] if top else {}
+
+    url = valid_youtube_url(top1.get("url"))
+    insights = core_insights(top1) if top1 else []
+    value = " ".join(" ".join(str(x).split()) for x in insights if str(x).strip())
+    value = value[:100]
+    guide = actionable_guidance(top1) if top1 else {}
+    steps = guide.get("steps", []) if isinstance(guide, dict) else []
+    next_step = str(steps[0]).strip() if steps else ""
+    decision = initial_decision(top1) if top1 else "需交叉驗證"
+    if decision not in NOTION_DECISIONS:
+        decision = "需交叉驗證"
+
+    return {
+        "來源": {"url": {"url": url}},
+        "實際價值": {"rich_text": rich_text(value) if value else []},
+        "下一步": {"rich_text": rich_text(next_step) if next_step else []},
+        "判定": {"select": {"name": decision}},
+        "最後評估": {"date": {"start": report_date}},
+    }
+
+
+def _page_checkbox(page: dict, property_name: str) -> bool:
+    properties = page.get("properties", {}) if isinstance(page, dict) else {}
+    prop = properties.get(property_name, {}) if isinstance(properties, dict) else {}
+    return bool(prop.get("checkbox")) if isinstance(prop, dict) else False
+
+
+def _verify_daily_properties(page: dict, expected: dict, expected_checkbox: bool) -> bool:
+    """Verify property types and values from an independent GET /pages/{id} response."""
+    props = page.get("properties", {}) if isinstance(page, dict) else {}
+    if not isinstance(props, dict):
+        return False
+    checks = {
+        "來源": ("url", expected["來源"]["url"]["url"]),
+        "下一步": ("rich_text", "".join(x.get("text", {}).get("content", "") for x in expected["下一步"]["rich_text"])),
+        "實際價值": ("rich_text", "".join(x.get("text", {}).get("content", "") for x in expected["實際價值"]["rich_text"])),
+        "判定": ("select", expected["判定"]["select"]["name"]),
+        "最後評估": ("date", expected["最後評估"]["date"]["start"]),
+    }
+    for name, (kind, value) in checks.items():
+        prop = props.get(name)
+        if not isinstance(prop, dict) or kind not in prop:
+            return False
+        actual = prop.get(kind)
+        if kind == "url":
+            actual_value = actual
+        elif kind == "rich_text":
+            if not isinstance(actual, list):
+                return False
+            actual_value = "".join(
+                item.get("plain_text", item.get("text", {}).get("content", ""))
+                for item in actual if isinstance(item, dict)
+            )
+        elif kind == "select":
+            actual_value = actual.get("name") if isinstance(actual, dict) else None
+        else:
+            actual_value = actual.get("start") if isinstance(actual, dict) else None
+        if actual_value != value:
+            return False
+    checkbox_prop = props.get("已轉實驗")
+    if not isinstance(checkbox_prop, dict) or "checkbox" not in checkbox_prop:
+        return False
+    return checkbox_prop["checkbox"] is expected_checkbox
+
+
+def write_daily_properties(page_id: str, token: str, latest: dict, report_date: str, *, is_new: bool = False) -> bool:
+    """Safely update six properties, preserving a manually checked experiment flag."""
+    page_before = request_json("GET", f"/pages/{page_id}", token)
+    checkbox_value = False if is_new else _page_checkbox(page_before, "已轉實驗")
+    expected = build_daily_properties(latest, report_date)
+    properties = dict(expected)
+    properties["已轉實驗"] = {"checkbox": checkbox_value}
+    request_json("PATCH", f"/pages/{page_id}", token, {"properties": properties})
+
+    # A separate GET is mandatory; do not trust the PATCH response as readback evidence.
+    delays = (0.5, 1, 2, 3)
+    for attempt in range(len(delays) + 1):
+        readback = request_json("GET", f"/pages/{page_id}", token)
+        if _verify_daily_properties(readback, expected, checkbox_value):
+            return True
+        if attempt < len(delays):
+            time.sleep(delays[attempt])
+    return False
 
 def main() -> int:
     execution_id = f"gh-{os.environ.get('GITHUB_RUN_ID', 'local')}-attempt-{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
@@ -503,8 +664,15 @@ def main() -> int:
     report_date = report_date_from_manifest(manifest)
     page_title = f"{report_date} | 每日 AI 情報雷達"
     page_id = find_daily_page(database_id, token, page_title, execution_id)
-    if page_id is None:
+    is_new_page = page_id is None
+    if is_new_page:
         page_id = create_daily_page(database_id, token, report_date)
+
+    properties_readback_verified = write_daily_properties(
+        page_id, token, latest, report_date, is_new=is_new_page
+    )
+    if not properties_readback_verified:
+        raise RuntimeError("Notion database properties failed independent type/value readback.")
 
     block_count, blocks_readback_verified = ensure_deep_briefing(page_id, token, latest, manifest, execution_id)
     text = comment_text(execution_id, manifest, state)
@@ -516,6 +684,7 @@ def main() -> int:
         "execution_id": execution_id,
         "status": "PASS",
         "page_block_verification": "PASS_FULL_SEQUENCE_TYPE_AND_TEXT",
+        "database_properties_verification": "PASS_SIX_PROPERTIES_TYPE_AND_VALUE",
         "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
         "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
         "checked_at": now_iso(),
