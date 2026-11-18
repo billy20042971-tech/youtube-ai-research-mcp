@@ -547,7 +547,7 @@ def build_daily_properties(latest: dict, report_date: str) -> dict:
 
     url = valid_youtube_url(top1.get("url"))
     insights = core_insights(top1) if top1 else []
-    value = " ".join(str(x).split() for x in insights if str(x).strip())
+    value = " ".join(" ".join(str(x).split()) for x in insights if str(x).strip())
     value = value[:100]
     guide = actionable_guidance(top1) if top1 else {}
     steps = guide.get("steps", []) if isinstance(guide, dict) else []
@@ -558,8 +558,8 @@ def build_daily_properties(latest: dict, report_date: str) -> dict:
 
     return {
         "來源": {"url": {"url": url}},
-        "實際價值": {"rich_text": rich_text(value)},
-        "下一步": {"rich_text": rich_text(next_step)},
+        "實際價值": {"rich_text": rich_text(value) if value else []},
+        "下一步": {"rich_text": rich_text(next_step) if next_step else []},
         "判定": {"select": {"name": decision}},
         "最後評估": {"date": {"start": report_date}},
     }
