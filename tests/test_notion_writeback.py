@@ -461,7 +461,7 @@ class NotionWritebackTests(unittest.TestCase):
             "實際價值": {"rich_text": []}, "判定": {"select": {"name": "需交叉驗證"}},
             "最後評估": {"date": {"start": "2026-11-18"}}, "已轉實驗": {"checkbox": False},
         }}
-        with patch("scripts.notion_writeback.request_json", side_effect=[{}, readback]) as request:
+        with patch("scripts.notion_writeback.request_json", side_effect=[{}, {}, readback]) as request:
             self.assertTrue(notion_writeback.write_daily_properties(
                 "new-page", "token", {}, "2026-11-18", is_new=True
             ))
