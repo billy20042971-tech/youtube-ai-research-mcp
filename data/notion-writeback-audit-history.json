@@ -450,6 +450,15 @@
       "readback_content_sha256": "3b78ed1b4ab243e3792031776ed676f1c239edb2a5c2b92f1908496d8d109c2a",
       "sample_count": 39,
       "github_run_id": "44013765573"
+    },
+    {
+      "execution_id": "gh-44226843477-attempt-1",
+      "status": "NOT_RUN",
+      "checked_at": "2026-11-18T03:16:30.538477+00:00",
+      "github_run_id": "44226843477",
+      "writeback_verified": false,
+      "readback_verified": false,
+      "error": "Execution evidence consistency gate failed"
     }
   ]
 }
