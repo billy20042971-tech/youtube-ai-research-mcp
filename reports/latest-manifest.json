@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-17T03:59:06.463135+00:00",
+  "generated_at": "2026-11-19T02:39:42.685084+00:00",
   "source": "YouTube Research MCP",
-  "sample_count": 39,
-  "word": "reports/2026-11-17/YouTube_AI趨勢研究雷達_2026-11-17_完整報告.docx",
-  "pptx": "reports/2026-11-17/YouTube_AI趨勢研究雷達_2026-11-17_簡報.pptx",
-  "chart": "reports/2026-11-17/top10_views.png",
+  "sample_count": 40,
+  "word": "reports/2026-11-19/YouTube_AI趨勢研究雷達_2026-11-19_完整報告.docx",
+  "pptx": "reports/2026-11-19/YouTube_AI趨勢研究雷達_2026-11-19_簡報.pptx",
+  "chart": "reports/2026-11-19/top10_views.png",
   "automation_status": "generated",
-  "execution_id": "gh-44013765573-attempt-1"
+  "execution_id": "gh-44445683497-attempt-1"
 }
