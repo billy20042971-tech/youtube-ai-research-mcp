@@ -1,20 +1,9 @@
 {
-  "execution_id": "gh-44445683497-attempt-1",
-  "status": "PASS",
-  "page_block_verification": "PASS_FULL_SEQUENCE_TYPE_AND_TEXT",
-  "comment_verification": "PASS_EXACT_ID_EXECUTION_ID_AND_FULL_CONTENT",
-  "verification_scope": "GitHub Actions verified the target page via the Notion API; connector-side visibility is not directly callable from this workflow.",
-  "checked_at": "2026-11-19T02:47:47.279626+00:00",
-  "database_id": "8eeeca64-4e1f-4687-a361-1f5124a0c5c8",
-  "page_id": "41d40065-15d9-812b-a4fc-f92193a37628",
-  "report_date": "2026-11-19",
-  "page_title": "2026-11-19 | 每日 AI 情報雷達",
-  "comment_id": "41d40065-15d9-8150-a9bb-001d07b495d8",
-  "writeback_verified": true,
-  "readback_verified": true,
-  "deep_briefing_blocks": 165,
-  "deep_briefing_readback_verified": true,
-  "readback_content_sha256": "ec4c3ec5edd0cace24c22cd8ed953bfad9a26b0943efcc2d0b5ecb77e3166209",
-  "sample_count": 40,
-  "github_run_id": "44445683497"
+  "execution_id": "gh-44660308865-attempt-1",
+  "status": "NOT_RUN",
+  "checked_at": "2026-11-20T02:42:34.549912+00:00",
+  "github_run_id": "44660308865",
+  "writeback_verified": false,
+  "readback_verified": false,
+  "error": "Execution evidence consistency gate failed"
 }
