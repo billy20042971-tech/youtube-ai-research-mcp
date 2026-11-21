@@ -647,6 +647,23 @@
       "verification": "FAIL",
       "failure_reason": "Execution evidence consistency gate failed",
       "recovery_action": "Inspect data/latest.json, reports/latest-manifest.json, and data/notion-writeback-audit.json for mismatched execution IDs."
+    },
+    {
+      "execution_id": "gh-44855729161-attempt-1",
+      "workflow": "Daily YouTube Research via MCP",
+      "status": "FAILED",
+      "started_at": "2026-11-21T02:24:45Z",
+      "completed_at": "2026-11-21T02:44:47.251788+00:00",
+      "github_run_id": "44855729161",
+      "github_run_attempt": "1",
+      "trigger": "schedule",
+      "recovery_attempt": false,
+      "mcp_endpoint": "https://youtube-ai-research-mcp.onrender.com/mcp",
+      "data": "UNKNOWN",
+      "reports": "UNKNOWN",
+      "verification": "FAIL",
+      "failure_reason": "Execution evidence consistency gate failed",
+      "recovery_action": "Inspect data/latest.json, reports/latest-manifest.json, and data/notion-writeback-audit.json for mismatched execution IDs."
     }
   ]
 }
