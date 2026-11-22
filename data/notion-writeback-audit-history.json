@@ -497,6 +497,15 @@
       "writeback_verified": false,
       "readback_verified": false,
       "error": "Execution evidence consistency gate failed"
+    },
+    {
+      "execution_id": "gh-44971266327-attempt-1",
+      "status": "NOT_RUN",
+      "checked_at": "2026-11-22T01:43:58.474820+00:00",
+      "github_run_id": "44971266327",
+      "writeback_verified": false,
+      "readback_verified": false,
+      "error": "Execution evidence consistency gate failed"
     }
   ]
 }
